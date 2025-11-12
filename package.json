@@ -1,0 +1,19 @@
+{
+  "name": "azahar",
+  "version": "0.1.0",
+  "description": "AZAHAR - App de tareas minimalista",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -C apps/web dev",
+    "build": "pnpm -C apps/web build",
+    "preview": "pnpm -C apps/web preview",
+    "lint": "pnpm -C apps/web lint",
+    "install-all": "pnpm install"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {}
+}
