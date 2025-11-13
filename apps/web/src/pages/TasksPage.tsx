@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   listTasks,
+  searchTasks,
   addTask,
   signOut,
   type Task,
@@ -37,14 +38,20 @@ export default function TasksPage() {
   const [newLabelName, setNewLabelName] = useState('')
   const [showNewLabel, setShowNewLabel] = useState(false)
   const [selectedTaskForLabel, setSelectedTaskForLabel] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  // Consulta para obtener tareas
+  // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', { projectId: selectedProjectId, labelIds: selectedLabelIds, q: searchQuery }],
     queryFn: async () => {
-      const result = await listTasks()
+      const result = await searchTasks(
+        searchQuery || undefined,
+        selectedProjectId || undefined,
+        selectedLabelIds.length > 0 ? selectedLabelIds : undefined
+      )
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
         return []
@@ -303,11 +310,6 @@ export default function TasksPage() {
     }
   }
 
-  // Filtrar tareas según proyecto seleccionado
-  const filteredTasks = selectedProjectId
-    ? tasks.filter(t => t.project_id === selectedProjectId)
-    : tasks
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-2xl mx-auto p-6">
@@ -323,6 +325,79 @@ export default function TasksPage() {
           >
             Cerrar sesión
           </button>
+        </div>
+
+        {/* Buscador y Filtros */}
+        <div className="mb-8 space-y-4 p-5 bg-white rounded-lg shadow-md border border-gray-200">
+          {/* Buscador */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">🔍 Buscar</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por título o notas..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            />
+          </div>
+
+          {/* Filtro por Proyecto */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">📁 Proyecto</label>
+            <select
+              value={selectedProjectId || ''}
+              onChange={(e) => setSelectedProjectId(e.target.value || null)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            >
+              <option value="">Todos los proyectos</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Etiquetas (Multi-select) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">🏷️ Etiquetas (selecciona una o más)</label>
+            <div className="grid grid-cols-2 gap-2">
+              {labels.map(label => (
+                <label key={label.id} className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    checked={selectedLabelIds.includes(label.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedLabelIds([...selectedLabelIds, label.id])
+                      } else {
+                        setSelectedLabelIds(selectedLabelIds.filter(id => id !== label.id))
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-700">{label.name}</span>
+                </label>
+              ))}
+            </div>
+            {selectedLabelIds.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedLabelIds.map(labelId => {
+                  const label = labels.find(l => l.id === labelId)
+                  return (
+                    <span key={labelId} className="text-xs px-2 py-1 bg-pink-100 text-pink-700 rounded-full flex items-center gap-1">
+                      {label?.name}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLabelIds(selectedLabelIds.filter(id => id !== labelId))}
+                        className="hover:opacity-70"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Formulario para agregar tarea */}
@@ -344,21 +419,7 @@ export default function TasksPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Proyecto</label>
-              <select
-                value={selectedProjectId || ''}
-                onChange={(e) => setSelectedProjectId(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              >
-                <option value="">Sin proyecto</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
               <select
@@ -471,11 +532,13 @@ export default function TasksPage() {
             </div>
           ) : filteredTasks.length === 0 ? (
             <div className="p-8 text-center text-gray-600">
-              {selectedProjectId ? 'No hay tareas en este proyecto' : 'No hay tareas aún. ¡Añade una para comenzar!'}
+              {searchQuery || selectedProjectId || selectedLabelIds.length > 0 
+                ? 'No hay tareas que coincidan con los filtros' 
+                : 'No hay tareas aún. ¡Añade una para comenzar!'}
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {filteredTasks.map((task: Task) => {
+              {tasks.map((task: Task) => {
                 const taskProject = projects.find(p => p.id === task.project_id)
                 return (
                   <li
@@ -634,9 +697,9 @@ export default function TasksPage() {
         </div>
 
         {/* Contador */}
-        {filteredTasks.length > 0 && (
+        {tasks.length > 0 && (
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>{filteredTasks.filter(t => t.status === 'done').length} de {filteredTasks.length} completada{filteredTasks.length !== 1 ? 's' : ''}</p>
+            <p>{tasks.filter(t => t.status === 'done').length} de {tasks.length} completada{tasks.length !== 1 ? 's' : ''}</p>
           </div>
         )}
       </div>

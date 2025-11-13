@@ -120,6 +120,79 @@ export async function listTasks(): Promise<{ success: boolean; tasks?: Task[]; e
   }
 }
 
+export async function searchTasks(
+  query?: string,
+  projectId?: string,
+  labelIds?: string[]
+): Promise<{ success: boolean; tasks?: Task[]; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    // Obtener todas las tareas del usuario
+    const { data: allTasks, error: tasksError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('due_at', { ascending: true, nullsFirst: true })
+      .order('created_at', { ascending: false })
+
+    if (tasksError) {
+      return { success: false, error: tasksError.message }
+    }
+
+    let filtered = allTasks || []
+
+    // Filtrar por proyecto
+    if (projectId) {
+      filtered = filtered.filter(t => t.project_id === projectId)
+    }
+
+    // Filtrar por búsqueda de texto (title + notes)
+    if (query && query.trim()) {
+      const q = query.toLowerCase()
+      filtered = filtered.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        (t.notes && t.notes.toLowerCase().includes(q))
+      )
+    }
+
+    // Filtrar por etiquetas (si hay etiquetas seleccionadas, la tarea debe tener TODAS)
+    if (labelIds && labelIds.length > 0) {
+      // Obtener etiquetas de cada tarea
+      const { data: taskLabels, error: labelsError } = await supabase
+        .from('task_labels')
+        .select('*')
+        .in('task_id', filtered.map(t => t.id))
+
+      if (labelsError) {
+        return { success: false, error: labelsError.message }
+      }
+
+      // Agrupar etiquetas por tarea
+      const taskLabelMap = new Map<string, string[]>()
+      taskLabels?.forEach(tl => {
+        if (!taskLabelMap.has(tl.task_id)) {
+          taskLabelMap.set(tl.task_id, [])
+        }
+        taskLabelMap.get(tl.task_id)!.push(tl.label_id)
+      })
+
+      // Filtrar tareas que tengan TODAS las etiquetas requeridas
+      filtered = filtered.filter(t => {
+        const taskLabelSet = new Set(taskLabelMap.get(t.id) || [])
+        return labelIds.every(labelId => taskLabelSet.has(labelId))
+      })
+    }
+
+    return { success: true, tasks: filtered as Task[] }
+  } catch (err) {
+    return { success: false, error: 'Error al buscar tareas' }
+  }
+}
+
 export async function addTask(
   title: string,
   notes?: string,
