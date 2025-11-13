@@ -1,7 +1,7 @@
 # 📊 PROGRESS.md - Registro de Desarrollo AZAHAR
 
 **Proyecto:** AZAHAR - Gestor de Tareas Minimalista  
-**Versión Actual:** 0.4.0  
+**Versión Actual:** 0.5.0  
 **Última Actualización:** 13 de noviembre de 2025
 
 ---
@@ -10,12 +10,12 @@
 
 | Métrica | Estado |
 |---------|--------|
-| Progreso | 90% ✅ |
+| Progreso | 95% ✅ |
 | Errores TypeScript | 0 ✅ |
 | Errores en Navegador | 0 ✅ |
 | Tests Pasados | 9/9 (Día 2) ✅ |
-| Commits Totales | 16 |
-| Líneas de Código | ~2,800 |
+| Commits Totales | 18 |
+| Líneas de Código | ~3,100 |
 
 ---
 
@@ -254,6 +254,72 @@ Formulario nuevo:
 
 ---
 
+## 📅 DÍA 5 - 13 de Noviembre (Búsqueda y Filtrado Múltiple)
+
+**Objetivo:** Implementar búsqueda por texto y filtrado combinado (Proyecto + Etiquetas)
+
+### ✅ Completado
+- [x] Función `searchTasks(query, projectId, labelIds)` en backend
+- [x] Búsqueda por texto en title y notes (case-insensitive)
+- [x] Filtro por proyecto (selector dropdown)
+- [x] Filtro por etiquetas (multi-select checkboxes)
+- [x] Query Key en React Query: `['tasks', { projectId, labelIds, q }]`
+- [x] Buscador prominente en la toolbar
+- [x] Filtros mostrados como chips removibles
+- [x] Mensaje dinámico cuando no hay resultados
+- [x] Lógica de combinación: proyecto AND etiquetas (todas) AND búsqueda
+- [x] 0 errores TypeScript
+- [x] 0 errores en navegador
+
+### 📝 Cambios Técnicos
+
+**Backend (supabase.ts):**
+- `searchTasks(query?, projectId?, labelIds?)` - Nueva función
+- Búsqueda: filtro en title + notes (toLowerCase)
+- Proyecto: eq filter
+- Etiquetas: obtiene task_labels, agrupa por tarea, filtra las que tengan TODAS
+
+**Frontend (TasksPage.tsx):**
+- Imports: agregar `searchTasks`
+- Estados nuevos (2):
+  - `searchQuery` - texto de búsqueda
+  - `selectedLabelIds` - array de IDs de etiquetas
+- Query key actualizada: `['tasks', { projectId: selectedProjectId, labelIds: selectedLabelIds, q: searchQuery }]`
+- UI nueva: sección de Filtros encima del formulario
+  - Buscador (input text)
+  - Filtro por Proyecto (dropdown)
+  - Filtro por Etiquetas (checkboxes grid)
+  - Chips removibles para etiquetas seleccionadas
+- Remover selector de proyecto del formulario (ahora solo en filtros)
+
+### 🎨 UI Changes
+```
+Nuevo:
+┌─ FILTROS ──────────────────────┐
+│ 🔍 Buscar: [factura..........]│
+│ 📁 Proyecto: [Casa▼]          │
+│ 🏷️ Etiquetas:                  │
+│   ☑ Finanzas  ☐ Casa  ☐ Trabajo│
+│ [Finanzas ✕]                    │
+└────────────────────────────────┘
+
+Resultado:
+- "factura" (búsqueda)
+- Casa (proyecto)
+- #Finanzas (etiqueta)
+→ Solo muestra tareas que cumplen TODOS los criterios
+```
+
+### 📊 Estadísticas Día 5
+- Líneas de código: +300
+- Función nueva: 1 (searchTasks)
+- Estados nuevos: 2
+- UI components nuevos: 1 (Filtros bar)
+- Commits: 1
+- Errores: 0
+
+---
+
 ## 🔗 Funcionalidades Implementadas
 
 ### Autenticación
@@ -271,9 +337,12 @@ Formulario nuevo:
 - [x] Eliminar tarea
 - [x] Asignar proyecto
 - [x] Asignar etiquetas
-- [x] Notas en tareas ✨ NUEVO
-- [x] Prioridad (1-3) ✨ NUEVO
-- [x] Vencimiento con date picker ✨ NUEVO
+- [x] Notas en tareas ✨ NUEVO (Día 4)
+- [x] Prioridad (1-3) ✨ NUEVO (Día 4)
+- [x] Vencimiento con date picker ✨ NUEVO (Día 4)
+- [x] Búsqueda por título/notas ✨ NUEVO (Día 5)
+- [x] Filtrado por proyecto ✨ NUEVO (Día 5)
+- [x] Filtrado por etiquetas ✨ NUEVO (Día 5)
 
 ### Proyectos
 - [x] Crear proyecto
@@ -282,6 +351,7 @@ Formulario nuevo:
 - [x] Eliminar proyecto
 - [x] Asignar tareas a proyecto
 - [x] Filtrar por proyecto
+- [x] Filtrado combinado con etiquetas
 - [ ] Editar desde UI
 - [ ] Colores personalizados
 
@@ -291,9 +361,20 @@ Formulario nuevo:
 - [x] Eliminar etiqueta
 - [x] Asignar a tareas
 - [x] Remover de tareas
+- [x] Filtrar por etiqueta (multi-select)
+- [x] Filtrado combinado con proyectos
 - [ ] Editar desde UI
 - [ ] Colores personalizados
-- [ ] Filtrar por etiqueta
+
+### Búsqueda y Filtrado
+- [x] Búsqueda full-text (title + notes) ✨ NUEVO
+- [x] Filtro por proyecto ✨ NUEVO
+- [x] Filtro múltiple por etiquetas ✨ NUEVO
+- [x] Combinación de filtros (AND logic) ✨ NUEVO
+- [x] Query Key correcta en React Query ✨ NUEVO
+- [ ] Historial de búsquedas
+- [ ] Búsqueda por vencimiento
+- [ ] Búsqueda por prioridad
 
 ### UI/UX
 - [x] Responsive design
@@ -303,6 +384,8 @@ Formulario nuevo:
 - [x] Mensajes de error
 - [x] Indicadores de carga
 - [x] Transiciones suaves
+- [x] Buscador en toolbar ✨ NUEVO
+- [x] Filtros prominentes ✨ NUEVO
 - [ ] Tema oscuro
 - [ ] Animaciones avanzadas
 
@@ -331,8 +414,11 @@ Día 3:  ███████████████████░░░░�
 Día 4:  ██████████████████████░░░░ 90% ✅
         + Notas + Prioridad + Vencimiento
 
-Día 5+: ░░░░░░░░░░░░░░░░░░░░░░░░░░ 10% ⏳
-        Búsqueda, Filtrado, Temas, etc
+Día 5:  ██████████████████████████ 95% ✅
+        + Búsqueda + Filtrado Múltiple
+
+Día 6+: ░░░░░░░░░░░░░░░░░░░░░░░░░░ 5% ⏳
+        Temas, Editar Proyectos/Etiquetas, etc
 ```
 
 ---
@@ -346,21 +432,24 @@ apps/web/src/lib/supabase.ts
 ├── Tasks CRUD (5 funciones + actualizado)
 ├── Projects CRUD (4 funciones)
 ├── Labels CRUD (3 funciones)
-└── Relations (3 funciones)
-Total: ~600 líneas
+├── Relations (3 funciones)
+└── Search & Filter (1 función)
+Total: ~650 líneas
 ```
 
 ### Frontend Files
 ```
 apps/web/src/pages/
 ├── LoginPage.tsx (~200 líneas)
-└── TasksPage.tsx (~650 líneas + actualizado)
+└── TasksPage.tsx (~800 líneas + actualizado)
   ├── Authentication UI
-  ├── Tasks Management (con Notas, Prioridad, Vencimiento)
+  ├── Tasks Management (Notas, Prioridad, Vencimiento)
+  ├── Search Bar
+  ├── Filter Panel (Proyecto, Etiquetas)
   ├── Projects Management
   ├── Labels Management
   └── TaskLabels Component
-Total: ~850 líneas
+Total: ~1,000 líneas
 ```
 
 ### Config Files
@@ -431,39 +520,43 @@ pnpm-workspace.yaml
 
 ## 📊 Métricas Totales
 
-| Métrica | Día 1 | Día 2 | Día 3 | Día 4 | Total |
-|---------|-------|-------|-------|-------|-------|
-| Líneas código | 290 | +300 | +850 | +300 | ~2,800 |
-| Funciones | 5 | +3 | +10 | 0 (actualizado) | 18 |
-| Interfaces | 1 | 0 | +3 | 0 | 4 |
-| Estados UI | 0 | +2 | +6 | +8 | 18 |
-| Commits | 2 | 5 | 3 | 1 | 16 |
-| Errores TS | 0 | 0 | 0 | 0 | 0 |
-| Tests | N/A | 9/9 ✅ | 0/13 | ⏳ | 9/22+ |
+| Métrica | Día 1 | Día 2 | Día 3 | Día 4 | Día 5 | Total |
+|---------|-------|-------|-------|-------|-------|-------|
+| Líneas código | 290 | +300 | +850 | +300 | +300 | ~3,100 |
+| Funciones | 5 | +3 | +10 | 0 (act.) | +1 | 19 |
+| Interfaces | 1 | 0 | +3 | 0 | 0 | 4 |
+| Estados UI | 0 | +2 | +6 | +8 | +2 | 20 |
+| Commits | 2 | 5 | 3 | 1 | 1 | 18 |
+| Errores TS | 0 | 0 | 0 | 0 | 0 | 0 |
+| Tests | N/A | 9/9 ✅ | 0/13 | ⏳ | ⏳ | 9/22+ |
 
 ---
 
 ## 🚀 Próximos Pasos (Prioridad)
 
-### Alta Prioridad (DoD completado - Día 4)
+### Alta Prioridad (DoD Días 4-5 completados)
 1. [x] Implementar Notas, Prioridad, Vencimiento
 2. [x] Mostrar chips de prioridad en lista
 3. [x] Mostrar fecha formateada
 4. [x] Ordenar por vencimiento
+5. [x] Búsqueda de tareas (title + notes)
+6. [x] Filtrado por proyecto
+7. [x] Filtrado múltiple por etiquetas
 
 ### Media Prioridad
-5. [ ] Completar testing Día 4 (crear/editar/mostrar)
-6. [ ] Búsqueda de tareas
-7. [ ] Filtrado por prioridad
-8. [ ] Filtrado múltiple (proyecto + etiqueta + prioridad)
-
-### Baja Prioridad
+8. [ ] Completar testing Día 4-5
 9. [ ] Editar/borrar proyectos desde UI
 10. [ ] Editar/borrar etiquetas desde UI
-11. [ ] Tema oscuro
-12. [ ] PWA offline
-13. [ ] Categorías personalizadas
-14. [ ] Exportar/Importar
+11. [ ] Filtrado por prioridad
+12. [ ] Búsqueda por fecha vencimiento
+
+### Baja Prioridad
+13. [ ] Tema oscuro
+14. [ ] PWA offline
+15. [ ] Categorías personalizadas
+16. [ ] Exportar/Importar
+17. [ ] Historial de búsquedas
+18. [ ] Duplicar tareas
 
 ---
 
@@ -630,18 +723,20 @@ git log --oneline
 ```
 ╔════════════════════════════════════════════╗
 ║                                            ║
-║        ✅ PROYECTO EN BUEN ESTADO         ║
+║        ✅ PROYECTO EN EXCELENTE ESTADO    ║
 ║                                            ║
-║  Versión: 0.4.0                            ║
-║  Progreso: 90%                             ║
+║  Versión: 0.5.0                            ║
+║  Progreso: 95%                             ║
 ║  Compilación: ✅ Exitosa                   ║
-║  Errores: 0                                ║
-║  Tests: 9/9 pasados (Día 2)                ║
+║  Errores: 0 (TypeScript + Browser)         ║
+║  Tests: 9/9 pasados (Día 2) ✅            ║
 ║  Servidor: http://localhost:5174/          ║
 ║                                            ║
-║  Día 4 Completado: Notas + Prioridad +    ║
-║                    Vencimiento             ║
-║  Listo para: Testing Día 4                 ║
+║  Completado:                                ║
+║  ✅ Días 1-5: Scaffold + CRUD + Campos +   ║
+║              Búsqueda + Filtrado           ║
+║                                            ║
+║  Listo para: Testing o Más Features        ║
 ║                                            ║
 ╚════════════════════════════════════════════╝
 ```
@@ -651,10 +746,10 @@ git log --oneline
 ## 📞 Cómo Continuar
 
 ### Para Mañana
-1. Leer este archivo
+1. Leer este archivo (PROGRESS.md)
 2. Ejecutar `pnpm dev`
 3. Ir a http://localhost:5174/
-4. Revisar DAY3_TESTING.md
+4. Probar búsqueda y filtrado
 5. Hacer testing manual
 
 ### Para Agregar Features
@@ -666,5 +761,5 @@ git log --oneline
 
 ---
 
-**Última actualización:** 13 de noviembre de 2025, 11:15 AM  
-**Próxima actualización:** Después de testing Día 4 o siguiente feature
+**Última actualización:** 13 de noviembre de 2025, 11:45 AM  
+**Próxima actualización:** Después de testing Día 5 o siguiente feature
