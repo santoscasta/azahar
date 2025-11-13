@@ -30,35 +30,58 @@ Este archivo mantiene un registro del progreso diario de desarrollo para facilit
 - [x] Añadir indicador visual de progreso (X de Y completadas)
 - [x] Servidor de desarrollo funcionando sin errores
 
+---
+
+## 📅 Sesión: 13 de Noviembre de 2025 (DÍA 3 - EN PROGRESO)
+
+### ✅ Completado Hoy
+- [x] Implementar CRUD de proyectos (getProjects, addProject, updateProject, deleteProject)
+- [x] Implementar CRUD de etiquetas (getLabels, addLabel, deleteLabel)
+- [x] Implementar relaciones tarea-etiqueta (getTaskLabels, addTaskLabel, removeTaskLabel)
+- [x] Selector de proyecto en formulario de tareas
+- [x] UI para crear proyectos
+- [x] UI para crear etiquetas
+- [x] Mostrar proyecto en cada tarea
+- [x] Filtrado de tareas por proyecto
+- [x] Botón para etiquetar tareas
+- [x] Sin errores TypeScript
+- [x] Servidor funcionando correctamente
+
 ### 🔄 En Progreso
-- [ ] Testing manual de todas las funciones CRUD
+- [ ] Testing manual completo de proyectos
+- [ ] Testing manual completo de etiquetas
+- [ ] Ajustes finales de UI/UX
 
 ### 📋 Próximos Pasos (Prioridad)
-1. [ ] Pruebas manuales: editar tarea
-2. [ ] Pruebas manuales: marcar como completada
-3. [ ] Pruebas manuales: eliminar tarea
-4. [ ] Implementar proyectos (Day 3)
-5. [ ] Implementar etiquetas (Day 3)
+1. [ ] Testing: Crear proyecto y asignar tareas
+2. [ ] Testing: Crear etiquetas y asignarlas a tareas
+3. [ ] Testing: Filtrado por proyecto
+4. [ ] Ajustes visuales si es necesario
+5. [ ] Documentar Día 3
+6. [ ] Commit final
 
 ### 🐛 Problemas Encontrados
-- Ninguno reportado
+- Ninguno reportado hasta ahora
 - Warning de Tailwind sobre módulos ES (no afecta funcionalidad)
 
-### 📝 Cambios Realizados
+### 📝 Cambios Realizados (Día 3)
 **Backend (supabase.ts):**
-- Agregada función `updateTask(id, updates)` para editar tareas
-- Agregada función `toggleTaskStatus(id)` para marcar completadas/incompletas
-- Agregada función `deleteTask(id)` para eliminar tareas
+- Agregadas interfaces: Project, Label, TaskLabel
+- Agregadas 4 funciones de proyectos: getProjects, addProject, updateProject, deleteProject
+- Agregadas 2 funciones de etiquetas: getLabels, addLabel, deleteLabel
+- Agregadas 3 funciones de relaciones: getTaskLabels, addTaskLabel, removeTaskLabel
 
 **Frontend (TasksPage.tsx):**
-- Agregados estados para edición: `editingId` y `editingTitle`
-- Implementadas mutaciones de React Query para las 3 operaciones
-- Rediseñada UI con:
-  - Checkbox circular para marcar completadas (tick verde)
-  - Botones Editar/Eliminar que aparecen al hover
-  - Modo edición inline con guardar/cancelar
-  - Contador de progreso (completadas/total)
-  - Efecto visual de tachado para tareas completadas
+- Agregados estados: selectedProjectId, newProjectName, showNewProject, newLabelName, showNewLabel, selectedTaskForLabel
+- Agregadas queries: getProjects, getLabels
+- Agregadas mutaciones: addProjectMutation, addLabelMutation, addTaskLabelMutation, removeTaskLabelMutation
+- Nuevo componente auxiliar: TaskLabels
+- Selector de proyecto en formulario de tareas
+- Formularios para crear proyectos
+- Formularios para crear etiquetas
+- Mostrar proyecto asignado en cada tarea
+- Filtrado de tareas por proyecto seleccionado
+- Botones para etiquetar tareas
 
 ### 📝 Notas Técnicas
 - Stack: React + Vite + TypeScript
@@ -109,4 +132,4 @@ Revisar: `DAY1_DELIVERABLES.md`
 
 ---
 
-**Última actualización:** 13 Nov 2025, 8:52 AM
+**Última actualización:** 13 Nov 2025 (Día 3 en progreso), 8:52 AM
