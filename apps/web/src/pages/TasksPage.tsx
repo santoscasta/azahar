@@ -22,9 +22,15 @@ import {
 
 export default function TasksPage() {
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskNotes, setNewTaskNotes] = useState('')
+  const [newTaskPriority, setNewTaskPriority] = useState<0 | 1 | 2 | 3>(0)
+  const [newTaskDueAt, setNewTaskDueAt] = useState('')
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingNotes, setEditingNotes] = useState('')
+  const [editingPriority, setEditingPriority] = useState<0 | 1 | 2 | 3>(0)
+  const [editingDueAt, setEditingDueAt] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [newProjectName, setNewProjectName] = useState('')
   const [showNewProject, setShowNewProject] = useState(false)
@@ -73,10 +79,14 @@ export default function TasksPage() {
 
   // Mutación para agregar tarea
   const addTaskMutation = useMutation({
-    mutationFn: (title: string) => addTask(title),
+    mutationFn: (args: { title: string; notes: string; priority: number; due_at: string }) =>
+      addTask(args.title, args.notes || undefined, args.priority, args.due_at || undefined),
     onSuccess: (result) => {
       if (result.success) {
         setNewTaskTitle('')
+        setNewTaskNotes('')
+        setNewTaskPriority(0)
+        setNewTaskDueAt('')
         setError('')
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
       } else {
@@ -90,11 +100,20 @@ export default function TasksPage() {
 
   // Mutación para actualizar tarea
   const updateTaskMutation = useMutation({
-    mutationFn: (taskId: string) => updateTask(taskId, { title: editingTitle }),
+    mutationFn: (taskId: string) =>
+      updateTask(taskId, {
+        title: editingTitle,
+        notes: editingNotes,
+        priority: editingPriority,
+        due_at: editingDueAt || null,
+      }),
     onSuccess: (result) => {
       if (result.success) {
         setEditingId(null)
         setEditingTitle('')
+        setEditingNotes('')
+        setEditingPriority(0)
+        setEditingDueAt('')
         setError('')
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
       } else {
@@ -214,12 +233,20 @@ export default function TasksPage() {
       setError('El título no puede estar vacío')
       return
     }
-    addTaskMutation.mutate(newTaskTitle)
+    addTaskMutation.mutate({
+      title: newTaskTitle,
+      notes: newTaskNotes,
+      priority: newTaskPriority,
+      due_at: newTaskDueAt,
+    })
   }
 
   const handleEditTask = (task: Task) => {
     setEditingId(task.id)
     setEditingTitle(task.title)
+    setEditingNotes(task.notes || '')
+    setEditingPriority((task.priority || 0) as 0 | 1 | 2 | 3)
+    setEditingDueAt(task.due_at ? task.due_at.split('T')[0] : '')
   }
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -236,6 +263,9 @@ export default function TasksPage() {
   const handleCancelEdit = () => {
     setEditingId(null)
     setEditingTitle('')
+    setEditingNotes('')
+    setEditingPriority(0)
+    setEditingDueAt('')
   }
 
   const handleAddProject = (e: React.FormEvent) => {
@@ -296,7 +326,7 @@ export default function TasksPage() {
         </div>
 
         {/* Formulario para agregar tarea */}
-        <form onSubmit={handleAddTask} className="mb-8">
+        <form onSubmit={handleAddTask} className="mb-8 p-5 bg-white rounded-lg shadow-md border border-gray-200">
           <div className="flex gap-2 mb-3">
             <input
               type="text"
@@ -305,16 +335,6 @@ export default function TasksPage() {
               placeholder="Añadir una nueva tarea..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             />
-            <select
-              value={selectedProjectId || ''}
-              onChange={(e) => setSelectedProjectId(e.target.value || null)}
-              className="px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-            >
-              <option value="">Sin proyecto</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
             <button
               type="submit"
               disabled={addTaskMutation.isPending}
@@ -322,6 +342,57 @@ export default function TasksPage() {
             >
               {addTaskMutation.isPending ? 'Añadiendo...' : 'Añadir'}
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Proyecto</label>
+              <select
+                value={selectedProjectId || ''}
+                onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              >
+                <option value="">Sin proyecto</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+              <select
+                value={newTaskPriority}
+                onChange={(e) => setNewTaskPriority(Number(e.target.value) as 0 | 1 | 2 | 3)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              >
+                <option value="0">Sin prioridad</option>
+                <option value="1">🟢 Baja</option>
+                <option value="2">🟡 Media</option>
+                <option value="3">🔴 Alta</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vencimiento</label>
+              <input
+                type="date"
+                value={newTaskDueAt}
+                onChange={(e) => setNewTaskDueAt(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+              <textarea
+                value={newTaskNotes}
+                onChange={(e) => setNewTaskNotes(e.target.value)}
+                placeholder="Añade detalles..."
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none"
+              />
+            </div>
           </div>
         </form>
 
@@ -412,36 +483,68 @@ export default function TasksPage() {
                     className="p-4 hover:bg-gray-50 transition flex flex-col gap-2 group"
                   >
                     {editingId === task.id ? (
-                      <form onSubmit={handleSaveEdit} className="flex gap-2">
+                      <form onSubmit={handleSaveEdit} className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <input
                           type="text"
                           value={editingTitle}
                           onChange={(e) => setEditingTitle(e.target.value)}
+                          placeholder="Título"
                           autoFocus
-                          className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         />
-                        <button
-                          type="submit"
-                          disabled={updateTaskMutation.isPending}
-                          className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50"
-                        >
-                          Guardar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelEdit}
-                          className="px-3 py-2 bg-gray-400 hover:bg-gray-500 text-white text-sm font-medium rounded-lg transition"
-                        >
-                          Cancelar
-                        </button>
+                        
+                        <textarea
+                          value={editingNotes}
+                          onChange={(e) => setEditingNotes(e.target.value)}
+                          placeholder="Notas..."
+                          rows={2}
+                          className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                        />
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={editingPriority}
+                            onChange={(e) => setEditingPriority(Number(e.target.value) as 0 | 1 | 2 | 3)}
+                            className="px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          >
+                            <option value="0">Sin prioridad</option>
+                            <option value="1">🟢 Baja</option>
+                            <option value="2">🟡 Media</option>
+                            <option value="3">🔴 Alta</option>
+                          </select>
+
+                          <input
+                            type="date"
+                            value={editingDueAt}
+                            onChange={(e) => setEditingDueAt(e.target.value)}
+                            className="px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={updateTaskMutation.isPending}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50"
+                          >
+                            {updateTaskMutation.isPending ? 'Guardando...' : 'Guardar'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white text-sm font-medium rounded-lg transition"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
                       </form>
                     ) : (
                       <>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3">
                           <button
                             onClick={() => toggleTaskMutation.mutate(task.id)}
                             disabled={toggleTaskMutation.isPending}
-                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
+                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition mt-1 ${
                               task.status === 'done'
                                 ? 'bg-green-500 border-green-500'
                                 : 'border-gray-300 hover:border-green-500'
@@ -453,45 +556,59 @@ export default function TasksPage() {
                               </svg>
                             )}
                           </button>
-                          <div className={`flex-1 ${task.status === 'done' ? 'line-through text-gray-500' : ''}`}>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-gray-900">{task.title}</p>
-                              {taskProject && (
-                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                  {taskProject.name}
-                                </span>
+
+                          <div className="flex-1 min-w-0">
+                            <div className={`${task.status === 'done' ? 'line-through text-gray-500' : ''}`}>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-gray-900">{task.title}</p>
+                                {taskProject && (
+                                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                    {taskProject.name}
+                                  </span>
+                                )}
+                                {task.priority && task.priority > 0 && (
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                    task.priority === 1 ? 'bg-green-100 text-green-700' :
+                                    task.priority === 2 ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {task.priority === 1 ? '🟢 Baja' :
+                                     task.priority === 2 ? '🟡 Media' :
+                                     '🔴 Alta'}
+                                  </span>
+                                )}
+                                {task.due_at && (
+                                  <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                                    📅 {new Date(task.due_at).toLocaleDateString('es-ES')}
+                                  </span>
+                                )}
+                              </div>
+                              {task.notes && (
+                                <p className="text-sm text-gray-600 mt-1 italic">{task.notes}</p>
                               )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(task.created_at).toLocaleDateString('es-ES', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-500">
-                              {new Date(task.created_at).toLocaleDateString('es-ES', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
                           </div>
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
                             <button
                               onClick={() => handleEditTask(task)}
-                              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium rounded transition"
+                              className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium rounded transition"
                             >
                               Editar
                             </button>
                             <button
-                              onClick={() => {
-                                setSelectedTaskForLabel(task.id)
-                                setShowNewLabel(true)
-                              }}
-                              className="px-3 py-1 bg-pink-100 hover:bg-pink-200 text-pink-700 text-xs font-medium rounded transition"
-                            >
-                              Etiquetar
-                            </button>
-                            <button
                               onClick={() => deleteTaskMutation.mutate(task.id)}
                               disabled={deleteTaskMutation.isPending}
-                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition disabled:opacity-50"
+                              className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition disabled:opacity-50"
                             >
                               Eliminar
                             </button>

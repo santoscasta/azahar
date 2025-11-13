@@ -107,6 +107,7 @@ export async function listTasks(): Promise<{ success: boolean; tasks?: Task[]; e
       .from('tasks')
       .select('*')
       .eq('user_id', user.id)
+      .order('due_at', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -119,7 +120,12 @@ export async function listTasks(): Promise<{ success: boolean; tasks?: Task[]; e
   }
 }
 
-export async function addTask(title: string): Promise<{ success: boolean; task?: Task; error?: string }> {
+export async function addTask(
+  title: string,
+  notes?: string,
+  priority?: number,
+  due_at?: string
+): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -135,6 +141,9 @@ export async function addTask(title: string): Promise<{ success: boolean; task?:
       .insert({
         user_id: user.id,
         title: title.trim(),
+        notes: notes || null,
+        priority: priority || 0,
+        due_at: due_at || null,
         status: 'open'
       })
       .select()
