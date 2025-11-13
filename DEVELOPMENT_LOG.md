@@ -102,7 +102,11 @@ Revisar: `DAY1_DELIVERABLES.md`
 - **App local:** http://localhost:5174/
 - **Backend:** Supabase (RLS habilitado)
 - **Estado:** Funcionando sin errores de compilación
+- **Documentación:** 
+  - `DAY2_TESTING.md` - Checklist de testing manual
+  - `DAY2_CHANGES.md` - Detalles técnicos de cambios
+- **Git Commit:** `feat(day2): Implementar CRUD completo de tareas`
 
 ---
 
-**Última actualización:** 13 Nov 2025
+**Última actualización:** 13 Nov 2025, 8:52 AM
