@@ -75,6 +75,27 @@ export interface Task {
   completed_at: string | null
 }
 
+export interface Project {
+  id: string
+  user_id: string
+  name: string
+  color: string | null
+  sort_order: number
+  created_at: string
+}
+
+export interface Label {
+  id: string
+  user_id: string
+  name: string
+  color: string | null
+}
+
+export interface TaskLabel {
+  task_id: string
+  label_id: string
+}
+
 export async function listTasks(): Promise<{ success: boolean; tasks?: Task[]; error?: string }> {
   try {
     const user = await getCurrentUser()
@@ -221,5 +242,290 @@ export async function deleteTask(id: string): Promise<{ success: boolean; error?
     return { success: true }
   } catch (err) {
     return { success: false, error: 'Error al eliminar tarea' }
+  }
+}
+
+// Funciones de proyectos
+export async function getProjects(): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, projects: data as Project[] }
+  } catch (err) {
+    return { success: false, error: 'Error al obtener proyectos' }
+  }
+}
+
+export async function addProject(name: string, color: string = '#3b82f6'): Promise<{ success: boolean; project?: Project; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    if (!name.trim()) {
+      return { success: false, error: 'El nombre del proyecto no puede estar vacío' }
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        user_id: user.id,
+        name: name.trim(),
+        color,
+        sort_order: 0
+      })
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, project: data as Project }
+  } catch (err) {
+    return { success: false, error: 'Error al crear proyecto' }
+  }
+}
+
+export async function updateProject(id: string, updates: Partial<Project>): Promise<{ success: boolean; project?: Project; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, project: data as Project }
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar proyecto' }
+  }
+}
+
+export async function deleteProject(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al eliminar proyecto' }
+  }
+}
+
+// Funciones de etiquetas
+export async function getLabels(): Promise<{ success: boolean; labels?: Label[]; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('labels')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, labels: data as Label[] }
+  } catch (err) {
+    return { success: false, error: 'Error al obtener etiquetas' }
+  }
+}
+
+export async function addLabel(name: string, color: string = '#ec4899'): Promise<{ success: boolean; label?: Label; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    if (!name.trim()) {
+      return { success: false, error: 'El nombre de la etiqueta no puede estar vacío' }
+    }
+
+    const { data, error } = await supabase
+      .from('labels')
+      .insert({
+        user_id: user.id,
+        name: name.trim(),
+        color
+      })
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, label: data as Label }
+  } catch (err) {
+    return { success: false, error: 'Error al crear etiqueta' }
+  }
+}
+
+export async function deleteLabel(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { error } = await supabase
+      .from('labels')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al eliminar etiqueta' }
+  }
+}
+
+// Funciones de relaciones tarea-etiqueta
+export async function getTaskLabels(taskId: string): Promise<{ success: boolean; labels?: Label[]; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('task_labels')
+      .select('labels(*)')
+      .eq('task_id', taskId)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    // Extraer las etiquetas del resultado
+    const labels = (data as any[])?.map(item => item.labels).filter(Boolean) as Label[] || []
+    return { success: true, labels }
+  } catch (err) {
+    return { success: false, error: 'Error al obtener etiquetas de tarea' }
+  }
+}
+
+export async function addTaskLabel(taskId: string, labelId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    // Verificar que la tarea pertenece al usuario
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('user_id')
+      .eq('id', taskId)
+      .single()
+
+    if (taskError || !task || task.user_id !== user.id) {
+      return { success: false, error: 'Tarea no encontrada' }
+    }
+
+    // Verificar que la etiqueta pertenece al usuario
+    const { data: label, error: labelError } = await supabase
+      .from('labels')
+      .select('user_id')
+      .eq('id', labelId)
+      .single()
+
+    if (labelError || !label || label.user_id !== user.id) {
+      return { success: false, error: 'Etiqueta no encontrada' }
+    }
+
+    const { error } = await supabase
+      .from('task_labels')
+      .insert({ task_id: taskId, label_id: labelId })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al agregar etiqueta a tarea' }
+  }
+}
+
+export async function removeTaskLabel(taskId: string, labelId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    // Verificar que la tarea pertenece al usuario
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('user_id')
+      .eq('id', taskId)
+      .single()
+
+    if (taskError || !task || task.user_id !== user.id) {
+      return { success: false, error: 'Tarea no encontrada' }
+    }
+
+    const { error } = await supabase
+      .from('task_labels')
+      .delete()
+      .eq('task_id', taskId)
+      .eq('label_id', labelId)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al remover etiqueta de tarea' }
   }
 }
