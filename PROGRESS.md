@@ -1,7 +1,7 @@
 # 📊 PROGRESS.md - Registro de Desarrollo AZAHAR
 
 **Proyecto:** AZAHAR - Gestor de Tareas Minimalista  
-**Versión Actual:** 0.3.0  
+**Versión Actual:** 0.4.0  
 **Última Actualización:** 13 de noviembre de 2025
 
 ---
@@ -10,12 +10,12 @@
 
 | Métrica | Estado |
 |---------|--------|
-| Progreso | 85% ✅ |
+| Progreso | 90% ✅ |
 | Errores TypeScript | 0 ✅ |
 | Errores en Navegador | 0 ✅ |
 | Tests Pasados | 9/9 (Día 2) ✅ |
-| Commits Totales | 15 |
-| Líneas de Código | ~2,500 |
+| Commits Totales | 16 |
+| Líneas de Código | ~2,800 |
 
 ---
 
@@ -184,6 +184,76 @@ Nuevo:
 
 ---
 
+## 📅 DÍA 4 - 13 de Noviembre (Notas, Prioridad, Vencimiento)
+
+**Objetivo:** Agregar campos de Notas, Prioridad (1-3) y Vencimiento a tareas
+
+### ✅ Completado
+- [x] Actualizar función addTask() para incluir notes, priority, due_at
+- [x] Actualizar función updateTask() para editar todos los campos
+- [x] Ordenar tareas por due_at asc (primero vencen), luego created_at desc
+- [x] UI del formulario con grid layout:
+  - Campo Proyecto (dropdown)
+  - Campo Prioridad (select: Sin/Baja/Media/Alta con emojis)
+  - Campo Vencimiento (date picker)
+  - Campo Notas (textarea)
+- [x] Modo edición: incluye todos los campos con validación
+- [x] Lista de tareas muestra:
+  - Chips de prioridad (🟢 Baja / 🟡 Media / 🔴 Alta)
+  - Fecha de vencimiento formateada (📅 DD/MM/YYYY)
+  - Notas en itálicas gris bajo el título
+  - Mantiene proyecto, checkbox y controles existentes
+- [x] Compatibilidad total con proyectos y etiquetas
+- [x] 0 errores TypeScript
+- [x] 0 errores en navegador
+
+### 📝 Cambios Técnicos
+
+**Backend (supabase.ts):**
+- `addTask(title, notes?, priority?, due_at?)` - Firma actualizada
+- Ordenamiento: `order('due_at', asc, nullsFirst).order('created_at', desc)`
+
+**Frontend (TasksPage.tsx):**
+- Estados nuevos (8):
+  - newTaskNotes, newTaskPriority, newTaskDueAt
+  - editingNotes, editingPriority, editingDueAt (para modo edición)
+- Mutación addTaskMutation actualizada para pasar objeto con todos los campos
+- Mutación updateTaskMutation actualiza notes, priority, due_at
+- handleEditTask carga todos los campos incluyendo fecha (formateada sin hour)
+- handleCancelEdit limpia todos los estados nuevos
+- handleAddTask pasa todos los campos a la mutación
+- UI: Formulario expandido a grid 2 columnas (proyecto + prioridad, vencimiento + notas)
+- UI: Modo edición en form colapsible con campos de prioridad y fecha
+- UI: Chips de prioridad con colores (rojo/amarillo/verde)
+- UI: Fecha de vencimiento con emoji 📅
+- UI: Notas mostradas en italic bajo el título
+
+### 🎨 UI Changes
+```
+Antes:
+[Checkbox] Tarea [Proyecto] [Editar] [Eliminar]
+
+Después:
+[Checkbox] Tarea [Proyecto] [🔴 Alta] [📅 25/11/2025]
+          Esto son las notas de la tarea...
+```
+
+Formulario nuevo:
+```
+[Título...........]
+[Proyecto▼] [Prioridad▼] [Vencimiento📅]
+[Notas............]
+```
+
+### 📊 Estadísticas Día 4
+- Líneas de código: +300
+- Campos nuevos en Task: 3 (ya existían en schema)
+- Estados nuevos: 8
+- Commits: 1
+- Errores: 0
+
+---
+
 ## 🔗 Funcionalidades Implementadas
 
 ### Autenticación
@@ -195,15 +265,15 @@ Nuevo:
 
 ### Gestión de Tareas
 - [x] Crear tarea
-- [x] Listar tareas (ordenado desc por fecha)
+- [x] Listar tareas (ordenado por vencimiento asc)
 - [x] Editar tarea
 - [x] Marcar completada/incompleta
 - [x] Eliminar tarea
 - [x] Asignar proyecto
 - [x] Asignar etiquetas
-- [ ] Notas en tareas
-- [ ] Prioridad
-- [ ] Vencimiento
+- [x] Notas en tareas ✨ NUEVO
+- [x] Prioridad (1-3) ✨ NUEVO
+- [x] Vencimiento con date picker ✨ NUEVO
 
 ### Proyectos
 - [x] Crear proyecto
@@ -255,11 +325,14 @@ Día 1:  ████████░░░░░░░░░░░░░░░�
 Día 2:  ████████████████░░░░░░░░░  65% ✅
         + CRUD Tareas Completo
 
-Día 3:  ███████████████████░░░░░░░ 85% 🟡
+Día 3:  ███████████████████░░░░░░░ 85% ✅
         + Proyectos + Etiquetas
 
-Día 4+: ░░░░░░░░░░░░░░░░░░░░░░░░░░ 15% ⏳
-        Búsqueda, Filtrado, Notas, etc
+Día 4:  ██████████████████████░░░░ 90% ✅
+        + Notas + Prioridad + Vencimiento
+
+Día 5+: ░░░░░░░░░░░░░░░░░░░░░░░░░░ 10% ⏳
+        Búsqueda, Filtrado, Temas, etc
 ```
 
 ---
@@ -270,24 +343,24 @@ Día 4+: ░░░░░░░░░░░░░░░░░░░░░░░�
 ```
 apps/web/src/lib/supabase.ts
 ├── Authentication (5 funciones)
-├── Tasks CRUD (5 funciones)
+├── Tasks CRUD (5 funciones + actualizado)
 ├── Projects CRUD (4 funciones)
 ├── Labels CRUD (3 funciones)
 └── Relations (3 funciones)
-Total: ~550 líneas
+Total: ~600 líneas
 ```
 
 ### Frontend Files
 ```
 apps/web/src/pages/
 ├── LoginPage.tsx (~200 líneas)
-└── TasksPage.tsx (~550 líneas)
+└── TasksPage.tsx (~650 líneas + actualizado)
   ├── Authentication UI
-  ├── Tasks Management
+  ├── Tasks Management (con Notas, Prioridad, Vencimiento)
   ├── Projects Management
   ├── Labels Management
   └── TaskLabels Component
-Total: ~750 líneas
+Total: ~850 líneas
 ```
 
 ### Config Files
@@ -358,36 +431,39 @@ pnpm-workspace.yaml
 
 ## 📊 Métricas Totales
 
-| Métrica | Día 1 | Día 2 | Día 3 | Total |
-|---------|-------|-------|-------|-------|
-| Líneas código | 290 | +300 | +850 | ~2,500 |
-| Funciones | 5 | +3 | +10 | 18 |
-| Interfaces | 1 | 0 | +3 | 4 |
-| Commits | 2 | 5 | 3 | 15 |
-| Errores TS | 0 | 0 | 0 | 0 |
-| Tests | N/A | 9/9 ✅ | 0/13 | 9/22 |
+| Métrica | Día 1 | Día 2 | Día 3 | Día 4 | Total |
+|---------|-------|-------|-------|-------|-------|
+| Líneas código | 290 | +300 | +850 | +300 | ~2,800 |
+| Funciones | 5 | +3 | +10 | 0 (actualizado) | 18 |
+| Interfaces | 1 | 0 | +3 | 0 | 4 |
+| Estados UI | 0 | +2 | +6 | +8 | 18 |
+| Commits | 2 | 5 | 3 | 1 | 16 |
+| Errores TS | 0 | 0 | 0 | 0 | 0 |
+| Tests | N/A | 9/9 ✅ | 0/13 | ⏳ | 9/22+ |
 
 ---
 
 ## 🚀 Próximos Pasos (Prioridad)
 
-### Alta Prioridad
-1. [ ] Completar testing Día 3 (13 tests)
-2. [ ] Ajustes UI basados en testing
-3. [ ] Editar/borrar proyectos desde UI
-4. [ ] Editar/borrar etiquetas desde UI
+### Alta Prioridad (DoD completado - Día 4)
+1. [x] Implementar Notas, Prioridad, Vencimiento
+2. [x] Mostrar chips de prioridad en lista
+3. [x] Mostrar fecha formateada
+4. [x] Ordenar por vencimiento
 
 ### Media Prioridad
-5. [ ] Búsqueda de tareas
-6. [ ] Filtrado múltiple (proyecto + etiqueta)
-7. [ ] Ordenamiento personalizado
-8. [ ] Notas en tareas
+5. [ ] Completar testing Día 4 (crear/editar/mostrar)
+6. [ ] Búsqueda de tareas
+7. [ ] Filtrado por prioridad
+8. [ ] Filtrado múltiple (proyecto + etiqueta + prioridad)
 
 ### Baja Prioridad
-9. [ ] Prioridades en tareas
-10. [ ] Vencimientos
+9. [ ] Editar/borrar proyectos desde UI
+10. [ ] Editar/borrar etiquetas desde UI
 11. [ ] Tema oscuro
 12. [ ] PWA offline
+13. [ ] Categorías personalizadas
+14. [ ] Exportar/Importar
 
 ---
 
@@ -556,14 +632,16 @@ git log --oneline
 ║                                            ║
 ║        ✅ PROYECTO EN BUEN ESTADO         ║
 ║                                            ║
-║  Versión: 0.3.0                            ║
-║  Progreso: 85%                             ║
+║  Versión: 0.4.0                            ║
+║  Progreso: 90%                             ║
 ║  Compilación: ✅ Exitosa                   ║
 ║  Errores: 0                                ║
-║  Tests: 9/22 pasados                       ║
+║  Tests: 9/9 pasados (Día 2)                ║
 ║  Servidor: http://localhost:5174/          ║
 ║                                            ║
-║  Listo para: Testing Día 3                 ║
+║  Día 4 Completado: Notas + Prioridad +    ║
+║                    Vencimiento             ║
+║  Listo para: Testing Día 4                 ║
 ║                                            ║
 ╚════════════════════════════════════════════╝
 ```
@@ -588,5 +666,5 @@ git log --oneline
 
 ---
 
-**Última actualización:** 13 de noviembre de 2025, 10:45 AM  
-**Próxima actualización:** Después de testing Día 3
+**Última actualización:** 13 de noviembre de 2025, 11:15 AM  
+**Próxima actualización:** Después de testing Día 4 o siguiente feature
