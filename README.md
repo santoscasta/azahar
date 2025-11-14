@@ -150,6 +150,41 @@ El comando compila únicamente los selectores de `TasksPage` y confirma que cada
 7. **Eliminar un proyecto o etiqueta** desde la sección de gestión rápida y confirma que los filtros se limpian automáticamente.
 8. **Recargar** el navegador y verifica que todos los datos se mantienen gracias a Supabase.
 
+## 🚀 Despliegue en Vercel
+
+1. **Inicia sesión y vincula el proyecto**
+   ```bash
+   pnpm dlx vercel login
+   pnpm dlx vercel link
+   ```
+   El `vercel.json` en la raíz ya fija el build command (`pnpm -C apps/web build`) y el `outputDirectory` (`apps/web/dist`), por lo que no debes cambiar el “Root Directory” ni los comandos en el panel.
+
+2. **Configura las variables de entorno**
+   ```
+   VITE_SUPABASE_URL
+   VITE_SUPABASE_ANON_KEY
+   ```
+   Añádelas en Vercel (Settings → Environment Variables) para los entornos *Production* y *Preview*. Si prefieres la CLI:
+   ```bash
+   pnpm dlx vercel env add VITE_SUPABASE_URL production
+   pnpm dlx vercel env add VITE_SUPABASE_ANON_KEY production
+   pnpm dlx vercel env add VITE_SUPABASE_URL preview
+   pnpm dlx vercel env add VITE_SUPABASE_ANON_KEY preview
+   ```
+   Después ejecuta `pnpm dlx vercel env pull apps/web/.env.local` si quieres sincronizarlas localmente.
+
+3. **Despliegues manuales**
+   ```bash
+   pnpm dlx vercel        # preview
+   pnpm dlx vercel --prod # producción
+   ```
+   Cada comando construirá `apps/web` con pnpm y publicará el bundle estático de Vite.
+
+4. **Despliegues automáticos**
+   - Conecta el repositorio (GitHub/GitLab/Bitbucket) en el dashboard de Vercel.
+   - Cuando se te solicite el “Root Directory”, selecciona `/` (la raíz) y confirma que el Build Command y Output están en blanco para que `vercel.json` tome el control.
+   - Cada push a la rama principal generará un build de producción; las ramas/PRs generan previews.
+
 ## 🔧 Solución de problemas
 
 ### Error: "Faltan variables de entorno"
