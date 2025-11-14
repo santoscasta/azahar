@@ -6,7 +6,19 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
       "source": "/app/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login/(.*)",
       "destination": "/index.html"
     }
   ]
