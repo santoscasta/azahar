@@ -58,6 +58,12 @@ export async function getCurrentUser() {
 }
 
 // Funciones de tareas
+export interface TaskLabelSummary {
+  id: string
+  name: string
+  color: string | null
+}
+
 export interface Task {
   id: string
   user_id: string
@@ -73,6 +79,7 @@ export interface Task {
   updated_at: string
   created_at: string
   completed_at: string | null
+  labels?: TaskLabelSummary[]
 }
 
 export interface Project {
@@ -134,7 +141,17 @@ export async function searchTasks(
     // Obtener todas las tareas del usuario
     const { data: allTasks, error: tasksError } = await supabase
       .from('tasks')
-      .select('*')
+      .select(`
+        *,
+        task_labels:task_labels (
+          label_id,
+          labels (
+            id,
+            name,
+            color
+          )
+        )
+      `)
       .eq('user_id', user.id)
       .order('due_at', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false })
@@ -143,7 +160,26 @@ export async function searchTasks(
       return { success: false, error: tasksError.message }
     }
 
-    let filtered = allTasks || []
+    const tasksWithLabels =
+      (allTasks || []).map(task => {
+        const taskLabels = (task as any).task_labels as Array<{ labels: Label | null }> | undefined
+        const summaries =
+          taskLabels
+            ?.map(item => item.labels)
+            .filter(Boolean)
+            .map(label => ({
+              id: label!.id,
+              name: label!.name,
+              color: label!.color,
+            })) || []
+        const { task_labels, ...rest } = task as any
+        return {
+          ...(rest as Task),
+          labels: summaries,
+        }
+      }) || []
+
+    let filtered = tasksWithLabels
 
     // Filtrar por proyecto
     if (projectId) {
@@ -161,33 +197,13 @@ export async function searchTasks(
 
     // Filtrar por etiquetas (si hay etiquetas seleccionadas, la tarea debe tener TODAS)
     if (labelIds && labelIds.length > 0) {
-      // Obtener etiquetas de cada tarea
-      const { data: taskLabels, error: labelsError } = await supabase
-        .from('task_labels')
-        .select('*')
-        .in('task_id', filtered.map(t => t.id))
-
-      if (labelsError) {
-        return { success: false, error: labelsError.message }
-      }
-
-      // Agrupar etiquetas por tarea
-      const taskLabelMap = new Map<string, string[]>()
-      taskLabels?.forEach(tl => {
-        if (!taskLabelMap.has(tl.task_id)) {
-          taskLabelMap.set(tl.task_id, [])
-        }
-        taskLabelMap.get(tl.task_id)!.push(tl.label_id)
-      })
-
-      // Filtrar tareas que tengan TODAS las etiquetas requeridas
       filtered = filtered.filter(t => {
-        const taskLabelSet = new Set(taskLabelMap.get(t.id) || [])
-        return labelIds.every(labelId => taskLabelSet.has(labelId))
+        const labelSet = new Set((t.labels || []).map(label => label.id))
+        return labelIds.every(labelId => labelSet.has(labelId))
       })
     }
 
-    return { success: true, tasks: filtered as Task[] }
+    return { success: true, tasks: filtered }
   } catch (err) {
     return { success: false, error: 'Error al buscar tareas' }
   }
@@ -197,7 +213,9 @@ export async function addTask(
   title: string,
   notes?: string,
   priority?: number,
-  due_at?: string
+  due_at?: string,
+  status: 'open' | 'done' | 'snoozed' = 'open',
+  project_id?: string | null
 ): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
     const user = await getCurrentUser()
@@ -217,7 +235,8 @@ export async function addTask(
         notes: notes || null,
         priority: priority || 0,
         due_at: due_at || null,
-        status: 'open'
+        status: status || 'open',
+        project_id: project_id || null
       })
       .select()
       .single()
@@ -444,7 +463,7 @@ export async function getLabels(): Promise<{ success: boolean; labels?: Label[];
       .from('labels')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('name', { ascending: true })
 
     if (error) {
       return { success: false, error: error.message }
@@ -484,6 +503,31 @@ export async function addLabel(name: string, color: string = '#ec4899'): Promise
     return { success: true, label: data as Label }
   } catch (err) {
     return { success: false, error: 'Error al crear etiqueta' }
+  }
+}
+
+export async function updateLabel(id: string, updates: Partial<Label>): Promise<{ success: boolean; label?: Label; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('labels')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, label: data as Label }
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar etiqueta' }
   }
 }
 

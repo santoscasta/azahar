@@ -1,8 +1,8 @@
 # 📊 PROGRESS.md - Registro de Desarrollo AZAHAR
 
 **Proyecto:** AZAHAR - Gestor de Tareas Minimalista  
-**Versión Actual:** 0.5.0  
-**Última Actualización:** 13 de noviembre de 2025
+**Versión Actual:** 0.6.0  
+**Última Actualización:** 14 de noviembre de 2025
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Métrica | Estado |
 |---------|--------|
-| Progreso | 95% ✅ |
+| Progreso | 97% ✅ |
 | Errores TypeScript | 0 ✅ |
 | Errores en Navegador | 0 ✅ |
 | Tests Pasados | 9/9 (Día 2) ✅ |
@@ -320,6 +320,48 @@ Resultado:
 
 ---
 
+## 📅 DÍA 6 - 14 de Noviembre (Gestión avanzada de Proyectos + Etiquetas)
+
+**Objetivo:** Controlar proyectos y etiquetas directamente desde la UI y enriquecer la asignación de etiquetas en la lista de tareas.
+
+### ✅ Completado
+- [x] Nuevo tipo `TaskLabelSummary` y `updateLabel()` en supabase
+- [x] `searchTasks()` devuelve etiquetas asignadas para cada tarea
+- [x] Chips de etiquetas visibles dentro de cada tarjeta de tarea
+- [x] Botón contextual “Etiquetas” con panel para asignar/remover etiquetas
+- [x] Barra de búsqueda fija superior con sugerencias en vivo
+- [x] Gestión inline de proyectos (editar/eliminar) desde TasksPage
+- [x] Gestión inline de etiquetas (editar/eliminar) con confirmaciones
+- [x] Mutaciones React Query para update/delete + invalidación cruzada de queries
+- [x] Limpieza automática de filtros al eliminar proyectos/etiquetas seleccionados
+- [x] `pnpm lint` (tsc --noEmit) ✅
+- [x] Suite `node:test` para selectores (quick views, filtros, normalización de fechas)
+
+### 📝 Cambios Técnicos
+
+**Backend (supabase.ts):**
+- `TaskLabelSummary` para adjuntar etiquetas a `Task`
+- `searchTasks()` ahora consulta `task_labels` una sola vez y enriquece cada tarea
+- `updateLabel(id, updates)` para renombrar etiquetas con RLS
+
+**Frontend (TasksPage.tsx):**
+- Estados nuevos: `selectedTaskForLabel`, `projectEditingId/name`, `labelEditingId/name`
+- Mutaciones nuevas: `updateProject`, `deleteProject`, `updateLabel`, `deleteLabel`
+- Grid de “Gestión rápida” para editar/borrar proyectos y etiquetas desde la UI
+- Botón “Etiquetas” por tarea + panel `TaskLabels` con asignar/remover y chips persistentes
+- Manejo de confirmaciones para acciones destructivas y reseteo de filtros/selecciones
+
+### 📊 Estadísticas Día 6
+- Líneas de código: +440
+- Funciones nuevas: 1 (`updateLabel`)
+- Interfaces nuevas: 1 (`TaskLabelSummary`)
+- Estados UI nuevos: +5
+- Mutaciones nuevas: 4
+- Tests/Lint: `pnpm lint` ✅ + `pnpm -C apps/web test`
+- Errores: 0
+
+---
+
 ## 🔗 Funcionalidades Implementadas
 
 ### Autenticación
@@ -343,6 +385,7 @@ Resultado:
 - [x] Búsqueda por título/notas ✨ NUEVO (Día 5)
 - [x] Filtrado por proyecto ✨ NUEVO (Día 5)
 - [x] Filtrado por etiquetas ✨ NUEVO (Día 5)
+- [x] Chips de etiquetas en cada tarea ✨ NUEVO (Día 6)
 
 ### Proyectos
 - [x] Crear proyecto
@@ -352,7 +395,8 @@ Resultado:
 - [x] Asignar tareas a proyecto
 - [x] Filtrar por proyecto
 - [x] Filtrado combinado con etiquetas
-- [ ] Editar desde UI
+- [x] Editar desde UI
+- [x] Eliminar desde UI
 - [ ] Colores personalizados
 
 ### Etiquetas
@@ -363,7 +407,7 @@ Resultado:
 - [x] Remover de tareas
 - [x] Filtrar por etiqueta (multi-select)
 - [x] Filtrado combinado con proyectos
-- [ ] Editar desde UI
+- [x] Editar desde UI
 - [ ] Colores personalizados
 
 ### Búsqueda y Filtrado
@@ -386,6 +430,7 @@ Resultado:
 - [x] Transiciones suaves
 - [x] Buscador en toolbar ✨ NUEVO
 - [x] Filtros prominentes ✨ NUEVO
+- [x] Gestión inline de proyectos/etiquetas ✨ NUEVO
 - [ ] Tema oscuro
 - [ ] Animaciones avanzadas
 
@@ -417,8 +462,11 @@ Día 4:  ██████████████████████░�
 Día 5:  ██████████████████████████ 95% ✅
         + Búsqueda + Filtrado Múltiple
 
-Día 6+: ░░░░░░░░░░░░░░░░░░░░░░░░░░ 5% ⏳
-        Temas, Editar Proyectos/Etiquetas, etc
+Día 6:  ██████████████████████████▌ 97% ✅
+        + Gestión inline de proyectos/etiquetas + Chips
+
+Día 7+: ░░░░░░░░░░░░░░░░░░░░░░░░░░ 3% ⏳
+        Tema oscuro, filtros avanzados, testing
 ```
 
 ---
@@ -434,14 +482,14 @@ apps/web/src/lib/supabase.ts
 ├── Labels CRUD (3 funciones)
 ├── Relations (3 funciones)
 └── Search & Filter (1 función)
-Total: ~650 líneas
+Total: ~740 líneas
 ```
 
 ### Frontend Files
 ```
 apps/web/src/pages/
 ├── LoginPage.tsx (~200 líneas)
-└── TasksPage.tsx (~800 líneas + actualizado)
+└── TasksPage.tsx (~1,100 líneas + actualizado)
   ├── Authentication UI
   ├── Tasks Management (Notas, Prioridad, Vencimiento)
   ├── Search Bar
@@ -449,7 +497,7 @@ apps/web/src/pages/
   ├── Projects Management
   ├── Labels Management
   └── TaskLabels Component
-Total: ~1,000 líneas
+Total: ~1,200 líneas
 ```
 
 ### Config Files
@@ -496,6 +544,14 @@ pnpm-workspace.yaml
 
 **Resultado:** ⏳ Pendiente
 
+### Día 6 Testing (Selectores de estado)
+- [x] Quick views (Inbox, Hoy, Próximas, Algún día, Logbook)
+- [x] Normalización de fechas (ISO ➜ YYYY-MM-DD)
+- [x] Conteo de filtros activos (proyecto + etiquetas)
+- [x] Detección de vistas filtradas y estados combinados
+
+**Resultado:** Automatizado con `pnpm -C apps/web test` ✅
+
 ---
 
 ## 🔒 Seguridad
@@ -520,15 +576,15 @@ pnpm-workspace.yaml
 
 ## 📊 Métricas Totales
 
-| Métrica | Día 1 | Día 2 | Día 3 | Día 4 | Día 5 | Total |
-|---------|-------|-------|-------|-------|-------|-------|
-| Líneas código | 290 | +300 | +850 | +300 | +300 | ~3,100 |
-| Funciones | 5 | +3 | +10 | 0 (act.) | +1 | 19 |
-| Interfaces | 1 | 0 | +3 | 0 | 0 | 4 |
-| Estados UI | 0 | +2 | +6 | +8 | +2 | 20 |
-| Commits | 2 | 5 | 3 | 1 | 1 | 18 |
-| Errores TS | 0 | 0 | 0 | 0 | 0 | 0 |
-| Tests | N/A | 9/9 ✅ | 0/13 | ⏳ | ⏳ | 9/22+ |
+| Métrica | Día 1 | Día 2 | Día 3 | Día 4 | Día 5 | Día 6 | Total |
+|---------|-------|-------|-------|-------|-------|-------|-------|
+| Líneas código | 290 | +300 | +850 | +300 | +300 | +440 | ~3,540 |
+| Funciones | 5 | +3 | +10 | 0 (act.) | +1 | +1 | 20 |
+| Interfaces | 1 | 0 | +3 | 0 | 0 | +1 | 5 |
+| Estados UI | 0 | +2 | +6 | +8 | +2 | +5 | 25 |
+| Commits | 2 | 5 | 3 | 1 | 1 | 1 | 19 |
+| Errores TS | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Tests | N/A | 9/9 ✅ | 0/13 | ⏳ | ⏳ | Node test ✅ | 9/22+ |
 
 ---
 
@@ -545,8 +601,8 @@ pnpm-workspace.yaml
 
 ### Media Prioridad
 8. [ ] Completar testing Día 4-5
-9. [ ] Editar/borrar proyectos desde UI
-10. [ ] Editar/borrar etiquetas desde UI
+9. [x] Editar/borrar proyectos desde UI (Día 6)
+10. [x] Editar/borrar etiquetas desde UI (Día 6)
 11. [ ] Filtrado por prioridad
 12. [ ] Búsqueda por fecha vencimiento
 
@@ -749,7 +805,7 @@ git log --oneline
 1. Leer este archivo (PROGRESS.md)
 2. Ejecutar `pnpm dev`
 3. Ir a http://localhost:5174/
-4. Probar búsqueda y filtrado
+4. Probar búsqueda, filtrado y gestor inline (proyectos/etiquetas)
 5. Hacer testing manual
 
 ### Para Agregar Features
@@ -761,5 +817,5 @@ git log --oneline
 
 ---
 
-**Última actualización:** 13 de noviembre de 2025, 11:45 AM  
-**Próxima actualización:** Después de testing Día 5 o siguiente feature
+**Última actualización:** 14 de noviembre de 2025, 10:10 AM  
+**Próxima actualización:** Después de testing Día 6 o siguiente feature

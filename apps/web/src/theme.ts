@@ -1,0 +1,45 @@
+export const theme = {
+  brand: {
+    primary: {
+      100: '#E6EEF5',
+      300: '#9EB4CC',
+      500: '#6D88A8',
+      600: '#5E7FA3',
+      700: '#3E6386',
+    },
+    accent: {
+      300: '#62A482',
+      500: '#2F7D57',
+      600: '#256648',
+    },
+    blossom: '#FFFFFF',
+    pistil: '#E9B949',
+  },
+  neutrals: {
+    50: '#F8FAFC',
+    200: '#E2E8F0',
+    500: '#64748B',
+    700: '#334155',
+    900: '#0F172A',
+  },
+  semantic: {
+    success: '#2E7D32',
+    warning: '#B7791F',
+    danger: '#D64545',
+    info: '#2563EB',
+  },
+  surfaces: {
+    background: '#F7F9FC',
+    surface: '#FFFFFF',
+    elevated: '#FFFFFF',
+  },
+  on: {
+    onPrimary: '#FFFFFF',
+    onSurface: '#0F172A',
+    onAccent: '#FFFFFF',
+  },
+} as const
+
+export type Theme = typeof theme
+
+export default theme

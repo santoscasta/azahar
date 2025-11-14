@@ -91,55 +91,64 @@ pnpm preview
 
 # Linting TypeScript
 pnpm lint
+
+# Tests de estado (quick views/filtros)
+pnpm -C apps/web test
 ```
 
-## ✨ Características (Día 1)
+## 🧪 Tests automáticos
+
+La suite de `node:test` valida la lógica de quick views, normalización de fechas y filtros activos que alimentan la UI. Los tests se ejecutan sin mockear React/Supabase (solo los selectores puros) y los puedes correr con:
+
+```bash
+pnpm -C apps/web test
+```
+
+El comando compila únicamente los selectores de `TasksPage` y confirma que cada vista (Inbox, Hoy, Próximas, Algún día y Logbook) y los filtros de proyecto/etiquetas arrojan el estado esperado.
+
+## ✨ Características principales (v0.6.0)
 
 ### Autenticación
-- Registro e inicio de sesión con email y contraseña
-- Gestión de sesión automática
-- Cierre de sesión
+- Registro, login y logout con Supabase Auth
+- Gestión de sesión automática + ruta protegida `/app`
 
 ### Gestión de tareas
-- **Listar tareas**: obtiene todas las tareas del usuario ordenadas por fecha de creación (descendente)
-- **Añadir tarea**: crear una nueva tarea con título
-- Visualización de estado (abierta/completada)
-- Timestamps de creación
+- CRUD completo (crear, editar inline, completar, eliminar)
+- Campos avanzados: notas, prioridad (🟢/🟡/🔴) y fecha de vencimiento
+- Orden inteligente: primero por vencimiento (ASC, nulls first) y luego por creación (DESC)
+- Chips informativos con proyecto, prioridad, vencimiento y etiquetas asignadas
 
-### Seguridad
-- Row Level Security (RLS) en todas las tablas
-- Políticas por usuario: cada usuario solo ve sus propios datos
-- Autenticación via Supabase Auth
+### Proyectos y etiquetas
+- CRUD de proyectos y etiquetas con validación + RLS
+- Asignación de proyectos al crear/editar tareas
+- Panel de “Gestión rápida” para renombrar o eliminar proyectos/etiquetas desde la UI
+- Botón contextual “Etiquetas” en cada tarea para asignar/remover etiquetas sin salir de la lista
 
-### PWA
-- Manifest para instalación como app nativa
-- Soporte offline básico
+### Búsqueda y filtrado
+- Buscador superior con sugerencias predictivas (título + notas)
+- Filtro por proyecto y multi-select de etiquetas (modo AND)
+- Chips removibles para filtros activos
 
-## 🧪 Pasos de prueba
+### Experiencia de usuario
+- UI responsiva con Tailwind + transiciones suaves
+- Estados de carga y errores claros
+- Indicador de progreso (tareas completadas / totales)
 
-### 1. Crear usuario
-1. Ve a `http://localhost:5173`
-2. Haz clic en "Regístrate"
-3. Ingresa:
-   - Email: `test@example.com`
-   - Contraseña: `password123`
-4. Confirma el registro
+### Seguridad / Backend
+- Supabase con Row Level Security en tasks, projects, labels y task_labels
+- Validación de `auth.uid()` en cada operación
+- Patrón consistente para manejar `success/error` tanto en frontend como backend
 
-### 2. Iniciar sesión
-1. Ingresa con las credenciales creadas
-2. Deberías acceder a la página de tareas
+## 🧪 Smoke test recomendado
 
-### 3. Crear 2 tareas
-1. En el input, escribe "Aprender React"
-2. Haz clic en "Añadir"
-3. Repite con "Terminar proyecto AZAHAR"
-4. Verifica que ambas aparecen en la lista (descendente por fecha)
-
-### 4. Recargar y verificar persistencia
-1. Presiona F5 o recarga la página
-2. Verifica que las 2 tareas siguen ahí
-3. Cierra sesión y vuelve a acceder
-4. Confirma que los datos persisten
+1. **Crear usuario** desde `http://localhost:5173` y acceder a `/app`.
+2. **Crear un proyecto** (“Trabajo”) y una etiqueta (“Urgente”).
+3. **Añadir una tarea** con título, notas, prioridad 🔴 y fecha, asignando Proyecto + Etiqueta.
+4. **Editar la tarea inline**: cambia el título y la prioridad, guarda y verifica el chip actualizado.
+5. **Probar filtros**: busca por texto, filtra por el proyecto recién creado y marca la etiqueta; la lista debe respetar todos los criterios.
+6. **Asignar/Remover etiquetas** usando el botón “Etiquetas” dentro de la tarjeta de la tarea.
+7. **Eliminar un proyecto o etiqueta** desde la sección de gestión rápida y confirma que los filtros se limpian automáticamente.
+8. **Recargar** el navegador y verifica que todos los datos se mantienen gracias a Supabase.
 
 ## 🔧 Solución de problemas
 
@@ -155,32 +164,23 @@ pnpm lint
 - Verifica que ejecutaste el SQL de schema.sql en Supabase
 - Comprueba que las políticas RLS están habilitadas
 
-## 📋 Definición de Hecho (DoD Día 1)
+## 📋 Definición de Hecho (DoD actual)
 
-- [x] Monorepo pnpm configurado (apps/web + packages/)
-- [x] Vite + React + TypeScript con modo estricto
-- [x] Tailwind CSS integrado y funcional
-- [x] TanStack Query configurado
-- [x] Supabase Auth (signup/login) funcional
-- [x] Supabase conectado con tablas mínimas (projects, tasks, labels, task_labels)
-- [x] RLS por usuario en todas las tablas
-- [x] Pantalla de Login compilable y funcional
-- [x] Pantalla de Tareas con listTasks() y addTask() funcionales
-- [x] UI mínima pero limpia con Tailwind
-- [x] Scripts dev/build/preview funcionando
-- [x] .env.local.example y README completos
-- [x] Sin errores TypeScript ni warnings
-- [x] Git inicializado con commit de esqueleto
+- [x] Monorepo pnpm (apps/web) con Vite + React 18 + TS + Tailwind + React Query
+- [x] Supabase Auth con flujo completo de signup/login/logout y RLS en todas las tablas
+- [x] CRUD de tareas con notas, prioridad, vencimiento y estado done/open
+- [x] CRUD de proyectos y etiquetas, incluido editor/borrado inline en la UI
+- [x] Buscador + filtros (proyecto + etiquetas) y chips descriptivos por tarea
+- [x] Panel de asignación de etiquetas, indicador de progreso e invalidación de queries
+- [x] Scripts `dev / build / preview / lint` funcionando sin errores TS
+- [x] Documentación (README, PROGRESS, SETUP) sincronizada con la versión 0.6.0
 
-## 📝 Próximos pasos (Día 2+)
+## 📝 Próximos pasos sugeridos
 
-- Editar, completar y eliminar tareas
-- Proyectos y etiquetas
-- Fechas de vencimiento
-- Buscar y filtrar
-- Sincronización offline (service worker)
-- Notificaciones
-- Tema oscuro
+- Completar el checklist de testing para proyectos/etiquetas (DAY3_TESTING.md)
+- Agregar filtros por prioridad y/o vencimiento
+- Implementar historial de búsquedas y modo oscuro
+- Explorar PWA offline + notificaciones locales
 
 ## 📄 Licencia
 
