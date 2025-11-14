@@ -619,9 +619,15 @@ export default function TasksPage() {
 
   const renderTaskModal = () => {
     if (!isTaskModalOpen) return null
+    const wrapperClasses = isMobile
+      ? 'fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm overflow-y-auto'
+      : 'fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4'
+    const cardClasses = isMobile
+      ? 'az-card w-full min-h-full rounded-none border-0 shadow-none'
+      : 'az-card max-w-xl w-full max-h-[calc(100vh-2rem)] overflow-y-auto'
     return (
-      <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div className="az-card max-w-xl w-full">
+      <div className={wrapperClasses}>
+        <div className={cardClasses}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <div>
               <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
@@ -1435,6 +1441,27 @@ export default function TasksPage() {
     </button>
   )
 
+  const renderDesktopDock = () => (
+    <div className="hidden lg:flex fixed inset-x-0 bottom-6 justify-center pointer-events-none">
+      <div className="az-dock px-6 py-3 flex items-center gap-4 pointer-events-auto">
+        <button
+          type="button"
+          onClick={handleOpenTaskModal}
+          className="h-12 w-12 rounded-full bg-[var(--color-primary-600)] text-white text-2xl shadow-xl flex items-center justify-center"
+          aria-label="Crear tarea"
+        >
+          +
+        </button>
+        <div className="pr-4">
+          <p className="text-xs uppercase tracking-wide text-slate-400">Nueva tarea</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
+            Añade una idea o recordatorio
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
   const renderDatePickerOverlay = () => {
     if (!datePickerTarget) {
       return null
@@ -2061,18 +2088,21 @@ export default function TasksPage() {
           {renderMobileFab()}
         </>
       ) : (
-        <div className="max-w-6xl mx-auto px-4 py-10 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
-            <div className="hidden lg:block">{renderDesktopSidebar()}</div>
-            <section className="space-y-6">
-              {renderDesktopSearch()}
-              {renderDesktopHeader()}
-              {renderActiveFilterChips()}
-              {renderErrorBanner()}
-              {renderDesktopTaskBoard()}
-            </section>
+        <>
+          <div className="max-w-6xl mx-auto px-4 py-10 lg:px-8">
+            <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
+              <div className="hidden lg:block">{renderDesktopSidebar()}</div>
+              <section className="space-y-6">
+                {renderDesktopSearch()}
+                {renderDesktopHeader()}
+                {renderActiveFilterChips()}
+                {renderErrorBanner()}
+                {renderDesktopTaskBoard()}
+              </section>
+            </div>
           </div>
-        </div>
+          {renderDesktopDock()}
+        </>
       )}
       {renderTaskModal()}
       {renderDatePickerOverlay()}

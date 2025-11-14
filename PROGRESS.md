@@ -241,7 +241,7 @@ Después:
 Formulario nuevo:
 ```
 [Título...........]
-[Proyecto▼] [Prioridad▼] [Vencimiento📅]
+[Proyecto▼]  [Prioridad▼] [Vencimiento📅]
 [Notas............]
 ```
 
