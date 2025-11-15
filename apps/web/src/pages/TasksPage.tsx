@@ -69,6 +69,7 @@ export default function TasksPage() {
   const [datePickerTarget, setDatePickerTarget] = useState<'new' | 'edit' | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(() => new Date())
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -549,10 +550,7 @@ export default function TasksPage() {
         <input
           type="text"
           value={searchQuery}
-          onFocus={() => {
-            setShowMobileHome(false)
-            setIsSearchFocused(true)
-          }}
+          onFocus={handleMobileHomeSearchFocus}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Búsqueda rápida"
           className="w-full pl-10 pr-3 py-3 rounded-3xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none bg-white"
@@ -861,6 +859,12 @@ export default function TasksPage() {
     }
   }, [isMobileDetail, activeQuickView, selectedProjectId, selectedLabelIds, searchQuery])
 
+  useEffect(() => {
+    if (isMobileDetail && isSearchFocused && mobileSearchInputRef.current) {
+      mobileSearchInputRef.current.focus()
+    }
+  }, [isMobileDetail, isSearchFocused])
+
   const suggestionResults = useMemo(() => {
     if (!searchQuery.trim()) {
       return []
@@ -889,6 +893,11 @@ export default function TasksPage() {
     searchBlurTimeout.current = setTimeout(() => {
       setIsSearchFocused(false)
     }, 120)
+  }
+
+  const handleMobileHomeSearchFocus = () => {
+    setShowMobileHome(false)
+    handleSearchFocus()
   }
 
   const handleSuggestionSelect = (task: Task) => {
@@ -1316,6 +1325,35 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+
+  const renderMobileSearch = () => (
+    <div className="bg-white rounded-3xl border border-slate-100 shadow px-4 py-3">
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+        <input
+          ref={mobileSearchInputRef}
+          type="text"
+          value={searchQuery}
+          onFocus={handleSearchFocus}
+          onBlur={handleSearchBlur}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar tareas..."
+          className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={handleClearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            aria-label="Limpiar búsqueda"
+          >
+            ✕
+          </button>
+        )}
+      </div>
     </div>
   )
 
@@ -2042,6 +2080,7 @@ export default function TasksPage() {
       setSelectedProjectId(null)
     }
     setShowMobileHome(true)
+    setIsSearchFocused(false)
   }
 
   const handleOpenTaskModal = () => {
@@ -2080,6 +2119,7 @@ export default function TasksPage() {
       {isMobile ? (
         <>
           <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-28">
+            {renderMobileSearch()}
             {renderMobileHeader()}
             {renderActiveFilterChips()}
             {renderErrorBanner()}
