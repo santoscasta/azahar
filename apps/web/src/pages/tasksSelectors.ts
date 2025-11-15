@@ -1,6 +1,6 @@
 import type { Task, Project, Label, Area } from '../lib/supabase'
 
-export type QuickViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'logbook'
+export type QuickViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook'
 
 export interface ActiveFilterDescriptor {
   key: string
@@ -24,6 +24,7 @@ export function buildQuickViewStats(tasks: Task[], todayISO: string) {
     today: 0,
     upcoming: 0,
     anytime: 0,
+    someday: 0,
     logbook: 0,
   }
 
@@ -44,20 +45,23 @@ export function getTaskView(task: Task, todayISO: string): QuickViewId {
     return 'logbook'
   }
   if (task.status === 'snoozed') {
-    return 'anytime'
+    return 'someday'
   }
 
   const normalized = normalizeDate(task.due_at)
 
-  if (normalized === todayISO) {
-    return 'today'
-  }
-
-  if (normalized && normalized > todayISO) {
+  if (normalized) {
+    if (normalized <= todayISO) {
+      return 'today'
+    }
     return 'upcoming'
   }
 
-  return 'inbox'
+  if (!task.project_id && !task.area_id) {
+    return 'inbox'
+  }
+
+  return 'anytime'
 }
 
 export function buildActiveFilters(

@@ -76,19 +76,20 @@ describe('buildQuickViewStats', () => {
     const tasks: Task[] = [
       makeTask({ id: 't1', due_at: '2024-01-10T08:00:00.000Z' }),
       makeTask({ id: 't2', due_at: '2024-01-12T08:00:00.000Z' }),
-      makeTask({ id: 't3', due_at: null }),
-      makeTask({ id: 't4', status: 'snoozed', due_at: null }),
-      makeTask({ id: 't5', due_at: '2023-12-01T08:00:00.000Z' }),
+      makeTask({ id: 't3', project_id: 'project-1', due_at: null }),
+      makeTask({ id: 't4', due_at: null }),
+      makeTask({ id: 't5', status: 'snoozed', due_at: null }),
       makeTask({ id: 't6', status: 'done' }),
     ]
 
     const stats = buildQuickViewStats(tasks, today)
 
     assert.deepEqual(stats, {
-      inbox: 2,
+      inbox: 1,
       today: 1,
       upcoming: 1,
       anytime: 1,
+      someday: 1,
       logbook: 1,
     })
   })
@@ -98,18 +99,20 @@ describe('filterTasksByQuickView', () => {
   const today = '2024-01-10'
   const tasks: Task[] = [
     makeTask({ id: 'today', due_at: '2024-01-10T10:00:00.000Z' }),
+    makeTask({ id: 'overdue', due_at: '2024-01-05T10:00:00.000Z' }),
     makeTask({ id: 'upcoming', due_at: '2024-02-10T10:00:00.000Z' }),
-    makeTask({ id: 'anytime', status: 'snoozed', due_at: null }),
+    makeTask({ id: 'anytime', project_id: 'project-1', due_at: null }),
     makeTask({ id: 'inbox-null', due_at: null }),
-    makeTask({ id: 'inbox-past', due_at: '2023-12-01T10:00:00.000Z' }),
+    makeTask({ id: 'someday', status: 'snoozed', due_at: null }),
     makeTask({ id: 'done', status: 'done' }),
   ]
 
   const cases: Array<[QuickViewId, string[]]> = [
-    ['inbox', ['inbox-null', 'inbox-past']],
-    ['today', ['today']],
+    ['inbox', ['inbox-null']],
+    ['today', ['today', 'overdue']],
     ['upcoming', ['upcoming']],
     ['anytime', ['anytime']],
+    ['someday', ['someday']],
     ['logbook', ['done']],
   ]
 
@@ -177,10 +180,11 @@ describe('getTaskView', () => {
     const cases: Array<[Task, QuickViewId]> = [
       [makeTask({ due_at: '2024-01-10T12:00:00Z' }), 'today'],
       [makeTask({ due_at: '2024-01-15T12:00:00Z' }), 'upcoming'],
-      [makeTask({ status: 'snoozed', due_at: null }), 'anytime'],
+      [makeTask({ status: 'snoozed', due_at: null }), 'someday'],
+      [makeTask({ due_at: null, project_id: 'project-1' }), 'anytime'],
       [makeTask({ due_at: null }), 'inbox'],
       [makeTask({ status: 'done' }), 'logbook'],
-      [makeTask({ due_at: '2023-12-01T12:00:00Z' }), 'inbox'],
+      [makeTask({ due_at: '2023-12-01T12:00:00Z' }), 'today'],
     ]
 
     cases.forEach(([task, expected]) => {

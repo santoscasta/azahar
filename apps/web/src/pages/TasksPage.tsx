@@ -10,18 +10,12 @@ import {
   deleteTask,
   getProjects,
   addProject,
-  updateProject,
-  deleteProject,
   getLabels,
   addLabel,
-  updateLabel,
-  deleteLabel,
   addTaskLabel,
   removeTaskLabel,
   getAreas,
   addArea,
-  updateArea,
-  deleteArea,
   getProjectHeadings,
   addProjectHeading,
   updateProjectHeading,
@@ -33,6 +27,8 @@ import {
   filterTasksByQuickView,
   buildActiveFilters,
   isFilteredView,
+  normalizeDate,
+  getTaskView,
   type QuickViewId,
 } from './tasksSelectors'
 
@@ -62,20 +58,11 @@ export default function TasksPage() {
   const [showNewProject, setShowNewProject] = useState(false)
   const [newAreaName, setNewAreaName] = useState('')
   const [showNewArea, setShowNewArea] = useState(false)
-  const [newLabelName, setNewLabelName] = useState('')
-  const [showNewLabel, setShowNewLabel] = useState(false)
   const [inlineLabelName, setInlineLabelName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
   const [activeQuickView, setActiveQuickView] = useState<QuickViewId>('inbox')
   const [selectedTaskForLabel, setSelectedTaskForLabel] = useState<string | null>(null)
-  const [projectEditingId, setProjectEditingId] = useState<string | null>(null)
-  const [projectEditingName, setProjectEditingName] = useState('')
-  const [projectEditingAreaId, setProjectEditingAreaId] = useState<string | null>(null)
-  const [areaEditingId, setAreaEditingId] = useState<string | null>(null)
-  const [areaEditingName, setAreaEditingName] = useState('')
-  const [labelEditingId, setLabelEditingId] = useState<string | null>(null)
-  const [labelEditingName, setLabelEditingName] = useState('')
   const [newHeadingName, setNewHeadingName] = useState('')
   const [headingEditingId, setHeadingEditingId] = useState<string | null>(null)
   const [headingEditingName, setHeadingEditingName] = useState('')
@@ -88,6 +75,9 @@ export default function TasksPage() {
   const [mobileTaskLimit, setMobileTaskLimit] = useState(6)
   const [datePickerTarget, setDatePickerTarget] = useState<'new' | 'edit' | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(() => new Date())
+  const [activeProjectFilterChip, setActiveProjectFilterChip] = useState<'all' | 'important' | string>('all')
+  const [showNewListMenu, setShowNewListMenu] = useState(false)
+  const [showQuickHeadingForm, setShowQuickHeadingForm] = useState(false)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
@@ -200,6 +190,70 @@ export default function TasksPage() {
     () => filterTasksByQuickView(tasks, activeQuickView, todayISO),
     [tasks, activeQuickView, todayISO]
   )
+  const isTaskOverdue = (task: Task) => {
+    if (task.status !== 'open' || !task.due_at) {
+      return false
+    }
+    const normalized = normalizeDate(task.due_at)
+    return !!normalized && normalized < todayISO
+  }
+  const quickViewOverdueStats = useMemo(() => {
+    const base: Record<QuickViewId, number> = {
+      inbox: 0,
+      today: 0,
+      upcoming: 0,
+      anytime: 0,
+      someday: 0,
+      logbook: 0,
+    }
+    tasks.forEach(task => {
+      if (!isTaskOverdue(task)) {
+        return
+      }
+      const view = getTaskView(task, todayISO)
+      base[view] += 1
+    })
+    return base
+  }, [tasks, todayISO])
+  const projectMap = useMemo(() => {
+    const map = new Map<string, Project>()
+    projects.forEach(project => map.set(project.id, project))
+    return map
+  }, [projects])
+  const projectStats = useMemo(() => {
+    const stats = new Map<string, { total: number; overdue: number }>()
+    tasks.forEach(task => {
+      if (!task.project_id || task.status === 'done') {
+        return
+      }
+      const entry = stats.get(task.project_id) || { total: 0, overdue: 0 }
+      entry.total += 1
+      if (isTaskOverdue(task)) {
+        entry.overdue += 1
+      }
+      stats.set(task.project_id, entry)
+    })
+    return stats
+  }, [tasks, todayISO])
+  const areaStats = useMemo(() => {
+    const stats = new Map<string, { total: number; overdue: number }>()
+    tasks.forEach(task => {
+      if (task.status === 'done') {
+        return
+      }
+      const relatedArea = task.area_id || (task.project_id ? projectMap.get(task.project_id)?.area_id || null : null)
+      if (!relatedArea) {
+        return
+      }
+      const entry = stats.get(relatedArea) || { total: 0, overdue: 0 }
+      entry.total += 1
+      if (isTaskOverdue(task)) {
+        entry.overdue += 1
+      }
+      stats.set(relatedArea, entry)
+    })
+    return stats
+  }, [tasks, todayISO, projectMap])
 
   const tomorrowISO = useMemo(() => {
     const todayDate = new Date(todayISO)
@@ -212,15 +266,12 @@ export default function TasksPage() {
 
   const determineViewFromDate = (value: string | null, fallback: QuickViewId = 'inbox'): QuickViewId => {
     if (!value) {
-      return fallback === 'anytime' ? 'anytime' : 'inbox'
+      return fallback === 'someday' ? 'someday' : 'anytime'
     }
-    if (value === todayISO) {
+    if (value <= todayISO) {
       return 'today'
     }
-    if (value > todayISO) {
-      return 'upcoming'
-    }
-    return 'inbox'
+    return 'upcoming'
   }
 
   const applyViewPreset = (view: QuickViewId) => {
@@ -240,6 +291,10 @@ export default function TasksPage() {
         setNewTaskStatus('open')
         break
       case 'anytime':
+        setNewTaskDueAt('')
+        setNewTaskStatus('open')
+        break
+      case 'someday':
         setNewTaskDueAt('')
         setNewTaskStatus('snoozed')
         break
@@ -278,10 +333,11 @@ export default function TasksPage() {
 
   const quickLists = [
     { id: 'inbox', label: 'Inbox', icon: '📥', accent: 'text-slate-700' },
-    { id: 'today', label: 'Hoy', icon: '⭐', accent: 'text-amber-500' },
-    { id: 'upcoming', label: 'Próximas', icon: '📆', accent: 'text-blue-500' },
-    { id: 'anytime', label: 'Algún día', icon: '🌙', accent: 'text-slate-500' },
-    { id: 'logbook', label: 'Completadas', icon: '✅', accent: 'text-emerald-600' },
+    { id: 'today', label: 'Today', icon: '⭐', accent: 'text-amber-500' },
+    { id: 'upcoming', label: 'Upcoming', icon: '📆', accent: 'text-sky-500' },
+    { id: 'anytime', label: 'Anytime', icon: '🌤️', accent: 'text-emerald-600' },
+    { id: 'someday', label: 'Someday', icon: '📦', accent: 'text-violet-500' },
+    { id: 'logbook', label: 'Logbook', icon: '✅', accent: 'text-slate-400' },
   ] as const
   const creationViewOptions = quickLists.filter(list => list.id !== 'logbook')
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]
@@ -290,456 +346,210 @@ export default function TasksPage() {
     setActiveQuickView(view)
     setSelectedProjectId(null)
     setSelectedAreaId(null)
+    setActiveProjectFilterChip('all')
+    setShowNewListMenu(false)
     setMobileProjectFocusId(null)
     if (isMobile) {
       setShowMobileHome(false)
     }
   }
 
-  const renderDesktopSidebar = () => (
-    <aside className="az-card p-6 space-y-8">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-            Azahar
-          </p>
-          <p className="text-xl font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-            Panel
-          </p>
+  const renderDesktopSidebar = () => {
+    const standaloneProjects = projects.filter(project => !project.area_id)
+    const renderCount = (total?: number, overdue?: number) => {
+      if (!total && !overdue) {
+        return null
+      }
+      return (
+        <div className="flex items-center gap-1 text-[11px] font-semibold">
+          {total ? <span className="text-slate-400">{total}</span> : null}
+          {overdue ? <span className="text-rose-500">{overdue}</span> : null}
         </div>
-        <button onClick={handleLogout} className="az-btn-secondary px-4 py-1.5 text-sm">
-          Salir
-        </button>
-      </div>
+      )
+    }
 
-      <div>
-        <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-          Vistas
-        </p>
-        <ul className="mt-3 space-y-1">
-          {quickLists.map(list => (
-            <li key={list.id}>
-              <button
-                type="button"
-                onClick={() => handleSelectQuickView(list.id)}
-                className="w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition border"
-                style={
-                  activeQuickView === list.id
-                    ? {
-                        background: 'var(--color-primary-600)',
-                        color: 'var(--on-primary)',
-                        borderColor: 'var(--color-primary-600)',
-                        boxShadow: '0 15px 35px rgba(62, 99, 134, 0.35)',
-                      }
-                    : {
-                        color: 'var(--color-primary-600)',
-                        borderColor: 'transparent',
-                      }
-                }
-              >
-                <span className="flex items-center gap-2">
-                  <span className="text-lg">{list.icon}</span>
-                  {list.label}
-                </span>
-                <span className="text-xs font-semibold">{quickViewStats[list.id]}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div>
-        <div
-          className="flex items-center justify-between text-xs uppercase tracking-wide"
-          style={{ color: 'var(--color-primary-500)' }}
-        >
-          <span>Áreas</span>
+    return (
+      <aside className="rounded-[32px] border border-slate-100 bg-white shadow-2xl flex flex-col h-full">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.4em] text-slate-400">Azahar</p>
+            <p className="text-xl font-semibold text-slate-900">Workspace</p>
+          </div>
           <button
             type="button"
-            onClick={() => setShowNewArea(prev => !prev)}
-            className="text-base font-semibold"
-            style={{ color: 'var(--color-primary-600)' }}
+            onClick={handleLogout}
+            className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300"
           >
-            {showNewArea ? '−' : '+'}
+            Salir
           </button>
         </div>
-        <div className="mt-3 space-y-2">
-          {areas.length === 0 && <p className="text-sm text-slate-400">Crea áreas para agrupar proyectos y tareas.</p>}
-          {areas.map(area => {
-            const isActive = selectedAreaId === area.id
-            const projectsInArea = projects.filter(project => project.area_id === area.id)
-            return (
-              <div
-                key={area.id}
-                className="rounded-2xl border transition"
-                style={{
-                  borderColor: isActive ? 'var(--color-primary-200)' : 'transparent',
-                  backgroundColor: isActive ? 'var(--color-primary-100)' : 'transparent',
-                }}
-              >
-                {areaEditingId === area.id ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      handleSaveAreaEdit()
-                    }}
-                    className="p-3 space-y-2"
-                  >
-                    <input
-                      type="text"
-                      value={areaEditingName}
-                      onChange={(e) => setAreaEditingName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                    />
-                    <div className="flex gap-2">
-                      <button type="submit" disabled={updateAreaMutation.isPending} className="az-btn-primary flex-1 px-4 py-2 text-xs">
-                        {updateAreaMutation.isPending ? 'Guardando...' : 'Guardar'}
-                      </button>
-                      <button type="button" onClick={handleCancelAreaEdit} className="az-btn-secondary px-4 py-2 text-xs">
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <div className="px-5">
+          <div className="rounded-2xl border border-slate-100 p-3 flex items-center justify-between bg-slate-50">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">En progreso</p>
+              <p className="text-lg font-semibold text-slate-800">
+                {filteredTasks.filter(task => task.status !== 'done').length} tareas
+              </p>
+            </div>
+            <span className="text-sm text-slate-400">
+              {completedCount}/{filteredTasks.length}
+            </span>
+          </div>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-5">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Focus</p>
+            <ul className="space-y-1">
+              {quickLists.map(view => {
+                const viewId = view.id as QuickViewId
+                const total = quickViewStats[viewId]
+                const overdue = quickViewOverdueStats[viewId]
+                const isActive = !selectedProjectId && !selectedAreaId && activeQuickView === viewId
+                return (
+                  <li key={view.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectQuickView(viewId)}
+                      className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
+                        isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className={`text-base ${view.accent}`}>{view.icon}</span>
+                        {view.label}
+                      </span>
+                      {renderCount(total, overdue)}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Áreas</p>
+            <div className="space-y-3">
+              {areas.length === 0 && <p className="text-sm text-slate-400">Crea tu primera área para organizarte.</p>}
+              {areas.map(area => {
+                const areaProjects = projects.filter(project => project.area_id === area.id)
+                const stats = areaStats.get(area.id)
+                const isActiveArea = selectedAreaId === area.id && !selectedProjectId
+                return (
+                  <div key={area.id} className="rounded-2xl border border-slate-100 px-3 py-2 bg-slate-50/60">
                     <button
                       type="button"
                       onClick={() => handleSelectArea(area.id)}
-                      className="flex-1 text-left text-sm font-medium"
-                      style={{ color: isActive ? 'var(--color-primary-700)' : 'var(--color-primary-500)' }}
+                      className={`w-full flex items-center justify-between text-sm font-semibold ${
+                        isActiveArea ? 'text-slate-900' : 'text-slate-600'
+                      }`}
                     >
-                      <span className="block">{area.name}</span>
-                      <span className="text-xs text-slate-400">
-                        {projectsInArea.length} proyecto{projectsInArea.length === 1 ? '' : 's'}
-                      </span>
-                    </button>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleStartEditArea(area.id, area.name)}
-                        className="p-1 rounded-full text-xs text-slate-500 hover:text-slate-800"
-                        title="Renombrar"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteArea(area.id)}
-                        className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
-                        title="Eliminar"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {showNewArea && (
-          <form onSubmit={handleAddArea} className="mt-4 space-y-2">
-            <input
-              type="text"
-              value={newAreaName}
-              onChange={(e) => setNewAreaName(e.target.value)}
-              placeholder="Nueva área"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-            />
-            <div className="flex gap-2">
-              <button type="submit" disabled={addAreaMutation.isPending} className="az-btn-primary flex-1 px-4 py-2 text-sm">
-                {addAreaMutation.isPending ? 'Guardando...' : 'Guardar'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewArea(false)
-                  setNewAreaName('')
-                }}
-                className="az-btn-secondary px-4 py-2 text-sm"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-          <span>Proyectos</span>
-          <button
-            type="button"
-            onClick={() => setShowNewProject(prev => !prev)}
-            className="text-base font-semibold"
-            style={{ color: 'var(--color-primary-600)' }}
-          >
-            {showNewProject ? '−' : '+'}
-          </button>
-        </div>
-        <div className="mt-3 space-y-2">
-          {projects.length === 0 && <p className="text-sm text-slate-400">Aún no tienes proyectos.</p>}
-          {projects.map(project => (
-            <div
-              key={project.id}
-              className="rounded-2xl border transition"
-              style={{
-                borderColor: selectedProjectId === project.id ? 'var(--color-primary-200)' : 'transparent',
-                backgroundColor: selectedProjectId === project.id ? 'var(--color-primary-100)' : 'transparent',
-              }}
-            >
-              {projectEditingId === project.id ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    handleSaveProjectEdit()
-                  }}
-                  className="p-3 space-y-2"
-                >
-                  <input
-                    type="text"
-                    value={projectEditingName}
-                    onChange={(e) => setProjectEditingName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  />
-                  <select
-                    value={projectEditingAreaId || ''}
-                    onChange={(e) => setProjectEditingAreaId(e.target.value || null)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  >
-                    <option value="">Sin área</option>
-                    {areas.map(area => (
-                      <option key={area.id} value={area.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-slate-400" />
                         {area.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={updateProjectMutation.isPending}
-                      className="az-btn-primary flex-1 px-4 py-2 text-xs"
-                    >
-                      {updateProjectMutation.isPending ? 'Guardando...' : 'Guardar'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelProjectEdit}
-                      className="az-btn-secondary px-4 py-2 text-xs"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="flex items-center justify-between gap-2 px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectProject(project.id)}
-                    className="flex-1 text-left text-sm font-medium"
-                    style={{
-                      color: selectedProjectId === project.id ? 'var(--color-primary-700)' : 'var(--color-primary-500)',
-                    }}
-                  >
-                    <span className="block">{project.name}</span>
-                    {project.area_id && (
-                      <span className="text-xs text-slate-400">
-                        Área: {areas.find(area => area.id === project.area_id)?.name || 'Sin área'}
                       </span>
-                    )}
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleStartEditProject(project.id, project.name)}
-                      className="p-1 rounded-full text-xs text-slate-500 hover:text-slate-800"
-                      title="Renombrar"
-                    >
-                      ✏️
+                      {renderCount(stats?.total, stats?.overdue)}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProject(project.id)}
-                      className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
-                      title="Eliminar"
-                    >
-                      🗑️
-                    </button>
+                    <div className="mt-1 ml-7 space-y-1">
+                      {areaProjects.map(project => {
+                        const projectStat = projectStats.get(project.id)
+                        const isActiveProject = selectedProjectId === project.id
+                        return (
+                          <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => handleSelectProject(project.id)}
+                            className={`w-full flex items-center justify-between text-xs rounded-xl px-2 py-1 ${
+                              isActiveProject ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                          >
+                            <span>{project.name}</span>
+                            {renderCount(projectStat?.total, projectStat?.overdue)}
+                          </button>
+                        )
+                      })}
+                      {areaProjects.length === 0 && (
+                        <p className="text-xs text-slate-400">Sin proyectos todavía</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })}
             </div>
-          ))}
-        </div>
-        {showNewProject && (
-          <form onSubmit={handleAddProject} className="mt-4 space-y-2">
-            <input
-              type="text"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              placeholder="Nuevo proyecto"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-            />
-            <select
-              value={newProjectAreaId || ''}
-              onChange={(e) => setNewProjectAreaId(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-            >
-              <option value="">Sin área</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.id}>
-                  {area.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <button type="submit" disabled={addProjectMutation.isPending} className="az-btn-primary flex-1 px-4 py-2 text-sm">
-                {addProjectMutation.isPending ? 'Guardando...' : 'Guardar'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewProject(false)
-                  setNewProjectName('')
-                }}
-                className="az-btn-secondary px-4 py-2 text-sm"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+          </div>
 
-      <div>
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-          <span>Etiquetas</span>
+          {standaloneProjects.length > 0 && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Proyectos</p>
+              <div className="space-y-1">
+                {standaloneProjects.map(project => {
+                  const stats = projectStats.get(project.id)
+                  const isActive = selectedProjectId === project.id
+                  return (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={() => handleSelectProject(project.id)}
+                      className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
+                        isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                        {project.name}
+                      </span>
+                      {renderCount(stats?.total, stats?.overdue)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </nav>
+        <div className="relative px-6 py-4 border-t border-slate-100">
           <button
             type="button"
-            onClick={() => setShowNewLabel(prev => !prev)}
-            className="text-base font-semibold"
-            style={{ color: 'var(--color-accent-500)' }}
+            onClick={() => setShowNewListMenu(prev => !prev)}
+            className="w-full flex items-center justify-center gap-2 rounded-full bg-slate-900 text-white py-2 text-sm font-semibold shadow-lg"
           >
-            {showNewLabel ? '−' : '+'}
+            +
+            <span>Nueva lista</span>
           </button>
-        </div>
-        <div className="mt-3 space-y-2">
-          {labels.length === 0 && <p className="text-sm text-slate-400">Crea etiquetas para organizarlas.</p>}
-          {labels.map(label => {
-            const isActive = selectedLabelIds.includes(label.id)
-            return (
-              <div
-                key={label.id}
-                className="rounded-2xl border transition"
-                style={{
-                  borderColor: isActive ? 'var(--color-accent-300)' : 'transparent',
-                  backgroundColor: isActive ? 'rgba(98, 164, 130, 0.15)' : 'transparent',
-                }}
-              >
-                {labelEditingId === label.id ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      handleSaveLabelEdit()
-                    }}
-                    className="p-3 space-y-2"
-                  >
-                    <input
-                      type="text"
-                      value={labelEditingName}
-                      onChange={(e) => setLabelEditingName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
-                    />
-                    <div className="flex gap-2">
-                      <button type="submit" disabled={updateLabelMutation.isPending} className="az-btn-accent flex-1 px-4 py-2 text-xs">
-                        {updateLabelMutation.isPending ? 'Guardando...' : 'Guardar'}
-                      </button>
-                      <button type="button" onClick={handleCancelLabelEdit} className="az-btn-secondary px-4 py-2 text-xs">
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex items-center justify-between gap-2 px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isActive) {
-                          setSelectedLabelIds(prev => prev.filter(id => id !== label.id))
-                        } else {
-                          setSelectedLabelIds(prev => [...prev, label.id])
-                        }
-                      }}
-                      className="flex-1 text-left text-xs font-medium"
-                      style={{ color: isActive ? 'var(--color-accent-600)' : 'var(--color-primary-500)' }}
-                    >
-                      #{label.name}
-                    </button>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleStartEditLabel(label.id, label.name)}
-                        className="p-1 rounded-full text-xs text-slate-500 hover:text-slate-800"
-                        title="Renombrar"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteLabel(label.id)}
-                        className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
-                        title="Eliminar"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {showNewLabel && (
-          <form onSubmit={handleAddLabel} className="mt-4 space-y-2">
-            <input
-              type="text"
-              value={newLabelName}
-              onChange={(e) => setNewLabelName(e.target.value)}
-              placeholder="Nueva etiqueta"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
-            />
-            <div className="flex gap-2">
-              <button type="submit" disabled={addLabelMutation.isPending} className="az-btn-accent flex-1 px-4 py-2 text-sm">
-                {addLabelMutation.isPending ? 'Guardando...' : 'Guardar'}
-              </button>
+          {showNewListMenu && (
+            <div className="absolute left-6 right-6 bottom-20 bg-slate-900 text-slate-100 rounded-3xl p-4 space-y-4 shadow-2xl">
               <button
                 type="button"
                 onClick={() => {
-                  setShowNewLabel(false)
-                  setNewLabelName('')
+                  setShowNewProject(true)
+                  setShowNewListMenu(false)
                 }}
-                className="az-btn-secondary px-4 py-2 text-sm"
+                className="w-full text-left flex flex-col gap-1"
               >
-                Cancelar
+                <span className="text-sm font-semibold flex items-center gap-2">
+                  <span className="text-blue-300">🌀</span> Nuevo proyecto
+                </span>
+                <span className="text-xs text-slate-300">Define un objetivo y avanza tarea a tarea.</span>
+              </button>
+              <div className="h-px bg-slate-700" />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewArea(true)
+                  setShowNewListMenu(false)
+                }}
+                className="w-full text-left flex flex-col gap-1"
+              >
+                <span className="text-sm font-semibold flex items-center gap-2">
+                  <span className="text-emerald-300">🧩</span> Nueva área
+                </span>
+                <span className="text-xs text-slate-300">Agrupa proyectos por responsabilidades.</span>
               </button>
             </div>
-          </form>
-        )}
-      </div>
+          )}
+        </div>
+      </aside>
+    )
+  }
 
-      <div className="p-4 rounded-2xl" style={{ backgroundColor: 'var(--color-primary-100)' }}>
-        <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-          Resumen
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-          {completedCount}/{filteredTasks.length}
-        </p>
-        <p className="text-sm" style={{ color: 'var(--color-primary-500)' }}>
-          Completadas en esta vista
-        </p>
-      </div>
-    </aside>
-  )
 
   const renderMobileHome = () => (
     <div className="space-y-6 pb-28">
@@ -1098,11 +908,20 @@ export default function TasksPage() {
     )
   }
   const quickViewLabels: Record<typeof quickLists[number]['id'], string> = {
-    inbox: 'Todas las tareas',
-    today: 'Tareas para hoy',
-    upcoming: 'Próximas tareas',
-    anytime: 'Tareas sin fecha',
-    logbook: 'Completadas',
+    inbox: 'Inbox',
+    today: 'Today',
+    upcoming: 'Upcoming',
+    anytime: 'Anytime',
+    someday: 'Someday',
+    logbook: 'Logbook',
+  }
+  const quickViewDescriptions: Record<QuickViewId, string> = {
+    inbox: 'Capture loose ideas and tasks that still need a home.',
+    today: 'Focus on everything due today plus anything that slipped through.',
+    upcoming: 'See what is planned for the next days and weeks.',
+    anytime: 'Tasks without a date live here until you schedule them.',
+    someday: 'A parking lot for ideas you want to revisit later.',
+    logbook: 'A record of everything you have finished.',
   }
 
   const selectedProject = selectedProjectId ? projects.find(project => project.id === selectedProjectId) : null
@@ -1171,6 +990,29 @@ export default function TasksPage() {
 
     return Array.from(groups.values())
   }, [filteredTasks, selectedProjectId, selectedAreaId, areas, projects])
+  const projectChipOptions = useMemo(() => {
+    if (!selectedProject) {
+      return []
+    }
+    const labelMap = new Map<string, TaskLabelSummary>()
+    filteredTasks.forEach(task => {
+      (task.labels || []).forEach(label => {
+        if (!labelMap.has(label.id)) {
+          labelMap.set(label.id, label)
+        }
+      })
+    })
+    return Array.from(labelMap.values())
+  }, [filteredTasks, selectedProject])
+  const visibleProjectTasks = useMemo(() => {
+    if (!selectedProject) {
+      return filteredTasks
+    }
+    if (activeProjectFilterChip === 'important') {
+      return filteredTasks.filter(task => (task.priority || 0) >= 2)
+    }
+    return filteredTasks
+  }, [filteredTasks, selectedProject, activeProjectFilterChip])
 
   useEffect(() => {
     if (isMobileDetail) {
@@ -1183,6 +1025,26 @@ export default function TasksPage() {
       mobileSearchInputRef.current.focus()
     }
   }, [isMobileDetail, isSearchFocused])
+  useEffect(() => {
+    if (selectedLabelIds.length === 0) {
+      if (activeProjectFilterChip !== 'all' && activeProjectFilterChip !== 'important') {
+        setActiveProjectFilterChip('all')
+      }
+      return
+    }
+    const first = selectedLabelIds[0]
+    if (activeProjectFilterChip !== first) {
+      setActiveProjectFilterChip(first)
+    }
+  }, [selectedLabelIds, activeProjectFilterChip])
+  useEffect(() => {
+    if (showQuickHeadingForm && !selectedProjectId) {
+      setShowQuickHeadingForm(false)
+    }
+    if (!showQuickHeadingForm) {
+      setNewHeadingName('')
+    }
+  }, [selectedProjectId, showQuickHeadingForm])
 
   const suggestionResults = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -1286,6 +1148,185 @@ export default function TasksPage() {
       next.setMonth(prev.getMonth() + offset)
       return next
     })
+  }
+
+
+  const renderNewAreaModal = () => {
+    if (!showNewArea) {
+      return null
+    }
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Nueva área</p>
+              <p className="text-2xl font-semibold text-slate-900">Organiza tus espacios</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewArea(false)
+                setNewAreaName('')
+              }}
+              className="text-slate-400 hover:text-slate-600 text-xl"
+            >
+              ✕
+            </button>
+          </div>
+          <form onSubmit={handleAddArea} className="space-y-3">
+            <input
+              type="text"
+              value={newAreaName}
+              onChange={(e) => setNewAreaName(e.target.value)}
+              placeholder="Nombre del área"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewArea(false)
+                  setNewAreaName('')
+                }}
+                className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={addAreaMutation.isPending}
+                className="px-5 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg disabled:opacity-60"
+              >
+                {addAreaMutation.isPending ? 'Guardando...' : 'Crear área'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+  const renderNewProjectModal = () => {
+    if (!showNewProject) {
+      return null
+    }
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Nuevo proyecto</p>
+              <p className="text-2xl font-semibold text-slate-900">Da forma a un objetivo</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewProject(false)
+                setNewProjectName('')
+                setNewProjectAreaId(null)
+              }}
+              className="text-slate-400 hover:text-slate-600 text-xl"
+            >
+              ✕
+            </button>
+          </div>
+          <form onSubmit={handleAddProject} className="space-y-3">
+            <input
+              type="text"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="Nombre del proyecto"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+            />
+            <select
+              value={newProjectAreaId || ''}
+              onChange={(e) => setNewProjectAreaId(e.target.value || null)}
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+            >
+              <option value="">Sin área</option>
+              {areas.map(area => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewProject(false)
+                  setNewProjectName('')
+                  setNewProjectAreaId(null)
+                }}
+                className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={addProjectMutation.isPending}
+                className="px-5 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg disabled:opacity-60"
+              >
+                {addProjectMutation.isPending ? 'Guardando...' : 'Crear proyecto'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  const renderQuickHeadingForm = () => {
+    if (!showQuickHeadingForm) {
+      return null
+    }
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={() => setShowQuickHeadingForm(false)}>
+        <div
+          className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Nueva sección</p>
+              <p className="text-2xl font-semibold text-slate-900">Agrupa tus tareas</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowQuickHeadingForm(false)}
+              className="text-slate-400 hover:text-slate-600 text-xl"
+            >
+              ✕
+            </button>
+          </div>
+          <form onSubmit={handleAddHeading} className="space-y-3">
+            <input
+              type="text"
+              value={newHeadingName}
+              onChange={(e) => setNewHeadingName(e.target.value)}
+              placeholder="Nombre de la sección"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowQuickHeadingForm(false)}
+                className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={!selectedProjectId || addHeadingMutation.isPending}
+                className="px-5 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg disabled:opacity-60"
+              >
+                {addHeadingMutation.isPending ? 'Guardando...' : 'Crear sección'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   const renderActiveFilterChips = () => {
@@ -1745,47 +1786,64 @@ export default function TasksPage() {
 
   const renderDesktopHeader = () => {
     const contextLabel = selectedProject ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'
-    const contextTitle = selectedProject
-      ? selectedProject.name
-      : selectedArea
-        ? selectedArea.name
-        : currentQuickView.label
-    const contextSubtitle = selectedProject
+    const contextTitle = selectedProject ? selectedProject.name : selectedArea ? selectedArea.name : currentQuickView.label
+    const areaTaskSummary = selectedArea ? areaStats.get(selectedArea.id) : null
+    const contextDescription = selectedProject
       ? selectedArea
-        ? `Área: ${selectedArea.name}`
-        : friendlyToday
+        ? `Ubicado en ${selectedArea.name}`
+        : 'Sin área asignada'
       : selectedArea
-        ? `${projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s)`
-        : friendlyToday
+        ? `${projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s) · ${areaTaskSummary?.total || 0} tareas`
+        : quickViewDescriptions[activeQuickView]
+    const pendingCount = selectedProject
+      ? visibleProjectTasks.filter(task => task.status !== 'done').length
+      : filteredTasks.filter(task => task.status !== 'done').length
+    const overdueCount = selectedProject
+      ? visibleProjectTasks.filter(task => isTaskOverdue(task)).length
+      : filteredTasks.filter(task => isTaskOverdue(task)).length
+    const chipItems = [
+      { id: 'all', label: 'All' },
+      { id: 'important', label: 'Important' },
+      ...projectChipOptions.map(label => ({ id: label.id, label: label.name })),
+    ]
 
     return (
-      <header className="az-card p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-            {contextLabel}
-          </p>
-          <h1 className="text-3xl font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-            {contextTitle}
-          </h1>
-          <p className="text-sm capitalize" style={{ color: 'var(--color-primary-500)' }}>
-            {contextSubtitle}
-          </p>
+      <header className="rounded-[32px] border border-slate-100 bg-white shadow px-8 py-6 space-y-4">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{contextLabel}</p>
+            <h1 className="text-3xl font-semibold text-slate-900">{contextTitle}</h1>
+            <p className="text-sm text-slate-500 mt-1">{contextDescription}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Pendientes</p>
+            <p className="text-2xl font-semibold text-slate-900">{pendingCount}</p>
+            {overdueCount > 0 && <p className="text-xs text-rose-500">{overdueCount} vencida(s)</p>}
+          </div>
         </div>
-        <div className="flex flex-col gap-2 text-sm text-slate-500 md:text-right">
-          <span>
-            {completedCount} de {filteredTasks.length} completadas
-          </span>
-          <button
-            type="button"
-            onClick={handleClearFilters}
-            className="self-start md:self-end az-btn-secondary px-3 py-1 text-xs"
-          >
-            Limpiar vista
-          </button>
-        </div>
+        {selectedProject && (
+          <div className="flex flex-wrap gap-2">
+            {chipItems.map(chip => {
+              const isActive = activeProjectFilterChip === chip.id
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => handleProjectChipSelect(chip.id as 'all' | 'important' | string)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                    isActive ? 'bg-slate-900 text-white border-slate-900 shadow' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </header>
     )
   }
+
 
   const renderQuickViewBoard = () => {
     if (isLoading && filteredTasks.length === 0) {
@@ -1872,7 +1930,7 @@ export default function TasksPage() {
     }
     const headingsForProject = projectHeadings.filter(heading => heading.project_id === selectedProject.id)
     const tasksByHeading = new Map<string, Task[]>()
-    filteredTasks.forEach(task => {
+    visibleProjectTasks.forEach(task => {
       const key = task.heading_id || 'unassigned'
       if (!tasksByHeading.has(key)) {
         tasksByHeading.set(key, [])
@@ -1890,7 +1948,7 @@ export default function TasksPage() {
             {selectedArea && <p className="text-sm text-slate-500">Área: {selectedArea.name}</p>}
           </div>
           <span className="text-sm text-slate-500">
-            {completedCount} / {filteredTasks.length} completadas
+            {completedCount} / {visibleProjectTasks.length} completadas
           </span>
         </div>
         <div className="px-6 py-6 space-y-6">
@@ -2161,12 +2219,23 @@ export default function TasksPage() {
         >
           +
         </button>
-        <div className="pr-4">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Nueva tarea</p>
-          <p className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-            Añade una idea o recordatorio
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowQuickHeadingForm(true)}
+          disabled={!selectedProjectId}
+          className="h-12 w-12 rounded-full border border-slate-200 text-xl text-slate-600 hover:border-slate-300 disabled:opacity-40"
+          aria-label="Nueva sección"
+        >
+          ≡
+        </button>
+        <button
+          type="button"
+          onClick={() => openDatePicker('new')}
+          className="h-12 w-12 rounded-full border border-slate-200 text-lg text-slate-600 hover:border-slate-300"
+          aria-label="Elegir fecha"
+        >
+          📅
+        </button>
       </div>
     </div>
   )
@@ -2462,43 +2531,6 @@ export default function TasksPage() {
     },
   })
 
-  const updateAreaMutation = useMutation({
-    mutationFn: ({ areaId, name }: { areaId: string; name: string }) => updateArea(areaId, { name }),
-    onSuccess: (result) => {
-      if (result.success) {
-        setAreaEditingId(null)
-        setAreaEditingName('')
-        setError('')
-        queryClient.invalidateQueries({ queryKey: ['areas'] })
-      } else {
-        setError(result.error || 'Error al actualizar área')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al actualizar área')
-    },
-  })
-
-  const deleteAreaMutation = useMutation({
-    mutationFn: (areaId: string) => deleteArea(areaId),
-    onSuccess: (result, areaId) => {
-      if (result.success) {
-        setError('')
-        if (selectedAreaId === areaId) {
-          setSelectedAreaId(null)
-        }
-        queryClient.invalidateQueries({ queryKey: ['areas'] })
-        queryClient.invalidateQueries({ queryKey: ['projects'] })
-        queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      } else {
-        setError(result.error || 'Error al eliminar área')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al eliminar área')
-    },
-  })
-
   // Mutación para agregar proyecto
   const addProjectMutation = useMutation({
     mutationFn: ({ name, areaId }: { name: string; areaId: string | null }) => addProject(name, '#3b82f6', areaId),
@@ -2518,32 +2550,13 @@ export default function TasksPage() {
     },
   })
 
-  const updateProjectMutation = useMutation({
-    mutationFn: ({ projectId, name, areaId }: { projectId: string; name: string; areaId: string | null }) =>
-      updateProject(projectId, { name: name.trim(), area_id: areaId }),
-    onSuccess: (result) => {
-      if (result.success) {
-        setProjectEditingId(null)
-        setProjectEditingName('')
-        setProjectEditingAreaId(null)
-        setError('')
-        queryClient.invalidateQueries({ queryKey: ['projects'] })
-        queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      } else {
-        setError(result.error || 'Error al actualizar proyecto')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al actualizar proyecto')
-    },
-  })
-
   // Mutaciones para headings
   const addHeadingMutation = useMutation({
     mutationFn: ({ projectId, name }: { projectId: string; name: string }) => addProjectHeading(projectId, name),
     onSuccess: (result) => {
       if (result.success) {
         setNewHeadingName('')
+        setShowQuickHeadingForm(false)
         setError('')
         queryClient.invalidateQueries({ queryKey: ['project-headings'] })
       } else {
@@ -2588,50 +2601,6 @@ export default function TasksPage() {
     },
   })
 
-  const deleteProjectMutation = useMutation({
-    mutationFn: (projectId: string) => deleteProject(projectId),
-    onSuccess: (result, projectId) => {
-      if (result.success) {
-        setError('')
-        if (selectedProjectId === projectId) {
-          setSelectedProjectId(null)
-          setSelectedAreaId(null)
-        }
-        queryClient.invalidateQueries({ queryKey: ['projects'] })
-        queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      } else {
-        setError(result.error || 'Error al eliminar proyecto')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al eliminar proyecto')
-    },
-  })
-
-  // Mutación para agregar etiqueta
-  const addLabelMutation = useMutation({
-    mutationFn: (name: string) => addLabel(name),
-    onSuccess: (result) => {
-      if (result.success) {
-        setNewLabelName('')
-        setShowNewLabel(false)
-        setError('')
-        queryClient.setQueryData<Label[]>(['labels'], (prev) => {
-          if (!result.label) return prev
-          if (!prev) return [result.label]
-          const exists = prev.some(label => label.id === result.label!.id)
-          return exists ? prev : [...prev, result.label]
-        })
-        queryClient.invalidateQueries({ queryKey: ['labels'] })
-      } else {
-        setError(result.error || 'Error al crear etiqueta')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al crear etiqueta')
-    },
-  })
-
   const addInlineLabelMutation = useMutation({
     mutationFn: (name: string) => addLabel(name),
     onSuccess: (result) => {
@@ -2654,41 +2623,6 @@ export default function TasksPage() {
     },
     onError: () => {
       setError('Error inesperado al crear etiqueta')
-    },
-  })
-
-  const updateLabelMutation = useMutation({
-    mutationFn: ({ labelId, name }: { labelId: string; name: string }) =>
-      updateLabel(labelId, { name: name.trim() }),
-    onSuccess: (result) => {
-      if (result.success) {
-        setLabelEditingId(null)
-        setLabelEditingName('')
-        setError('')
-        queryClient.invalidateQueries({ queryKey: ['labels'] })
-      } else {
-        setError(result.error || 'Error al actualizar etiqueta')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al actualizar etiqueta')
-    },
-  })
-
-  const deleteLabelMutation = useMutation({
-    mutationFn: (labelId: string) => deleteLabel(labelId),
-    onSuccess: (result, labelId) => {
-      if (result.success) {
-        setError('')
-        setSelectedLabelIds(prev => prev.filter(id => id !== labelId))
-        queryClient.invalidateQueries({ queryKey: ['labels'] })
-        queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      } else {
-        setError(result.error || 'Error al eliminar etiqueta')
-      }
-    },
-    onError: () => {
-      setError('Error inesperado al eliminar etiqueta')
     },
   })
 
@@ -2725,6 +2659,21 @@ export default function TasksPage() {
       setError('Error inesperado al remover etiqueta')
     },
   })
+
+  const handleProjectChipSelect = (chipId: 'all' | 'important' | string) => {
+    if (chipId === 'all') {
+      setSelectedLabelIds([])
+      setActiveProjectFilterChip('all')
+      return
+    }
+    if (chipId === 'important') {
+      setSelectedLabelIds([])
+      setActiveProjectFilterChip('important')
+      return
+    }
+    setSelectedLabelIds([chipId])
+    setActiveProjectFilterChip(chipId)
+  }
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault()
@@ -2787,6 +2736,8 @@ export default function TasksPage() {
       setSelectedAreaId(project?.area_id || null)
     }
     setActiveQuickView('inbox')
+    setActiveProjectFilterChip('all')
+    setShowNewListMenu(false)
   }
 
   const handleSelectArea = (areaId: string) => {
@@ -2797,6 +2748,8 @@ export default function TasksPage() {
       setSelectedProjectId(null)
     }
     setActiveQuickView('inbox')
+    setActiveProjectFilterChip('all')
+    setShowNewListMenu(false)
   }
 
   const handleAddProject = (e: React.FormEvent) => {
@@ -2811,43 +2764,6 @@ export default function TasksPage() {
     })
   }
 
-  const handleAddLabel = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newLabelName.trim()) {
-      setError('El nombre de la etiqueta no puede estar vacío')
-      return
-    }
-    addLabelMutation.mutate(newLabelName)
-  }
-
-  const handleStartEditProject = (projectId: string, name: string) => {
-    setProjectEditingId(projectId)
-    setProjectEditingName(name)
-    const project = projects.find(p => p.id === projectId)
-    setProjectEditingAreaId(project?.area_id || null)
-  }
-
-  const handleCancelProjectEdit = () => {
-    setProjectEditingId(null)
-    setProjectEditingName('')
-    setProjectEditingAreaId(null)
-  }
-
-  const handleSaveProjectEdit = () => {
-    if (!projectEditingId) {
-      return
-    }
-    if (!projectEditingName.trim()) {
-      setError('El nombre del proyecto no puede estar vacío')
-      return
-    }
-    updateProjectMutation.mutate({
-      projectId: projectEditingId,
-      name: projectEditingName.trim(),
-      areaId: projectEditingAreaId,
-    })
-  }
-
   const handleAddArea = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newAreaName.trim()) {
@@ -2855,37 +2771,6 @@ export default function TasksPage() {
       return
     }
     addAreaMutation.mutate(newAreaName.trim())
-  }
-
-  const handleStartEditArea = (areaId: string, name: string) => {
-    setAreaEditingId(areaId)
-    setAreaEditingName(name)
-  }
-
-  const handleCancelAreaEdit = () => {
-    setAreaEditingId(null)
-    setAreaEditingName('')
-  }
-
-  const handleSaveAreaEdit = () => {
-    if (!areaEditingId) {
-      return
-    }
-    if (!areaEditingName.trim()) {
-      setError('El nombre del área no puede estar vacío')
-      return
-    }
-    updateAreaMutation.mutate({ areaId: areaEditingId, name: areaEditingName.trim() })
-  }
-
-  const handleDeleteArea = (areaId: string) => {
-    if (typeof window !== 'undefined') {
-      const areaName = areas.find(a => a.id === areaId)?.name || 'esta área'
-      if (!confirm(`¿Eliminar ${areaName}? Los proyectos seguirán existiendo sin área.`)) {
-        return
-      }
-    }
-    deleteAreaMutation.mutate(areaId)
   }
 
   const handleAddHeading = (e: React.FormEvent) => {
@@ -2931,47 +2816,6 @@ export default function TasksPage() {
     deleteHeadingMutation.mutate(headingId)
   }
 
-  const handleDeleteProject = (projectId: string) => {
-    if (typeof window !== 'undefined') {
-      const projectName = projects.find(p => p.id === projectId)?.name || 'este proyecto'
-      if (!confirm(`¿Eliminar "${projectName}"? Las tareas conservarán el vínculo pero no verás el proyecto en la lista.`)) {
-        return
-      }
-    }
-    deleteProjectMutation.mutate(projectId)
-  }
-
-  const handleStartEditLabel = (labelId: string, name: string) => {
-    setLabelEditingId(labelId)
-    setLabelEditingName(name)
-  }
-
-  const handleCancelLabelEdit = () => {
-    setLabelEditingId(null)
-    setLabelEditingName('')
-  }
-
-  const handleSaveLabelEdit = () => {
-    if (!labelEditingId) {
-      return
-    }
-    if (!labelEditingName.trim()) {
-      setError('El nombre de la etiqueta no puede estar vacío')
-      return
-    }
-    updateLabelMutation.mutate({ labelId: labelEditingId, name: labelEditingName.trim() })
-  }
-
-  const handleDeleteLabel = (labelId: string) => {
-    if (typeof window !== 'undefined') {
-      const labelName = labels.find(l => l.id === labelId)?.name || 'esta etiqueta'
-      if (!confirm(`¿Eliminar "${labelName}"? Se removerá de todas las tareas.`)) {
-        return
-      }
-    }
-    deleteLabelMutation.mutate(labelId)
-  }
-
   const handleToggleLabelPicker = (taskId: string) => {
     setSelectedTaskForLabel(prev => (prev === taskId ? null : taskId))
   }
@@ -2982,15 +2826,6 @@ export default function TasksPage() {
 
   const handleRemoveLabelFromTask = (taskId: string, labelId: string) => {
     removeTaskLabelMutation.mutate({ taskId, labelId })
-  }
-
-  const handleClearFilters = () => {
-    setSearchQuery('')
-    setSelectedProjectId(null)
-    setSelectedAreaId(null)
-    setSelectedLabelIds([])
-    setActiveQuickView('inbox')
-    setIsSearchFocused(false)
   }
 
   const handleShowMoreMobileTasks = () => {
@@ -3078,6 +2913,9 @@ export default function TasksPage() {
         </>
       )}
       {renderTaskModal()}
+      {renderNewAreaModal()}
+      {renderNewProjectModal()}
+      {renderQuickHeadingForm()}
       {renderDatePickerOverlay()}
     </main>
   )
