@@ -21,6 +21,16 @@ import {
   type Label,
   addTaskLabel,
   removeTaskLabel,
+  getAreas,
+  addArea,
+  updateArea,
+  deleteArea,
+  type Area,
+  getProjectHeadings,
+  addProjectHeading,
+  updateProjectHeading,
+  deleteProjectHeading,
+  type ProjectHeading,
 } from '../lib/supabase'
 import {
   buildQuickViewStats,
@@ -36,6 +46,8 @@ export default function TasksPage() {
   const [newTaskPriority, setNewTaskPriority] = useState<0 | 1 | 2 | 3>(0)
   const [newTaskDueAt, setNewTaskDueAt] = useState('')
   const [newTaskProjectId, setNewTaskProjectId] = useState<string | null>(null)
+  const [newTaskAreaId, setNewTaskAreaId] = useState<string | null>(null)
+  const [newTaskHeadingId, setNewTaskHeadingId] = useState<string | null>(null)
   const [newTaskStatus, setNewTaskStatus] = useState<'open' | 'done' | 'snoozed'>('open')
   const [newTaskLabelIds, setNewTaskLabelIds] = useState<string[]>([])
   const [error, setError] = useState('')
@@ -45,9 +57,15 @@ export default function TasksPage() {
   const [editingPriority, setEditingPriority] = useState<0 | 1 | 2 | 3>(0)
   const [editingDueAt, setEditingDueAt] = useState('')
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
+  const [editingAreaId, setEditingAreaId] = useState<string | null>(null)
+  const [editingHeadingId, setEditingHeadingId] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
   const [newProjectName, setNewProjectName] = useState('')
+  const [newProjectAreaId, setNewProjectAreaId] = useState<string | null>(null)
   const [showNewProject, setShowNewProject] = useState(false)
+  const [newAreaName, setNewAreaName] = useState('')
+  const [showNewArea, setShowNewArea] = useState(false)
   const [newLabelName, setNewLabelName] = useState('')
   const [showNewLabel, setShowNewLabel] = useState(false)
   const [inlineLabelName, setInlineLabelName] = useState('')
@@ -57,8 +75,14 @@ export default function TasksPage() {
   const [selectedTaskForLabel, setSelectedTaskForLabel] = useState<string | null>(null)
   const [projectEditingId, setProjectEditingId] = useState<string | null>(null)
   const [projectEditingName, setProjectEditingName] = useState('')
+  const [projectEditingAreaId, setProjectEditingAreaId] = useState<string | null>(null)
+  const [areaEditingId, setAreaEditingId] = useState<string | null>(null)
+  const [areaEditingName, setAreaEditingName] = useState('')
   const [labelEditingId, setLabelEditingId] = useState<string | null>(null)
   const [labelEditingName, setLabelEditingName] = useState('')
+  const [newHeadingName, setNewHeadingName] = useState('')
+  const [headingEditingId, setHeadingEditingId] = useState<string | null>(null)
+  const [headingEditingName, setHeadingEditingName] = useState('')
   const [newTaskView, setNewTaskView] = useState<QuickViewId>('inbox')
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
@@ -75,12 +99,16 @@ export default function TasksPage() {
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', { projectId: selectedProjectId, labelIds: selectedLabelIds, q: searchQuery }],
+    queryKey: [
+      'tasks',
+      { projectId: selectedProjectId, areaId: selectedAreaId, labelIds: selectedLabelIds, q: searchQuery },
+    ],
     queryFn: async () => {
       const result = await searchTasks(
         searchQuery || undefined,
         selectedProjectId || undefined,
-        selectedLabelIds.length > 0 ? selectedLabelIds : undefined
+        selectedLabelIds.length > 0 ? selectedLabelIds : undefined,
+        selectedAreaId || undefined
       )
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
@@ -111,6 +139,28 @@ export default function TasksPage() {
         return []
       }
       return result.labels || []
+    },
+  })
+
+  const { data: areas = [] } = useQuery({
+    queryKey: ['areas'],
+    queryFn: async () => {
+      const result = await getAreas()
+      if (!result.success) {
+        return []
+      }
+      return result.areas || []
+    },
+  })
+
+  const { data: projectHeadings = [] } = useQuery({
+    queryKey: ['project-headings'],
+    queryFn: async () => {
+      const result = await getProjectHeadings()
+      if (!result.success) {
+        return []
+      }
+      return result.headings || []
     },
   })
 
@@ -208,9 +258,14 @@ export default function TasksPage() {
   }
 
   const handleOpenMobileProject = (projectId: string) => {
-    setSelectedProjectId(projectId)
+    handleSelectProject(projectId)
     setMobileProjectFocusId(projectId)
-    setActiveQuickView('inbox')
+    setShowMobileHome(false)
+  }
+
+  const handleOpenMobileArea = (areaId: string) => {
+    handleSelectArea(areaId)
+    setMobileProjectFocusId(null)
     setShowMobileHome(false)
   }
 
@@ -237,9 +292,10 @@ export default function TasksPage() {
 
   const handleSelectQuickView = (view: QuickViewId) => {
     setActiveQuickView(view)
+    setSelectedProjectId(null)
+    setSelectedAreaId(null)
     setMobileProjectFocusId(null)
     if (isMobile) {
-      setSelectedProjectId(null)
       setShowMobileHome(false)
     }
   }
@@ -297,6 +353,123 @@ export default function TasksPage() {
       </div>
 
       <div>
+        <div
+          className="flex items-center justify-between text-xs uppercase tracking-wide"
+          style={{ color: 'var(--color-primary-500)' }}
+        >
+          <span>Áreas</span>
+          <button
+            type="button"
+            onClick={() => setShowNewArea(prev => !prev)}
+            className="text-base font-semibold"
+            style={{ color: 'var(--color-primary-600)' }}
+          >
+            {showNewArea ? '−' : '+'}
+          </button>
+        </div>
+        <div className="mt-3 space-y-2">
+          {areas.length === 0 && <p className="text-sm text-slate-400">Crea áreas para agrupar proyectos y tareas.</p>}
+          {areas.map(area => {
+            const isActive = selectedAreaId === area.id
+            const projectsInArea = projects.filter(project => project.area_id === area.id)
+            return (
+              <div
+                key={area.id}
+                className="rounded-2xl border transition"
+                style={{
+                  borderColor: isActive ? 'var(--color-primary-200)' : 'transparent',
+                  backgroundColor: isActive ? 'var(--color-primary-100)' : 'transparent',
+                }}
+              >
+                {areaEditingId === area.id ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      handleSaveAreaEdit()
+                    }}
+                    className="p-3 space-y-2"
+                  >
+                    <input
+                      type="text"
+                      value={areaEditingName}
+                      onChange={(e) => setAreaEditingName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={updateAreaMutation.isPending} className="az-btn-primary flex-1 px-4 py-2 text-xs">
+                        {updateAreaMutation.isPending ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button type="button" onClick={handleCancelAreaEdit} className="az-btn-secondary px-4 py-2 text-xs">
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectArea(area.id)}
+                      className="flex-1 text-left text-sm font-medium"
+                      style={{ color: isActive ? 'var(--color-primary-700)' : 'var(--color-primary-500)' }}
+                    >
+                      <span className="block">{area.name}</span>
+                      <span className="text-xs text-slate-400">
+                        {projectsInArea.length} proyecto{projectsInArea.length === 1 ? '' : 's'}
+                      </span>
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditArea(area.id, area.name)}
+                        className="p-1 rounded-full text-xs text-slate-500 hover:text-slate-800"
+                        title="Renombrar"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteArea(area.id)}
+                        className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {showNewArea && (
+          <form onSubmit={handleAddArea} className="mt-4 space-y-2">
+            <input
+              type="text"
+              value={newAreaName}
+              onChange={(e) => setNewAreaName(e.target.value)}
+              placeholder="Nueva área"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            />
+            <div className="flex gap-2">
+              <button type="submit" disabled={addAreaMutation.isPending} className="az-btn-primary flex-1 px-4 py-2 text-sm">
+                {addAreaMutation.isPending ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewArea(false)
+                  setNewAreaName('')
+                }}
+                className="az-btn-secondary px-4 py-2 text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <div>
         <div className="flex items-center justify-between text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
           <span>Proyectos</span>
           <button
@@ -333,6 +506,18 @@ export default function TasksPage() {
                     onChange={(e) => setProjectEditingName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   />
+                  <select
+                    value={projectEditingAreaId || ''}
+                    onChange={(e) => setProjectEditingAreaId(e.target.value || null)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  >
+                    <option value="">Sin área</option>
+                    {areas.map(area => (
+                      <option key={area.id} value={area.id}>
+                        {area.name}
+                      </option>
+                    ))}
+                  </select>
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -354,13 +539,18 @@ export default function TasksPage() {
                 <div className="flex items-center justify-between gap-2 px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedProjectId(prev => (prev === project.id ? null : project.id))}
+                    onClick={() => handleSelectProject(project.id)}
                     className="flex-1 text-left text-sm font-medium"
                     style={{
                       color: selectedProjectId === project.id ? 'var(--color-primary-700)' : 'var(--color-primary-500)',
                     }}
                   >
-                    {project.name}
+                    <span className="block">{project.name}</span>
+                    {project.area_id && (
+                      <span className="text-xs text-slate-400">
+                        Área: {areas.find(area => area.id === project.area_id)?.name || 'Sin área'}
+                      </span>
+                    )}
                   </button>
                   <div className="flex items-center gap-1">
                     <button
@@ -394,6 +584,18 @@ export default function TasksPage() {
               placeholder="Nuevo proyecto"
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             />
+            <select
+              value={newProjectAreaId || ''}
+              onChange={(e) => setNewProjectAreaId(e.target.value || null)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            >
+              <option value="">Sin área</option>
+              {areas.map(area => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
             <div className="flex gap-2">
               <button type="submit" disabled={addProjectMutation.isPending} className="az-btn-primary flex-1 px-4 py-2 text-sm">
                 {addProjectMutation.isPending ? 'Guardando...' : 'Guardar'}
@@ -578,6 +780,24 @@ export default function TasksPage() {
 
       <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
         <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+          <span>Áreas</span>
+        </div>
+        <div className="space-y-2">
+          {areas.slice(0, 4).map(area => (
+            <button
+              key={`mobile-area-${area.id}`}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-slate-200"
+              onClick={() => handleOpenMobileArea(area.id)}
+            >
+              <span className="text-sm text-slate-700">{area.name}</span>
+              <span className="text-slate-400">›</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
           <span>Proyectos</span>
           <button onClick={() => setShowNewProject(true)} className="text-sm font-semibold text-slate-500">
             + Nuevo
@@ -691,21 +911,79 @@ export default function TasksPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
+                  Área
+                </label>
+                <select
+                  value={newTaskAreaId || ''}
+                  onChange={(e) => {
+                    const value = e.target.value || null
+                    setNewTaskAreaId(value)
+                    if (value && newTaskProjectId) {
+                      const project = projects.find(project => project.id === newTaskProjectId)
+                      if (project?.area_id !== value) {
+                        setNewTaskProjectId(null)
+                        setNewTaskHeadingId(null)
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                >
+                  <option value="">Sin área</option>
+                  {areas.map(area => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
                   Proyecto
                 </label>
                 <select
                   value={newTaskProjectId || ''}
-                  onChange={(e) => setNewTaskProjectId(e.target.value || null)}
+                  onChange={(e) => {
+                    const value = e.target.value || null
+                    setNewTaskProjectId(value)
+                    if (value) {
+                      const project = projects.find(project => project.id === value)
+                      setNewTaskAreaId(project?.area_id || null)
+                    }
+                    setNewTaskHeadingId(null)
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
                 >
                   <option value="">Sin proyecto</option>
-                  {projects.map(project => (
+                  {(newTaskAreaId ? projects.filter(project => project.area_id === newTaskAreaId) : projects).map(project => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
                   ))}
                 </select>
               </div>
+            </div>
+            {newTaskProjectId && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
+                  Sección
+                </label>
+                <select
+                  value={newTaskHeadingId || ''}
+                  onChange={(e) => setNewTaskHeadingId(e.target.value || null)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                >
+                  <option value="">Sin sección</option>
+                  {projectHeadings
+                    .filter(heading => heading.project_id === newTaskProjectId)
+                    .map(heading => (
+                      <option key={heading.id} value={heading.id}>
+                        {heading.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
                   Prioridad
@@ -832,12 +1110,19 @@ export default function TasksPage() {
   }
 
   const selectedProject = selectedProjectId ? projects.find(project => project.id === selectedProjectId) : null
+  const selectedArea = selectedAreaId ? areas.find(area => area.id === selectedAreaId) : null
   const completedCount = filteredTasks.filter(task => task.status === 'done').length
   const activeFilters = useMemo(
-    () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels),
-    [selectedProjectId, projects, selectedLabelIds, labels]
+    () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas),
+    [selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas]
   )
-  const filteredViewActive = isFilteredView(activeQuickView, searchQuery, selectedProjectId, selectedLabelIds)
+  const filteredViewActive = isFilteredView(
+    activeQuickView,
+    searchQuery,
+    selectedProjectId,
+    selectedLabelIds,
+    selectedAreaId
+  )
 
   const friendlyToday = useMemo(() => {
     return new Date().toLocaleDateString('es-ES', {
@@ -852,6 +1137,44 @@ export default function TasksPage() {
   const isMobileProjectView = isMobileDetail && !!mobileProject
   const visibleMobileTasks = isMobileDetail ? filteredTasks.slice(0, mobileTaskLimit) : filteredTasks
   const canShowMoreMobileTasks = isMobileDetail && mobileTaskLimit < filteredTasks.length
+  const quickViewGroups = useMemo(() => {
+    if (selectedProjectId || selectedAreaId) {
+      return []
+    }
+    const groups = new Map<
+      string,
+      {
+        areaId: string | null
+        area: Area | null
+        projects: Map<string, { project: Project | null; tasks: Task[] }>
+        standalone: Task[]
+      }
+    >()
+
+    filteredTasks.forEach(task => {
+      const areaKey = task.area_id || 'none'
+      if (!groups.has(areaKey)) {
+        groups.set(areaKey, {
+          areaId: task.area_id || null,
+          area: task.area_id ? areas.find(area => area.id === task.area_id) || null : null,
+          projects: new Map(),
+          standalone: [],
+        })
+      }
+      const group = groups.get(areaKey)!
+      if (task.project_id) {
+        if (!group.projects.has(task.project_id)) {
+          const project = projects.find(project => project.id === task.project_id) || null
+          group.projects.set(task.project_id, { project, tasks: [] })
+        }
+        group.projects.get(task.project_id)!.tasks.push(task)
+      } else {
+        group.standalone.push(task)
+      }
+    })
+
+    return Array.from(groups.values())
+  }, [filteredTasks, selectedProjectId, selectedAreaId, areas, projects])
 
   useEffect(() => {
     if (isMobileDetail) {
@@ -904,6 +1227,7 @@ export default function TasksPage() {
     setSearchQuery(task.title)
     setActiveQuickView('inbox')
     setSelectedProjectId(task.project_id || null)
+    setSelectedAreaId(task.area_id || null)
     setSelectedLabelIds([])
     setIsSearchFocused(false)
   }
@@ -982,6 +1306,8 @@ export default function TasksPage() {
               onClick={() => {
                 if (filter.type === 'project') {
                   setSelectedProjectId(null)
+                } else if (filter.type === 'area') {
+                  setSelectedAreaId(null)
                 } else {
                   setSelectedLabelIds(prev => prev.filter(id => id !== filter.referenceId))
                 }
@@ -1008,13 +1334,17 @@ export default function TasksPage() {
     )
   }
 
-  const renderTaskBody = (variant: 'desktop' | 'mobile') => {
-    const tasksToRender = variant === 'mobile' ? visibleMobileTasks : filteredTasks
+  const renderTaskBody = (variant: 'desktop' | 'mobile', taskSource?: Task[], showEmptyState = true) => {
+    const defaultTasks = variant === 'mobile' ? visibleMobileTasks : filteredTasks
+    const tasksToRender = taskSource ?? defaultTasks
     const loadingClass = variant === 'mobile' ? 'p-6 text-center text-slate-500' : 'p-10 text-center text-slate-500'
-    if (isLoading) {
+    if (isLoading && showEmptyState && !taskSource) {
       return <div className={loadingClass}>Cargando tareas...</div>
     }
-    if (filteredTasks.length === 0) {
+    if (tasksToRender.length === 0) {
+      if (!showEmptyState) {
+        return null
+      }
       return (
         <div className={loadingClass}>
           {filteredViewActive
@@ -1029,6 +1359,8 @@ export default function TasksPage() {
         <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'divide-y divide-slate-100'}>
           {tasksToRender.map(task => {
             const taskProject = projects.find(p => p.id === task.project_id)
+            const taskArea = task.area_id ? areas.find(area => area.id === task.area_id) : null
+            const taskHeading = task.heading_id ? projectHeadings.find(heading => heading.id === task.heading_id) : null
             const baseLiClass =
               variant === 'mobile'
                 ? 'p-4 rounded-3xl border border-slate-100 bg-white shadow-sm'
@@ -1070,19 +1402,67 @@ export default function TasksPage() {
                       rows={2}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none resize-none"
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <select
+                        value={editingAreaId || ''}
+                        onChange={(e) => {
+                          const value = e.target.value || null
+                          setEditingAreaId(value)
+                          if (value && editingProjectId) {
+                            const project = projects.find(p => p.id === editingProjectId)
+                            if (project?.area_id !== value) {
+                              setEditingProjectId(null)
+                              setEditingHeadingId(null)
+                            }
+                          }
+                        }}
+                        className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                      >
+                        <option value="">Sin área</option>
+                        {areas.map(area => (
+                          <option key={area.id} value={area.id}>
+                            {area.name}
+                          </option>
+                        ))}
+                      </select>
                       <select
                         value={editingProjectId || ''}
-                        onChange={(e) => setEditingProjectId(e.target.value || null)}
+                        onChange={(e) => {
+                          const value = e.target.value || null
+                          setEditingProjectId(value)
+                          if (value) {
+                            const project = projects.find(project => project.id === value)
+                            setEditingAreaId(project?.area_id || null)
+                          }
+                          setEditingHeadingId(null)
+                        }}
                         className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
                       >
                         <option value="">Sin proyecto</option>
-                        {projects.map(project => (
+                        {(editingAreaId ? projects.filter(project => project.area_id === editingAreaId) : projects).map(project => (
                           <option key={project.id} value={project.id}>
                             {project.name}
                           </option>
                         ))}
                       </select>
+                    </div>
+                    {editingProjectId && (
+                      <select
+                        value={editingHeadingId || ''}
+                        onChange={(e) => setEditingHeadingId(e.target.value || null)}
+                        className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                      >
+                        <option value="">Sin sección</option>
+                        {projectHeadings
+                          .filter(heading => heading.project_id === editingProjectId)
+                          .map(heading => (
+                            <option key={heading.id} value={heading.id}>
+                              {heading.name}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <select
                         value={editingPriority}
                         onChange={(e) => setEditingPriority(Number(e.target.value) as 0 | 1 | 2 | 3)}
@@ -1143,6 +1523,16 @@ export default function TasksPage() {
                           {taskProject && (
                             <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
                               {taskProject.name}
+                            </span>
+                          )}
+                          {!taskProject && taskArea && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                              Área: {taskArea.name}
+                            </span>
+                          )}
+                          {taskHeading && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
+                              {taskHeading.name}
                             </span>
                           )}
                           {task.priority && task.priority > 0 && (
@@ -1357,55 +1747,324 @@ export default function TasksPage() {
     </div>
   )
 
-  const renderDesktopHeader = () => (
-    <header className="az-card p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-          Hoy
-        </p>
-        <h1 className="text-3xl font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-          Mis tareas
-        </h1>
-        <p className="text-sm capitalize" style={{ color: 'var(--color-primary-500)' }}>
-          {friendlyToday}
-        </p>
-      </div>
-      <div className="flex flex-col gap-2 text-sm text-slate-500 md:text-right">
-        <span>
-          {completedCount} de {filteredTasks.length} completadas
-        </span>
-        {selectedProject && (
-          <span className="text-xs text-indigo-600">Proyecto activo: {selectedProject.name}</span>
-        )}
-        <button
-          type="button"
-          onClick={handleClearFilters}
-          className="self-start md:self-end az-btn-secondary px-3 py-1 text-xs"
-        >
-          Limpiar vista
-        </button>
-      </div>
-    </header>
-  )
+  const renderDesktopHeader = () => {
+    const contextLabel = selectedProject ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'
+    const contextTitle = selectedProject
+      ? selectedProject.name
+      : selectedArea
+        ? selectedArea.name
+        : currentQuickView.label
+    const contextSubtitle = selectedProject
+      ? selectedArea
+        ? `Área: ${selectedArea.name}`
+        : friendlyToday
+      : selectedArea
+        ? `${projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s)`
+        : friendlyToday
 
-  const renderDesktopTaskBoard = () => (
-    <div className="az-card overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+    return (
+      <header className="az-card p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-            Vista
+            {contextLabel}
           </p>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-            {quickViewLabels[activeQuickView]}
-          </h2>
+          <h1 className="text-3xl font-semibold" style={{ color: 'var(--color-primary-700)' }}>
+            {contextTitle}
+          </h1>
+          <p className="text-sm capitalize" style={{ color: 'var(--color-primary-500)' }}>
+            {contextSubtitle}
+          </p>
         </div>
-        <span className="text-sm text-slate-500">
-          {completedCount} / {filteredTasks.length} completadas
-        </span>
+        <div className="flex flex-col gap-2 text-sm text-slate-500 md:text-right">
+          <span>
+            {completedCount} de {filteredTasks.length} completadas
+          </span>
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="self-start md:self-end az-btn-secondary px-3 py-1 text-xs"
+          >
+            Limpiar vista
+          </button>
+        </div>
+      </header>
+    )
+  }
+
+  const renderQuickViewBoard = () => {
+    if (isLoading && filteredTasks.length === 0) {
+      return (
+        <div className="az-card overflow-hidden">
+          <div className="p-10 text-center text-slate-500">Cargando tareas...</div>
+        </div>
+      )
+    }
+    if (filteredTasks.length === 0) {
+      return (
+        <div className="az-card overflow-hidden">
+          <div className="p-10 text-center text-slate-500">
+            {filteredViewActive ? 'No hay tareas que coincidan con tu vista actual.' : 'No hay tareas todavía. ¡Crea la primera!'}
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="az-card overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
+              Vista
+            </p>
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-700)' }}>
+              {quickViewLabels[activeQuickView]}
+            </h2>
+          </div>
+          <span className="text-sm text-slate-500">
+            {completedCount} / {filteredTasks.length} completadas
+          </span>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {quickViewGroups.map(group => (
+            <section key={group.areaId || 'sin-area'} className="px-6 py-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Área</p>
+                  <p className="text-base font-semibold text-slate-800">{group.area?.name || 'Sin área'}</p>
+                </div>
+                {group.areaId && (
+                  <button type="button" onClick={() => handleSelectArea(group.areaId!)} className="az-btn-secondary px-3 py-1 text-xs">
+                    Ver área
+                  </button>
+                )}
+              </div>
+              {Array.from(group.projects.values()).map(projectGroup => (
+                <div key={projectGroup.project?.id || 'proyecto-independiente'} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
+                      <p className="text-sm font-semibold text-slate-800">{projectGroup.project?.name || 'Sin proyecto'}</p>
+                    </div>
+                    {projectGroup.project && (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectProject(projectGroup.project!.id)}
+                        className="az-btn-secondary px-3 py-1 text-xs"
+                      >
+                        Abrir
+                      </button>
+                    )}
+                  </div>
+                  {renderTaskBody('desktop', projectGroup.tasks, false)}
+                </div>
+              ))}
+              {group.standalone.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Tareas sin proyecto</p>
+                  {renderTaskBody('desktop', group.standalone, false)}
+                </div>
+              )}
+            </section>
+          ))}
+        </div>
       </div>
-      {renderTaskBody('desktop')}
-    </div>
-  )
+    )
+  }
+
+  const renderProjectBoard = () => {
+    if (!selectedProject) {
+      return null
+    }
+    const headingsForProject = projectHeadings.filter(heading => heading.project_id === selectedProject.id)
+    const tasksByHeading = new Map<string, Task[]>()
+    filteredTasks.forEach(task => {
+      const key = task.heading_id || 'unassigned'
+      if (!tasksByHeading.has(key)) {
+        tasksByHeading.set(key, [])
+      }
+      tasksByHeading.get(key)!.push(task)
+    })
+    const unassignedTasks = tasksByHeading.get('unassigned') || []
+
+    return (
+      <div className="az-card overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
+            <h2 className="text-lg font-semibold text-slate-800">{selectedProject.name}</h2>
+            {selectedArea && <p className="text-sm text-slate-500">Área: {selectedArea.name}</p>}
+          </div>
+          <span className="text-sm text-slate-500">
+            {completedCount} / {filteredTasks.length} completadas
+          </span>
+        </div>
+        <div className="px-6 py-6 space-y-6">
+          <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Secciones</p>
+              <form onSubmit={handleAddHeading} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newHeadingName}
+                  onChange={(e) => setNewHeadingName(e.target.value)}
+                  placeholder="Nueva sección"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                />
+                <button type="submit" className="az-btn-secondary px-3 py-1 text-xs" disabled={addHeadingMutation.isPending}>
+                  {addHeadingMutation.isPending ? '...' : 'Añadir'}
+                </button>
+              </form>
+            </div>
+            <div className="space-y-2">
+              {headingsForProject.length === 0 && <p className="text-sm text-slate-500">Aún no hay secciones para este proyecto.</p>}
+              {headingsForProject.map(heading => (
+                <div
+                  key={heading.id}
+                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-2xl border border-white bg-white"
+                >
+                  {headingEditingId === heading.id ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        handleSaveHeadingEdit()
+                      }}
+                      className="flex-1 flex items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={headingEditingName}
+                        onChange={(e) => setHeadingEditingName(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      />
+                      <button type="submit" className="az-btn-primary px-3 py-1 text-xs" disabled={updateHeadingMutation.isPending}>
+                        Guardar
+                      </button>
+                      <button type="button" onClick={handleCancelHeadingEdit} className="az-btn-secondary px-3 py-1 text-xs">
+                        Cancelar
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{heading.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {(tasksByHeading.get(heading.id)?.length || 0)} tarea
+                          {tasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditHeading(heading.id, heading.name)}
+                          className="p-1 rounded-full text-xs text-slate-500 hover:text-slate-800"
+                          title="Renombrar"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHeading(heading.id)}
+                          className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          {headingsForProject.map(heading => (
+            <section key={heading.id} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Sección</p>
+                  <p className="text-base font-semibold text-slate-800">{heading.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {(tasksByHeading.get(heading.id)?.length || 0)} tarea
+                    {tasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </div>
+              {renderTaskBody('desktop', tasksByHeading.get(heading.id) || [], false)}
+            </section>
+          ))}
+          {unassignedTasks.length > 0 && (
+            <section className="space-y-3">
+              <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin sección</p>
+              {renderTaskBody('desktop', unassignedTasks, false)}
+            </section>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderAreaBoard = () => {
+    if (!selectedArea) {
+      return null
+    }
+    const projectsInArea = projects.filter(project => project.area_id === selectedArea.id)
+    const tasksByProject = new Map<string, Task[]>()
+    filteredTasks.forEach(task => {
+      const key = task.project_id || 'loose'
+      if (!tasksByProject.has(key)) {
+        tasksByProject.set(key, [])
+      }
+      tasksByProject.get(key)!.push(task)
+    })
+    const looseTasks = tasksByProject.get('loose') || []
+
+    return (
+      <div className="az-card overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Área</p>
+            <h2 className="text-lg font-semibold text-slate-800">{selectedArea.name}</h2>
+            <p className="text-sm text-slate-500">
+              {projectsInArea.length} proyecto{projectsInArea.length === 1 ? '' : 's'}
+            </p>
+          </div>
+          <span className="text-sm text-slate-500">
+            {completedCount} / {filteredTasks.length} completadas
+          </span>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {projectsInArea.map(project => (
+            <section key={project.id} className="px-6 py-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
+                  <p className="text-base font-semibold text-slate-800">{project.name}</p>
+                </div>
+                <button type="button" onClick={() => handleSelectProject(project.id)} className="az-btn-secondary px-3 py-1 text-xs">
+                  Abrir
+                </button>
+              </div>
+              {renderTaskBody('desktop', tasksByProject.get(project.id) || [], false)}
+            </section>
+          ))}
+          {looseTasks.length > 0 && (
+            <section className="px-6 py-5 space-y-3">
+              <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin proyecto</p>
+              {renderTaskBody('desktop', looseTasks, false)}
+            </section>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderDesktopTaskBoard = () => {
+    if (selectedProject) {
+      return renderProjectBoard()
+    }
+    if (selectedArea) {
+      return renderAreaBoard()
+    }
+    return renderQuickViewBoard()
+  }
 
   const renderMobileHeader = () => (
     <header className="space-y-5">
@@ -1419,15 +2078,21 @@ export default function TasksPage() {
         </button>
         <div className="flex-1 text-center">
           <p className="text-xs uppercase tracking-wide text-slate-400">
-            {isMobileProjectView ? 'Proyecto' : 'Vista'}
+            {isMobileProjectView ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'}
           </p>
           <p className="text-2xl font-semibold text-slate-800">
-            {isMobileProjectView ? mobileProject?.name || 'Proyecto' : currentQuickView.label}
+            {isMobileProjectView
+              ? mobileProject?.name || 'Proyecto'
+              : selectedArea
+                ? selectedArea.name
+                : currentQuickView.label}
           </p>
           <p className={`text-sm text-slate-500 ${isMobileProjectView ? '' : 'capitalize'}`}>
             {isMobileProjectView
               ? `${filteredTasks.length} tarea${filteredTasks.length === 1 ? '' : 's'} en este proyecto`
-              : friendlyToday}
+              : selectedArea
+                ? `${projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s)`
+                : friendlyToday}
           </p>
         </div>
         <button className="text-2xl text-slate-400 pr-1" aria-label="Más opciones">
@@ -1446,6 +2111,16 @@ export default function TasksPage() {
                 {completedCount}/{filteredTasks.length} completadas
               </span>
             </div>
+          </>
+        ) : selectedArea ? (
+          <>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Área activa</p>
+            <p className="text-lg font-semibold text-slate-800">
+              {completedCount}/{filteredTasks.length} completadas
+            </p>
+            <p className="text-sm text-slate-500">
+              {projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s) asociados
+            </p>
           </>
         ) : (
           <>
@@ -1659,8 +2334,26 @@ export default function TasksPage() {
 
   // Mutación para agregar tarea
   const addTaskMutation = useMutation({
-    mutationFn: (args: { title: string; notes: string; priority: number; due_at: string; status: 'open' | 'done' | 'snoozed'; project_id: string | null }) =>
-      addTask(args.title, args.notes || undefined, args.priority, args.due_at || undefined, args.status, args.project_id),
+    mutationFn: (args: {
+      title: string
+      notes: string
+      priority: number
+      due_at: string
+      status: 'open' | 'done' | 'snoozed'
+      project_id: string | null
+      area_id: string | null
+      heading_id: string | null
+    }) =>
+      addTask(
+        args.title,
+        args.notes || undefined,
+        args.priority,
+        args.due_at || undefined,
+        args.status,
+        args.project_id,
+        args.area_id,
+        args.heading_id
+      ),
     onSuccess: async (result) => {
       if (result.success) {
         const labelsToAssign = [...newTaskLabelIds]
@@ -1670,6 +2363,8 @@ export default function TasksPage() {
         setNewTaskDueAt('')
         setNewTaskStatus('open')
         setNewTaskProjectId(null)
+        setNewTaskAreaId(null)
+        setNewTaskHeadingId(null)
         setNewTaskLabelIds([])
         setNewTaskView('inbox')
         setError('')
@@ -1700,6 +2395,8 @@ export default function TasksPage() {
         priority: editingPriority,
         due_at: editingDueAt || null,
         project_id: editingProjectId || null,
+        area_id: editingAreaId || null,
+        heading_id: editingHeadingId || null,
       }),
     onSuccess: (result) => {
       if (result.success) {
@@ -1751,12 +2448,68 @@ export default function TasksPage() {
     },
   })
 
+  // Mutaciones para áreas
+  const addAreaMutation = useMutation({
+    mutationFn: (name: string) => addArea(name),
+    onSuccess: (result) => {
+      if (result.success) {
+        setNewAreaName('')
+        setShowNewArea(false)
+        setError('')
+        queryClient.invalidateQueries({ queryKey: ['areas'] })
+      } else {
+        setError(result.error || 'Error al crear área')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al crear área')
+    },
+  })
+
+  const updateAreaMutation = useMutation({
+    mutationFn: ({ areaId, name }: { areaId: string; name: string }) => updateArea(areaId, { name }),
+    onSuccess: (result) => {
+      if (result.success) {
+        setAreaEditingId(null)
+        setAreaEditingName('')
+        setError('')
+        queryClient.invalidateQueries({ queryKey: ['areas'] })
+      } else {
+        setError(result.error || 'Error al actualizar área')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al actualizar área')
+    },
+  })
+
+  const deleteAreaMutation = useMutation({
+    mutationFn: (areaId: string) => deleteArea(areaId),
+    onSuccess: (result, areaId) => {
+      if (result.success) {
+        setError('')
+        if (selectedAreaId === areaId) {
+          setSelectedAreaId(null)
+        }
+        queryClient.invalidateQueries({ queryKey: ['areas'] })
+        queryClient.invalidateQueries({ queryKey: ['projects'] })
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al eliminar área')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al eliminar área')
+    },
+  })
+
   // Mutación para agregar proyecto
   const addProjectMutation = useMutation({
-    mutationFn: (name: string) => addProject(name),
+    mutationFn: ({ name, areaId }: { name: string; areaId: string | null }) => addProject(name, '#3b82f6', areaId),
     onSuccess: (result) => {
       if (result.success) {
         setNewProjectName('')
+        setNewProjectAreaId(null)
         setShowNewProject(false)
         setError('')
         queryClient.invalidateQueries({ queryKey: ['projects'] })
@@ -1770,12 +2523,13 @@ export default function TasksPage() {
   })
 
   const updateProjectMutation = useMutation({
-    mutationFn: ({ projectId, name }: { projectId: string; name: string }) =>
-      updateProject(projectId, { name: name.trim() }),
+    mutationFn: ({ projectId, name, areaId }: { projectId: string; name: string; areaId: string | null }) =>
+      updateProject(projectId, { name: name.trim(), area_id: areaId }),
     onSuccess: (result) => {
       if (result.success) {
         setProjectEditingId(null)
         setProjectEditingName('')
+        setProjectEditingAreaId(null)
         setError('')
         queryClient.invalidateQueries({ queryKey: ['projects'] })
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
@@ -1788,6 +2542,56 @@ export default function TasksPage() {
     },
   })
 
+  // Mutaciones para headings
+  const addHeadingMutation = useMutation({
+    mutationFn: ({ projectId, name }: { projectId: string; name: string }) => addProjectHeading(projectId, name),
+    onSuccess: (result) => {
+      if (result.success) {
+        setNewHeadingName('')
+        setError('')
+        queryClient.invalidateQueries({ queryKey: ['project-headings'] })
+      } else {
+        setError(result.error || 'Error al crear sección')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al crear sección')
+    },
+  })
+
+  const updateHeadingMutation = useMutation({
+    mutationFn: ({ headingId, name }: { headingId: string; name: string }) =>
+      updateProjectHeading(headingId, { name: name.trim() }),
+    onSuccess: (result) => {
+      if (result.success) {
+        setHeadingEditingId(null)
+        setHeadingEditingName('')
+        setError('')
+        queryClient.invalidateQueries({ queryKey: ['project-headings'] })
+      } else {
+        setError(result.error || 'Error al actualizar sección')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al actualizar sección')
+    },
+  })
+
+  const deleteHeadingMutation = useMutation({
+    mutationFn: (headingId: string) => deleteProjectHeading(headingId),
+    onSuccess: (result) => {
+      if (result.success) {
+        setError('')
+        queryClient.invalidateQueries({ queryKey: ['project-headings'] })
+      } else {
+        setError(result.error || 'Error al eliminar sección')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al eliminar sección')
+    },
+  })
+
   const deleteProjectMutation = useMutation({
     mutationFn: (projectId: string) => deleteProject(projectId),
     onSuccess: (result, projectId) => {
@@ -1795,6 +2599,7 @@ export default function TasksPage() {
         setError('')
         if (selectedProjectId === projectId) {
           setSelectedProjectId(null)
+          setSelectedAreaId(null)
         }
         queryClient.invalidateQueries({ queryKey: ['projects'] })
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
@@ -1938,6 +2743,8 @@ export default function TasksPage() {
       due_at: newTaskDueAt,
       status: newTaskStatus,
       project_id: newTaskProjectId,
+      area_id: newTaskAreaId,
+      heading_id: newTaskHeadingId,
     })
   }
 
@@ -1948,6 +2755,8 @@ export default function TasksPage() {
     setEditingPriority((task.priority || 0) as 0 | 1 | 2 | 3)
     setEditingDueAt(task.due_at ? task.due_at.split('T')[0] : '')
     setEditingProjectId(task.project_id || null)
+     setEditingAreaId(task.area_id || null)
+     setEditingHeadingId(task.heading_id || null)
   }
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -1968,6 +2777,30 @@ export default function TasksPage() {
     setEditingPriority(0)
     setEditingDueAt('')
     setEditingProjectId(null)
+    setEditingAreaId(null)
+    setEditingHeadingId(null)
+  }
+
+  const handleSelectProject = (projectId: string) => {
+    if (selectedProjectId === projectId) {
+      setSelectedProjectId(null)
+      setSelectedAreaId(null)
+    } else {
+      setSelectedProjectId(projectId)
+      const project = projects.find(project => project.id === projectId)
+      setSelectedAreaId(project?.area_id || null)
+    }
+    setActiveQuickView('inbox')
+  }
+
+  const handleSelectArea = (areaId: string) => {
+    if (selectedAreaId === areaId) {
+      setSelectedAreaId(null)
+    } else {
+      setSelectedAreaId(areaId)
+      setSelectedProjectId(null)
+    }
+    setActiveQuickView('inbox')
   }
 
   const handleAddProject = (e: React.FormEvent) => {
@@ -1976,7 +2809,10 @@ export default function TasksPage() {
       setError('El nombre del proyecto no puede estar vacío')
       return
     }
-    addProjectMutation.mutate(newProjectName)
+    addProjectMutation.mutate({
+      name: newProjectName.trim(),
+      areaId: newProjectAreaId,
+    })
   }
 
   const handleAddLabel = (e: React.FormEvent) => {
@@ -1991,11 +2827,14 @@ export default function TasksPage() {
   const handleStartEditProject = (projectId: string, name: string) => {
     setProjectEditingId(projectId)
     setProjectEditingName(name)
+    const project = projects.find(p => p.id === projectId)
+    setProjectEditingAreaId(project?.area_id || null)
   }
 
   const handleCancelProjectEdit = () => {
     setProjectEditingId(null)
     setProjectEditingName('')
+    setProjectEditingAreaId(null)
   }
 
   const handleSaveProjectEdit = () => {
@@ -2006,7 +2845,94 @@ export default function TasksPage() {
       setError('El nombre del proyecto no puede estar vacío')
       return
     }
-    updateProjectMutation.mutate({ projectId: projectEditingId, name: projectEditingName.trim() })
+    updateProjectMutation.mutate({
+      projectId: projectEditingId,
+      name: projectEditingName.trim(),
+      areaId: projectEditingAreaId,
+    })
+  }
+
+  const handleAddArea = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newAreaName.trim()) {
+      setError('El nombre del área no puede estar vacío')
+      return
+    }
+    addAreaMutation.mutate(newAreaName.trim())
+  }
+
+  const handleStartEditArea = (areaId: string, name: string) => {
+    setAreaEditingId(areaId)
+    setAreaEditingName(name)
+  }
+
+  const handleCancelAreaEdit = () => {
+    setAreaEditingId(null)
+    setAreaEditingName('')
+  }
+
+  const handleSaveAreaEdit = () => {
+    if (!areaEditingId) {
+      return
+    }
+    if (!areaEditingName.trim()) {
+      setError('El nombre del área no puede estar vacío')
+      return
+    }
+    updateAreaMutation.mutate({ areaId: areaEditingId, name: areaEditingName.trim() })
+  }
+
+  const handleDeleteArea = (areaId: string) => {
+    if (typeof window !== 'undefined') {
+      const areaName = areas.find(a => a.id === areaId)?.name || 'esta área'
+      if (!confirm(`¿Eliminar ${areaName}? Los proyectos seguirán existiendo sin área.`)) {
+        return
+      }
+    }
+    deleteAreaMutation.mutate(areaId)
+  }
+
+  const handleAddHeading = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProjectId) {
+      setError('Selecciona un proyecto para crear una sección')
+      return
+    }
+    if (!newHeadingName.trim()) {
+      setError('El nombre de la sección no puede estar vacío')
+      return
+    }
+    addHeadingMutation.mutate({ projectId: selectedProjectId, name: newHeadingName.trim() })
+  }
+
+  const handleStartEditHeading = (headingId: string, name: string) => {
+    setHeadingEditingId(headingId)
+    setHeadingEditingName(name)
+  }
+
+  const handleCancelHeadingEdit = () => {
+    setHeadingEditingId(null)
+    setHeadingEditingName('')
+  }
+
+  const handleSaveHeadingEdit = () => {
+    if (!headingEditingId) {
+      return
+    }
+    if (!headingEditingName.trim()) {
+      setError('El nombre de la sección no puede estar vacío')
+      return
+    }
+    updateHeadingMutation.mutate({ headingId: headingEditingId, name: headingEditingName.trim() })
+  }
+
+  const handleDeleteHeading = (headingId: string) => {
+    if (typeof window !== 'undefined') {
+      if (!confirm('¿Eliminar esta sección? Las tareas conservarán el heading asignado.')) {
+        return
+      }
+    }
+    deleteHeadingMutation.mutate(headingId)
   }
 
   const handleDeleteProject = (projectId: string) => {
@@ -2065,6 +2991,7 @@ export default function TasksPage() {
   const handleClearFilters = () => {
     setSearchQuery('')
     setSelectedProjectId(null)
+    setSelectedAreaId(null)
     setSelectedLabelIds([])
     setActiveQuickView('inbox')
     setIsSearchFocused(false)
@@ -2079,6 +3006,7 @@ export default function TasksPage() {
       setMobileProjectFocusId(null)
       setSelectedProjectId(null)
     }
+    setSelectedAreaId(null)
     setShowMobileHome(true)
     setIsSearchFocused(false)
   }
@@ -2086,6 +3014,15 @@ export default function TasksPage() {
   const handleOpenTaskModal = () => {
     const defaultView = activeQuickView === 'logbook' ? 'inbox' : activeQuickView
     setNewTaskProjectId(selectedProjectId)
+    if (selectedProjectId) {
+      const project = projects.find(project => project.id === selectedProjectId)
+      setNewTaskAreaId(project?.area_id || null)
+    } else if (selectedAreaId) {
+      setNewTaskAreaId(selectedAreaId)
+    } else {
+      setNewTaskAreaId(null)
+    }
+    setNewTaskHeadingId(null)
     setNewTaskLabelIds([])
     applyViewPreset(defaultView)
     setIsTaskModalOpen(true)

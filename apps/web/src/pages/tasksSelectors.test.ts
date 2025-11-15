@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import type { Task, Project, Label } from '../lib/supabase'
+import type { Task, Project, Label, Area } from '../lib/supabase'
 import {
   normalizeDate,
   buildQuickViewStats,
@@ -16,6 +16,8 @@ function makeTask(overrides: Partial<Task>): Task {
     id: 'task-id',
     user_id: 'user',
     project_id: null,
+    area_id: null,
+    heading_id: null,
     title: 'Example',
     notes: null,
     status: 'open',
@@ -37,6 +39,15 @@ const emptyProject: Project = {
   user_id: 'user',
   name: 'Inbox',
   color: null,
+  sort_order: 0,
+  created_at: new Date().toISOString(),
+  area_id: null,
+}
+
+const emptyArea: Area = {
+  id: 'area-1',
+  user_id: 'user',
+  name: 'Trabajo',
   sort_order: 0,
   created_at: new Date().toISOString(),
 }
@@ -118,9 +129,15 @@ describe('buildActiveFilters', () => {
     const projects: Project[] = [emptyProject]
     const labels: Label[] = [labelFactory('label-1', 'Urgente')]
 
-    const filters = buildActiveFilters('project-1', projects, ['label-1'], labels)
+    const filters = buildActiveFilters('project-1', projects, ['label-1'], labels, 'area-1', [emptyArea])
 
     assert.deepEqual(filters, [
+      {
+        key: 'area-area-1',
+        label: 'Área: Trabajo',
+        type: 'area',
+        referenceId: 'area-1',
+      },
       {
         key: 'project-project-1',
         label: 'Proyecto: Inbox',
@@ -137,18 +154,19 @@ describe('buildActiveFilters', () => {
   })
 
   it('ignores ids that do not exist in source arrays', () => {
-    const filters = buildActiveFilters('missing', [], ['not-found'], [])
+    const filters = buildActiveFilters('missing', [], ['not-found'], [], 'missing', [])
     assert.deepEqual(filters, [])
   })
 })
 
 describe('isFilteredView', () => {
   it('detects when any filter is active', () => {
-    assert.equal(isFilteredView('inbox', '', null, []), false)
-    assert.equal(isFilteredView('today', '', null, []), true)
-    assert.equal(isFilteredView('inbox', 'hola', null, []), true)
-    assert.equal(isFilteredView('inbox', '', 'project', []), true)
-    assert.equal(isFilteredView('inbox', '', null, ['label']), true)
+    assert.equal(isFilteredView('inbox', '', null, [], null), false)
+    assert.equal(isFilteredView('today', '', null, [], null), true)
+    assert.equal(isFilteredView('inbox', 'hola', null, [], null), true)
+    assert.equal(isFilteredView('inbox', '', 'project', [], null), true)
+    assert.equal(isFilteredView('inbox', '', null, ['label'], null), true)
+    assert.equal(isFilteredView('inbox', '', null, [], 'area'), true)
   })
 })
 

@@ -320,6 +320,46 @@ Resultado:
 
 ---
 
+## 📅 DÍA 7 - 15 de Noviembre (Áreas + Secciones jerárquicas)
+
+**Objetivo:** Añadir jerarquía (Áreas → Proyectos → Secciones/Headings) y reorganizar las vistas.
+
+### ✅ Completado
+- [x] Nueva tabla/entidad `areas` (CRUD completo desde la UI) y asignación de proyectos/tareas al área correspondiente.
+- [x] Tabla `project_headings` para crear secciones dentro de cada proyecto y agrupar tareas por temática.
+- [x] Formularios y modo edición de tareas con selectores de Área, Proyecto y Sección (con sincronización automática del contexto).
+- [x] Vistas reformuladas:
+  - **Hoy / Próximas / Algún día / Completadas** muestran primero las áreas y proyectos que tienen tareas en dicha vista.
+  - **Vista de Proyecto** agrupa las tareas por heading y ofrece panel para crear/renombrar/eliminar secciones.
+  - **Vista de Área** lista proyectos contenidos y tareas sueltas pertenecientes a esa área, con acceso directo a cada proyecto.
+- [x] Sidebar y home móvil con secciones para áreas; búsqueda móvil abre directamente la vista detallada conservando el contexto.
+- [x] README/Schema actualizados (nueva estructura SQL) y tests ampliados para cubrir filtros de área + descriptores.
+
+### 📝 Cambios Técnicos
+
+**Base de datos / Backend**
+- `docs/schema.sql`: nuevas tablas `areas`, `project_headings` y columnas extra en `projects`/`tasks` + políticas RLS correspondientes.
+- `supabase.ts`: interfaces `Area`, `ProjectHeading` y CRUD para áreas/secciones; `searchTasks` ahora filtra por área + secciones usando `applyTaskFilters`.
+
+**Frontend (TasksPage.tsx)**
+- Nuevos estados/mutaciones para áreas y headings, más un layout contextual (vista rápida / área / proyecto).
+- `renderDesktopTaskBoard` agrupa por área/proyecto y, en modo proyecto, por heading (incluye gestor de secciones).
+- Formularios (modal + edición inline) con selectores dependientes de Área/Proyecto/Sección.
+- Sidebar y home móvil muestran áreas destacadas; el buscador móvil mantiene el foco sin saltar a Inbox.
+
+**Testing**
+- `taskFilters.ts` y sus tests cubren ahora `areaId + labelIds/projectId`.
+- `tasksSelectors` incorpora filtros de área para chips y `isFilteredView`.
+
+### 📊 Estadísticas Día 7
+- Líneas de código: +650 aprox.
+- Entidades nuevas: 2 (áreas, headings)
+- Mutaciones nuevas: 6 (áreas + headings)
+- Tests: 19/19 ✅
+- Errores: 0
+
+---
+
 ## 📅 DÍA 6 - 14 de Noviembre (Gestión avanzada de Proyectos + Etiquetas)
 
 **Objetivo:** Controlar proyectos y etiquetas directamente desde la UI y enriquecer la asignación de etiquetas en la lista de tareas.

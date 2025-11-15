@@ -1,11 +1,11 @@
-import type { Task, Project, Label } from '../lib/supabase'
+import type { Task, Project, Label, Area } from '../lib/supabase'
 
 export type QuickViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'logbook'
 
 export interface ActiveFilterDescriptor {
   key: string
   label: string
-  type: 'project' | 'label'
+  type: 'project' | 'label' | 'area'
   referenceId: string
 }
 
@@ -64,9 +64,23 @@ export function buildActiveFilters(
   selectedProjectId: string | null,
   projects: Project[],
   selectedLabelIds: string[],
-  labels: Label[]
+  labels: Label[],
+  selectedAreaId: string | null,
+  areas: Area[]
 ): ActiveFilterDescriptor[] {
   const filters: ActiveFilterDescriptor[] = []
+
+  if (selectedAreaId) {
+    const area = areas.find(item => item.id === selectedAreaId)
+    if (area) {
+      filters.push({
+        key: `area-${area.id}`,
+        label: `Área: ${area.name}`,
+        type: 'area',
+        referenceId: area.id,
+      })
+    }
+  }
 
   if (selectedProjectId) {
     const project = projects.find(item => item.id === selectedProjectId)
@@ -98,12 +112,14 @@ export function isFilteredView(
   activeView: QuickViewId,
   searchQuery: string,
   selectedProjectId: string | null,
-  selectedLabelIds: string[]
+  selectedLabelIds: string[],
+  selectedAreaId: string | null
 ) {
   return (
     activeView !== 'inbox' ||
     !!searchQuery.trim() ||
     !!selectedProjectId ||
+    !!selectedAreaId ||
     (selectedLabelIds && selectedLabelIds.length > 0)
   )
 }

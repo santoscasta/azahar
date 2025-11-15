@@ -124,6 +124,12 @@ El comando compila únicamente los selectores de `TasksPage` y confirma que cada
 - Panel de “Gestión rápida” para renombrar o eliminar proyectos/etiquetas desde la UI
 - Botón contextual “Etiquetas” en cada tarea para asignar/remover etiquetas sin salir de la lista
 
+### Áreas y secciones
+- Áreas para agrupar proyectos y tareas sueltas, con soporte para cambiarles el nombre o eliminarlas.
+- Cada proyecto puede vivir dentro de un área y dispone de “secciones” (headings) para agrupar tareas por temática.
+- Las vistas “Hoy / Próximas / Algún día” muestran primero las áreas y proyectos que tienen tareas activas, manteniendo el contexto jerárquico.
+- Las vistas de área permiten navegar a los proyectos contenidos y ver tareas que dependen directamente del área.
+
 ### Búsqueda y filtrado
 - Buscador superior con sugerencias predictivas (título + notas)
 - Filtro por proyecto y multi-select de etiquetas (modo AND)
@@ -163,6 +169,7 @@ El comando compila únicamente los selectores de `TasksPage` y confirma que cada
    ```
    VITE_SUPABASE_URL
    VITE_SUPABASE_ANON_KEY
+   VITE_APP_BASE_URL # opcional, define el dominio público para redirecciones de auth
    ```
    Añádelas en Vercel (Settings → Environment Variables) para los entornos *Production* y *Preview*. Si prefieres la CLI:
    ```bash

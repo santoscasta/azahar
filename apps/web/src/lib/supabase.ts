@@ -3,6 +3,7 @@ import { applyTaskFilters } from './taskFilters'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const appBaseUrl = import.meta.env.VITE_APP_BASE_URL
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Faltan variables de entorno VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY')
@@ -10,12 +11,25 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+const getRedirectUrl = (path: string) => {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}${path}`
+  }
+  if (appBaseUrl) {
+    return `${appBaseUrl}${path}`
+  }
+  return `http://localhost:5173${path}`
+}
+
 // Tipos y funciones de autenticación
 export async function signUp(email: string, password: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: getRedirectUrl('/app'),
+      },
     })
     if (error) {
       return { success: false, error: error.message }
@@ -69,6 +83,8 @@ export interface Task {
   id: string
   user_id: string
   project_id: string | null
+  area_id: string | null
+  heading_id: string | null
   title: string
   notes: string | null
   status: 'open' | 'done' | 'snoozed'
@@ -90,6 +106,7 @@ export interface Project {
   color: string | null
   sort_order: number
   created_at: string
+  area_id: string | null
 }
 
 export interface Label {
@@ -97,6 +114,23 @@ export interface Label {
   user_id: string
   name: string
   color: string | null
+}
+
+export interface Area {
+  id: string
+  user_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export interface ProjectHeading {
+  id: string
+  project_id: string
+  user_id: string
+  name: string
+  sort_order: number
+  created_at: string
 }
 
 export interface TaskLabel {
@@ -131,7 +165,8 @@ export async function listTasks(): Promise<{ success: boolean; tasks?: Task[]; e
 export async function searchTasks(
   query?: string,
   projectId?: string,
-  labelIds?: string[]
+  labelIds?: string[],
+  areaId?: string
 ): Promise<{ success: boolean; tasks?: Task[]; error?: string }> {
   try {
     const user = await getCurrentUser()
@@ -180,7 +215,7 @@ export async function searchTasks(
         }
       }) || []
 
-    const filtered = applyTaskFilters(tasksWithLabels, { query, projectId, labelIds })
+    const filtered = applyTaskFilters(tasksWithLabels, { query, projectId, labelIds, areaId })
 
     return { success: true, tasks: filtered }
   } catch (err) {
@@ -194,7 +229,9 @@ export async function addTask(
   priority?: number,
   due_at?: string,
   status: 'open' | 'done' | 'snoozed' = 'open',
-  project_id?: string | null
+  project_id?: string | null,
+  area_id?: string | null,
+  heading_id?: string | null
 ): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
     const user = await getCurrentUser()
@@ -215,7 +252,9 @@ export async function addTask(
         priority: priority || 0,
         due_at: due_at || null,
         status: status || 'open',
-        project_id: project_id || null
+        project_id: project_id || null,
+        area_id: area_id || null,
+        heading_id: heading_id || null,
       })
       .select()
       .single()
@@ -325,6 +364,108 @@ export async function deleteTask(id: string): Promise<{ success: boolean; error?
   }
 }
 
+// Funciones de áreas
+export async function getAreas(): Promise<{ success: boolean; areas?: Area[]; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('areas')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, areas: data as Area[] }
+  } catch (err) {
+    return { success: false, error: 'Error al obtener áreas' }
+  }
+}
+
+export async function addArea(name: string): Promise<{ success: boolean; area?: Area; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+    if (!name.trim()) {
+      return { success: false, error: 'El nombre del área no puede estar vacío' }
+    }
+
+    const { data, error } = await supabase
+      .from('areas')
+      .insert({
+        user_id: user.id,
+        name: name.trim(),
+        sort_order: 0,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, area: data as Area }
+  } catch (err) {
+    return { success: false, error: 'Error al crear área' }
+  }
+}
+
+export async function updateArea(
+  areaId: string,
+  updates: { name?: string; sort_order?: number }
+): Promise<{ success: boolean; area?: Area; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('areas')
+      .update(updates)
+      .eq('id', areaId)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, area: data as Area }
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar área' }
+  }
+}
+
+export async function deleteArea(areaId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { error } = await supabase.from('areas').delete().eq('id', areaId).eq('user_id', user.id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al eliminar área' }
+  }
+}
+
 // Funciones de proyectos
 export async function getProjects(): Promise<{ success: boolean; projects?: Project[]; error?: string }> {
   try {
@@ -350,7 +491,11 @@ export async function getProjects(): Promise<{ success: boolean; projects?: Proj
   }
 }
 
-export async function addProject(name: string, color: string = '#3b82f6'): Promise<{ success: boolean; project?: Project; error?: string }> {
+export async function addProject(
+  name: string,
+  color: string = '#3b82f6',
+  areaId?: string | null
+): Promise<{ success: boolean; project?: Project; error?: string }> {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -367,7 +512,8 @@ export async function addProject(name: string, color: string = '#3b82f6'): Promi
         user_id: user.id,
         name: name.trim(),
         color,
-        sort_order: 0
+        sort_order: 0,
+        area_id: areaId || null,
       })
       .select()
       .single()
@@ -382,7 +528,10 @@ export async function addProject(name: string, color: string = '#3b82f6'): Promi
   }
 }
 
-export async function updateProject(id: string, updates: Partial<Project>): Promise<{ success: boolean; project?: Project; error?: string }> {
+export async function updateProject(
+  id: string,
+  updates: Partial<Project>
+): Promise<{ success: boolean; project?: Project; error?: string }> {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -427,6 +576,116 @@ export async function deleteProject(id: string): Promise<{ success: boolean; err
     return { success: true }
   } catch (err) {
     return { success: false, error: 'Error al eliminar proyecto' }
+  }
+}
+
+// Funciones de headings de proyectos
+export async function getProjectHeadings(): Promise<{ success: boolean; headings?: ProjectHeading[]; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('project_headings')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, headings: data as ProjectHeading[] }
+  } catch (err) {
+    return { success: false, error: 'Error al obtener headings' }
+  }
+}
+
+export async function addProjectHeading(
+  projectId: string,
+  name: string
+): Promise<{ success: boolean; heading?: ProjectHeading; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+    if (!name.trim()) {
+      return { success: false, error: 'El título del heading no puede estar vacío' }
+    }
+
+    const { data, error } = await supabase
+      .from('project_headings')
+      .insert({
+        user_id: user.id,
+        project_id: projectId,
+        name: name.trim(),
+        sort_order: 0,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, heading: data as ProjectHeading }
+  } catch (err) {
+    return { success: false, error: 'Error al crear heading' }
+  }
+}
+
+export async function updateProjectHeading(
+  headingId: string,
+  updates: { name?: string; sort_order?: number }
+): Promise<{ success: boolean; heading?: ProjectHeading; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { data, error } = await supabase
+      .from('project_headings')
+      .update(updates)
+      .eq('id', headingId)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, heading: data as ProjectHeading }
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar heading' }
+  }
+}
+
+export async function deleteProjectHeading(headingId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { error } = await supabase
+      .from('project_headings')
+      .delete()
+      .eq('id', headingId)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al eliminar heading' }
   }
 }
 

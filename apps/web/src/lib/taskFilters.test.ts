@@ -3,31 +3,37 @@ import assert from 'node:assert/strict'
 import type { Task } from './supabase'
 import { applyTaskFilters } from './taskFilters.js'
 
-const taskFactory = (overrides: Partial<Task>): Task => ({
-  id: 'task-id',
-  user_id: 'user',
-  project_id: null,
-  title: 'Base task',
-  notes: null,
-  status: 'open',
-  priority: 0,
-  due_at: null,
-  start_at: null,
-  repeat_rrule: null,
-  reminder_at: null,
-  updated_at: new Date().toISOString(),
-  created_at: new Date().toISOString(),
-  completed_at: null,
-  labels: [],
-  ...overrides,
-})
+const taskFactory = (overrides: Partial<Task>): Task => {
+  const { area_id = null, heading_id = null, ...rest } = overrides
+  return {
+    id: 'task-id',
+    user_id: 'user',
+    project_id: null,
+    area_id,
+    heading_id,
+    title: 'Base task',
+    notes: null,
+    status: 'open',
+    priority: 0,
+    due_at: null,
+    start_at: null,
+    repeat_rrule: null,
+    reminder_at: null,
+    updated_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    completed_at: null,
+    labels: [],
+    ...rest,
+  }
+}
 
 describe('applyTaskFilters', () => {
   const tasks: Task[] = [
-    taskFactory({ id: 'inbox', project_id: null, title: 'Comprar pan', notes: 'Mercado local' }),
+    taskFactory({ id: 'inbox', project_id: null, area_id: 'personal', title: 'Comprar pan', notes: 'Mercado local' }),
     taskFactory({
       id: 'work-urgent',
       project_id: 'work',
+      area_id: 'work-area',
       title: 'Revisar sprint',
       notes: 'Sync con equipo',
       labels: [
@@ -47,6 +53,11 @@ describe('applyTaskFilters', () => {
   it('filters by project id', () => {
     const filtered = applyTaskFilters(tasks, { projectId: 'work' })
     assert.deepEqual(filtered.map(task => task.id), ['work-urgent', 'work-document'])
+  })
+
+  it('filters by area id when no project specified', () => {
+    const filtered = applyTaskFilters(tasks, { areaId: 'personal' })
+    assert.deepEqual(filtered.map(task => task.id), ['inbox'])
   })
 
   it('filters by search query in title or notes (case insensitive)', () => {
