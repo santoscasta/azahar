@@ -1,0 +1,41 @@
+import type { Task } from './supabase'
+
+export interface TaskFilterOptions {
+  projectId?: string | null
+  query?: string | null
+  labelIds?: string[] | null
+}
+
+function normalizeQuery(query?: string | null) {
+  return query?.trim().toLowerCase() ?? ''
+}
+
+function matchesProject(task: Task, projectId?: string | null) {
+  if (!projectId) return true
+  return task.project_id === projectId
+}
+
+function matchesQuery(task: Task, queryValue: string) {
+  if (!queryValue) return true
+  const title = task.title?.toLowerCase() ?? ''
+  const notes = task.notes?.toLowerCase() ?? ''
+  return title.includes(queryValue) || notes.includes(queryValue)
+}
+
+function matchesLabels(task: Task, labelIds?: string[] | null) {
+  if (!labelIds || labelIds.length === 0) return true
+  const labelSet = new Set((task.labels || []).map(label => label.id))
+  return labelIds.every(labelId => labelSet.has(labelId))
+}
+
+export function applyTaskFilters(tasks: Task[], options: TaskFilterOptions) {
+  const normalizedQuery = normalizeQuery(options.query)
+  const labelIds = options.labelIds?.filter(Boolean)
+
+  return tasks.filter(task => {
+    if (!matchesProject(task, options.projectId)) return false
+    if (!matchesQuery(task, normalizedQuery)) return false
+    if (!matchesLabels(task, labelIds)) return false
+    return true
+  })
+}

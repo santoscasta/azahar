@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { applyTaskFilters } from './taskFilters'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -179,29 +180,7 @@ export async function searchTasks(
         }
       }) || []
 
-    let filtered = tasksWithLabels
-
-    // Filtrar por proyecto
-    if (projectId) {
-      filtered = filtered.filter(t => t.project_id === projectId)
-    }
-
-    // Filtrar por búsqueda de texto (title + notes)
-    if (query && query.trim()) {
-      const q = query.toLowerCase()
-      filtered = filtered.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        (t.notes && t.notes.toLowerCase().includes(q))
-      )
-    }
-
-    // Filtrar por etiquetas (si hay etiquetas seleccionadas, la tarea debe tener TODAS)
-    if (labelIds && labelIds.length > 0) {
-      filtered = filtered.filter(t => {
-        const labelSet = new Set((t.labels || []).map(label => label.id))
-        return labelIds.every(labelId => labelSet.has(labelId))
-      })
-    }
+    const filtered = applyTaskFilters(tasksWithLabels, { query, projectId, labelIds })
 
     return { success: true, tasks: filtered }
   } catch (err) {

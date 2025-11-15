@@ -11,6 +11,8 @@
   "include": [
     "src/pages/tasksSelectors.ts",
     "src/pages/tasksSelectors.test.ts",
+    "src/lib/taskFilters.ts",
+    "src/lib/taskFilters.test.ts",
     "src/lib/supabase.ts"
   ],
   "exclude": []
