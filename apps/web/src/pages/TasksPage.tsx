@@ -31,6 +31,7 @@ import {
   getTaskView,
   type QuickViewId,
 } from './tasksSelectors'
+import { applyTaskFilters } from '../lib/taskFilters'
 
 export default function TasksPage() {
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -85,17 +86,9 @@ export default function TasksPage() {
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: [
-      'tasks',
-      { projectId: selectedProjectId, areaId: selectedAreaId, labelIds: selectedLabelIds, q: searchQuery },
-    ],
+    queryKey: ['tasks'],
     queryFn: async () => {
-      const result = await searchTasks(
-        searchQuery || undefined,
-        selectedProjectId || undefined,
-        selectedLabelIds.length > 0 ? selectedLabelIds : undefined,
-        selectedAreaId || undefined
-      )
+      const result = await searchTasks()
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
         return []
@@ -185,17 +178,36 @@ export default function TasksPage() {
     const day = `${now.getDate()}`.padStart(2, '0')
     return `${now.getFullYear()}-${month}-${day}`
   }, [])
-  const quickViewStats = useMemo(() => buildQuickViewStats(tasks, todayISO), [tasks, todayISO])
+  const tasksFilteredByQueryAndLabels = useMemo(
+    () =>
+      applyTaskFilters(tasks, {
+        query: searchQuery,
+        labelIds: selectedLabelIds.length > 0 ? selectedLabelIds : undefined,
+      }),
+    [tasks, searchQuery, selectedLabelIds]
+  )
+  const contextFilteredTasks = useMemo(
+    () =>
+      applyTaskFilters(tasksFilteredByQueryAndLabels, {
+        projectId: selectedProjectId,
+        areaId: selectedAreaId,
+      }),
+    [tasksFilteredByQueryAndLabels, selectedProjectId, selectedAreaId]
+  )
+  const quickViewStats = useMemo(
+    () => buildQuickViewStats(tasksFilteredByQueryAndLabels, todayISO),
+    [tasksFilteredByQueryAndLabels, todayISO]
+  )
   const quickViewTasks = useMemo(
-    () => filterTasksByQuickView(tasks, activeQuickView, todayISO),
-    [tasks, activeQuickView, todayISO]
+    () => filterTasksByQuickView(tasksFilteredByQueryAndLabels, activeQuickView, todayISO),
+    [tasksFilteredByQueryAndLabels, activeQuickView, todayISO]
   )
   const filteredTasks = useMemo(() => {
     if (selectedProjectId || selectedAreaId) {
-      return tasks
+      return contextFilteredTasks
     }
     return quickViewTasks
-  }, [tasks, quickViewTasks, selectedProjectId, selectedAreaId])
+  }, [contextFilteredTasks, quickViewTasks, selectedProjectId, selectedAreaId])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false
@@ -212,7 +224,7 @@ export default function TasksPage() {
       someday: 0,
       logbook: 0,
     }
-    tasks.forEach(task => {
+    tasksFilteredByQueryAndLabels.forEach(task => {
       if (!isTaskOverdue(task)) {
         return
       }
@@ -220,7 +232,7 @@ export default function TasksPage() {
       base[view] += 1
     })
     return base
-  }, [tasks, todayISO])
+  }, [tasksFilteredByQueryAndLabels, todayISO])
   const projectMap = useMemo(() => {
     const map = new Map<string, Project>()
     projects.forEach(project => map.set(project.id, project))
@@ -228,7 +240,7 @@ export default function TasksPage() {
   }, [projects])
   const projectStats = useMemo(() => {
     const stats = new Map<string, { total: number; overdue: number }>()
-    tasks.forEach(task => {
+    tasksFilteredByQueryAndLabels.forEach(task => {
       if (!task.project_id || task.status === 'done') {
         return
       }
@@ -240,10 +252,10 @@ export default function TasksPage() {
       stats.set(task.project_id, entry)
     })
     return stats
-  }, [tasks, todayISO])
+  }, [tasksFilteredByQueryAndLabels, todayISO])
   const areaStats = useMemo(() => {
     const stats = new Map<string, { total: number; overdue: number }>()
-    tasks.forEach(task => {
+    tasksFilteredByQueryAndLabels.forEach(task => {
       if (task.status === 'done') {
         return
       }
@@ -259,7 +271,7 @@ export default function TasksPage() {
       stats.set(relatedArea, entry)
     })
     return stats
-  }, [tasks, todayISO, projectMap])
+  }, [tasksFilteredByQueryAndLabels, todayISO, projectMap])
 
   const tomorrowISO = useMemo(() => {
     const todayDate = new Date(todayISO)
