@@ -186,10 +186,16 @@ export default function TasksPage() {
     return `${now.getFullYear()}-${month}-${day}`
   }, [])
   const quickViewStats = useMemo(() => buildQuickViewStats(tasks, todayISO), [tasks, todayISO])
-  const filteredTasks = useMemo(
+  const quickViewTasks = useMemo(
     () => filterTasksByQuickView(tasks, activeQuickView, todayISO),
     [tasks, activeQuickView, todayISO]
   )
+  const filteredTasks = useMemo(() => {
+    if (selectedProjectId || selectedAreaId) {
+      return tasks
+    }
+    return quickViewTasks
+  }, [tasks, quickViewTasks, selectedProjectId, selectedAreaId])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false
