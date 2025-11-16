@@ -12,6 +12,7 @@ import {
   addProject,
   getLabels,
   addLabel,
+  deleteLabel,
   addTaskLabel,
   removeTaskLabel,
   getAreas,
@@ -74,13 +75,37 @@ export default function TasksPage() {
   const [showMobileHome, setShowMobileHome] = useState(true)
   const [mobileProjectFocusId, setMobileProjectFocusId] = useState<string | null>(null)
   const [mobileTaskLimit, setMobileTaskLimit] = useState(6)
-  const [datePickerTarget, setDatePickerTarget] = useState<'new' | 'edit' | null>(null)
+  const [datePickerTarget, setDatePickerTarget] = useState<'new' | 'edit' | 'draft' | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(() => new Date())
   const [activeProjectFilterChip, setActiveProjectFilterChip] = useState<'all' | 'important' | string>('all')
   const [showNewListMenu, setShowNewListMenu] = useState(false)
   const [showQuickHeadingForm, setShowQuickHeadingForm] = useState(false)
+  const [showMobileCreationSheet, setShowMobileCreationSheet] = useState(false)
+  const [mobileDraftTask, setMobileDraftTask] = useState<{
+    title: string
+    notes: string
+    view: QuickViewId
+    areaId: string | null
+    projectId: string | null
+    due_at: string | null
+    labelIds: string[]
+  } | null>(null)
+  const [mobileDraftProject, setMobileDraftProject] = useState<{ name: string; areaId: string | null } | null>(null)
+  const [mobileDraftArea, setMobileDraftArea] = useState<{ name: string } | null>(null)
+  const [labelSheetTarget, setLabelSheetTarget] = useState<'draft-task' | null>(null)
+  const [labelSheetSelection, setLabelSheetSelection] = useState<string[]>([])
+  const [labelSheetInput, setLabelSheetInput] = useState('')
+  const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
+  const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
+  const mobileDraftProjectRef = useRef<HTMLInputElement | null>(null)
+  const mobileDraftAreaRef = useRef<HTMLInputElement | null>(null)
+  const closeLabelSheet = () => {
+    setLabelSheetTarget(null)
+    setLabelSheetSelection([])
+    setLabelSheetInput('')
+  }
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -171,6 +196,24 @@ export default function TasksPage() {
     mediaQuery.addListener(listener)
     return () => mediaQuery.removeListener(listener)
   }, [])
+
+  useEffect(() => {
+    if (mobileDraftTaskTitleRef.current && isMobile && mobileDraftTask) {
+      mobileDraftTaskTitleRef.current.focus()
+    }
+  }, [mobileDraftTask, isMobile])
+
+  useEffect(() => {
+    if (mobileDraftProjectRef.current && mobileDraftProject) {
+      mobileDraftProjectRef.current.focus()
+    }
+  }, [mobileDraftProject])
+
+  useEffect(() => {
+    if (mobileDraftAreaRef.current && mobileDraftArea) {
+      mobileDraftAreaRef.current.focus()
+    }
+  }, [mobileDraftArea])
 
   const todayISO = useMemo(() => {
     const now = new Date()
@@ -281,6 +324,18 @@ export default function TasksPage() {
     const day = `${tomorrow.getDate()}`.padStart(2, '0')
     return `${tomorrow.getFullYear()}-${month}-${day}`
   }, [todayISO])
+  const defaultDueForView = (view: QuickViewId) => {
+    if (view === 'today') {
+      return todayISO
+    }
+    if (view === 'upcoming') {
+      return tomorrowISO
+    }
+    return null
+  }
+  const deriveStatusFromView = (view: QuickViewId): 'open' | 'snoozed' => {
+    return view === 'someday' ? 'snoozed' : 'open'
+  }
 
   const determineViewFromDate = (value: string | null, fallback: QuickViewId = 'inbox'): QuickViewId => {
     if (!value) {
@@ -571,6 +626,7 @@ export default function TasksPage() {
 
   const renderMobileHome = () => (
     <div className="space-y-6 pb-28">
+      {mobileDraftTask && renderMobileDraftTaskCard()}
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
         <input
@@ -606,6 +662,38 @@ export default function TasksPage() {
         <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
           <span>Áreas</span>
         </div>
+        {mobileDraftArea && (
+          <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+            <input
+              ref={mobileDraftAreaRef}
+              type="text"
+              value={mobileDraftArea.name}
+              onChange={(e) => setMobileDraftArea({ name: e.target.value })}
+              onBlur={(e) => {
+                if (!e.target.value.trim()) {
+                  setMobileDraftArea({ name: 'Nueva área' })
+                }
+              }}
+              className="w-full px-3 py-2 rounded-2xl border border-slate-200 text-sm outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileDraftArea(null)}
+                className="px-3 py-1 rounded-full border border-slate-200 text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveMobileDraftArea}
+                className="px-3 py-1 rounded-full bg-[var(--color-primary-600)] text-white text-xs"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
         <div className="space-y-2">
           {areas.slice(0, 4).map(area => (
             <button
@@ -623,10 +711,41 @@ export default function TasksPage() {
       <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
         <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
           <span>Proyectos</span>
-          <button onClick={() => setShowNewProject(true)} className="text-sm font-semibold text-slate-500">
-            + Nuevo
-          </button>
         </div>
+        {mobileDraftProject && (
+          <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+            <input
+              ref={mobileDraftProjectRef}
+              type="text"
+              value={mobileDraftProject.name}
+              onChange={(e) =>
+                setMobileDraftProject(prev => (prev ? { ...prev, name: e.target.value } : prev))
+              }
+              onBlur={(e) => {
+                if (!e.target.value.trim()) {
+                  setMobileDraftProject(prev => (prev ? { ...prev, name: 'Nuevo proyecto' } : prev))
+                }
+              }}
+              className="w-full px-3 py-2 rounded-2xl border border-slate-200 text-sm outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileDraftProject(null)}
+                className="px-3 py-1 rounded-full border border-slate-200 text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveMobileDraftProject}
+                className="px-3 py-1 rounded-full bg-[var(--color-primary-600)] text-white text-xs"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
         <div className="space-y-2">
           {projects.slice(0, 4).map(project => (
             <button
@@ -1128,8 +1247,9 @@ export default function TasksPage() {
     })
   }
 
-  const openDatePicker = (target: 'new' | 'edit') => {
-    const rawValue = target === 'new' ? newTaskDueAt : editingDueAt
+  const openDatePicker = (target: 'new' | 'edit' | 'draft') => {
+    const rawValue =
+      target === 'new' ? newTaskDueAt : target === 'edit' ? editingDueAt : mobileDraftTask?.due_at || ''
     if (rawValue) {
       const [year, month, day] = rawValue.split('-').map(Number)
       if (year && month) {
@@ -1153,9 +1273,11 @@ export default function TasksPage() {
       setNewTaskDueAt(normalized)
       const nextView = determineViewFromDate(normalized, newTaskView)
       setNewTaskView(nextView)
-      setNewTaskStatus(nextView === 'anytime' ? 'snoozed' : 'open')
+      setNewTaskStatus(nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
     } else if (datePickerTarget === 'edit') {
       setEditingDueAt(normalized)
+    } else if (datePickerTarget === 'draft') {
+      setMobileDraftTask(prev => (prev ? { ...prev, due_at: normalized || null } : prev))
     }
     setDatePickerTarget(null)
   }
@@ -1411,6 +1533,7 @@ export default function TasksPage() {
 
     return (
       <>
+        {variant === 'mobile' && !taskSource && mobileDraftTask && renderMobileDraftTaskCard()}
         <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'divide-y divide-slate-100'}>
           {tasksToRender.map(task => {
             const taskProject = projects.find(p => p.id === task.project_id)
@@ -2209,6 +2332,305 @@ export default function TasksPage() {
     </header>
   )
 
+  const renderMobileCreationSheet = () => {
+    if (!isMobile || !showMobileCreationSheet) {
+      return null
+    }
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
+        onClick={() => setShowMobileCreationSheet(false)}
+      >
+        <div
+          className="absolute bottom-6 left-4 right-4 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
+            onClick={() => {
+              setShowMobileCreationSheet(false)
+              startMobileTaskDraft('inbox', { areaId: null, projectId: null, stayHome: true })
+            }}
+          >
+            <span className="text-base font-semibold">Nueva tarea</span>
+            <span className="text-sm text-slate-300">Añade rápidamente una tarea a la Entrada.</span>
+          </button>
+          <button
+            type="button"
+            className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
+            onClick={() => {
+              setMobileDraftProject({ name: 'Nuevo proyecto', areaId: null })
+              setShowMobileCreationSheet(false)
+              setShowMobileHome(true)
+            }}
+          >
+            <span className="text-base font-semibold">Nuevo proyecto</span>
+            <span className="text-sm text-slate-300">Define un objetivo y avanza tarea tras tarea.</span>
+          </button>
+          <button
+            type="button"
+            className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
+            onClick={() => {
+              setMobileDraftArea({ name: 'Nueva área' })
+              setShowMobileCreationSheet(false)
+              setShowMobileHome(true)
+            }}
+          >
+            <span className="text-base font-semibold">Nueva área</span>
+            <span className="text-sm text-slate-300">
+              Agrupa proyectos y tareas por responsabilidades.
+            </span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderScheduleSheet = () => {
+    if (!scheduleSheetOpen || !mobileDraftTask) {
+      return null
+    }
+    const options: { id: QuickViewId; label: string; icon: string }[] = [
+      { id: 'today', label: 'Hoy', icon: '⭐' },
+      { id: 'upcoming', label: 'Programadas', icon: '📆' },
+      { id: 'anytime', label: 'En cualquier momento', icon: '🌤️' },
+      { id: 'someday', label: 'Algún día', icon: '📦' },
+      { id: 'inbox', label: 'Entrada', icon: '📥' },
+    ]
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={() => setScheduleSheetOpen(false)}>
+        <div
+          className="absolute inset-x-4 bottom-6 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-semibold">¿Cuándo?</span>
+            <button type="button" onClick={() => setScheduleSheetOpen(false)} className="text-2xl">
+              ✕
+            </button>
+          </div>
+          {options.map(option => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => {
+                setMobileDraftTask(prev =>
+                  prev ? { ...prev, view: option.id, due_at: defaultDueForView(option.id) } : prev
+                )
+                setScheduleSheetOpen(false)
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-left ${
+                mobileDraftTask.view === option.id ? 'bg-slate-800' : ''
+              }`}
+            >
+              <span>{option.icon}</span>
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderLabelSheet = () => {
+    if (!labelSheetTarget) {
+      return null
+    }
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={closeLabelSheet}>
+        <div
+          className="absolute inset-x-4 bottom-6 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-semibold">Etiquetas</span>
+            <button type="button" onClick={closeLabelSheet} className="text-2xl">
+              ✕
+            </button>
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {labels.length === 0 && <p className="text-sm text-slate-300">Aún no tienes etiquetas.</p>}
+            {labels.map(label => {
+              const active = labelSheetSelection.includes(label.id)
+              return (
+                <div key={label.id} className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLabelSheetSelection(prev =>
+                        prev.includes(label.id) ? prev.filter(id => id !== label.id) : [...prev, label.id]
+                      )
+                    }}
+                    className={`flex-1 text-left px-3 py-2 rounded-2xl ${
+                      active ? 'bg-slate-800' : 'bg-slate-800/30'
+                    }`}
+                  >
+                    {label.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteLabelMutation.mutate(label.id)}
+                    className="text-xl text-slate-400"
+                    aria-label={`Eliminar ${label.name}`}
+                  >
+                    🗑
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (!labelSheetInput.trim()) {
+                return
+              }
+              addLabelMutation.mutate(labelSheetInput.trim(), {
+                onSuccess: (result) => {
+                  if (result.success && result.label) {
+                    setLabelSheetSelection(prev => [...prev, result.label!.id])
+                    setLabelSheetInput('')
+                  }
+                },
+              })
+            }}
+            className="flex gap-2"
+          >
+            <input
+              type="text"
+              value={labelSheetInput}
+              onChange={(e) => setLabelSheetInput(e.target.value)}
+              placeholder="Nueva etiqueta"
+              className="flex-1 rounded-2xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-2xl bg-[var(--color-primary-600)] text-sm font-semibold disabled:opacity-60"
+              disabled={addLabelMutation.isPending}
+            >
+              Añadir
+            </button>
+          </form>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                if (labelSheetTarget === 'draft-task' && mobileDraftTask) {
+                  setMobileDraftTask({ ...mobileDraftTask, labelIds: labelSheetSelection })
+                }
+                closeLabelSheet()
+              }}
+              className="px-4 py-2 rounded-full bg-[var(--color-primary-600)] text-sm font-semibold"
+            >
+              Listo
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+
+  const renderMobileDraftTaskCard = () => {
+    if (!mobileDraftTask) {
+      return null
+    }
+    const scheduleLabel = quickViewLabels[mobileDraftTask.view]
+    return (
+      <div className="bg-slate-900/5 rounded-3xl border border-slate-700/20 p-4 space-y-3">
+        <div>
+          <input
+            ref={mobileDraftTaskTitleRef}
+            type="text"
+            value={mobileDraftTask.title}
+            onChange={(e) => {
+              const value = e.target.value
+              setMobileDraftTask(prev => (prev ? { ...prev, title: value } : prev))
+            }}
+            onBlur={(e) => {
+              if (!e.target.value.trim()) {
+                setMobileDraftTask(prev => (prev ? { ...prev, title: 'Nueva tarea' } : prev))
+              }
+            }}
+            className="w-full bg-transparent text-lg font-semibold text-white placeholder-slate-400 outline-none"
+          />
+          <textarea
+            value={mobileDraftTask.notes}
+            onChange={(e) =>
+              setMobileDraftTask(prev => (prev ? { ...prev, notes: e.target.value } : prev))
+            }
+            placeholder="Notas"
+            className="w-full bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none resize-none mt-1"
+            rows={2}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setScheduleSheetOpen(true)}
+            className="text-sm font-semibold text-white bg-slate-800 rounded-full px-3 py-1"
+          >
+            {scheduleLabel}
+          </button>
+          <div className="flex items-center gap-3 text-slate-300 text-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setLabelSheetSelection(mobileDraftTask.labelIds)
+                setLabelSheetTarget('draft-task')
+              }}
+              aria-label="Etiquetas"
+            >
+              🏷
+            </button>
+            <button type="button" onClick={() => openDatePicker('draft')} aria-label="Plazo">
+              📅
+            </button>
+            <button type="button" disabled className="opacity-50" aria-label="Checklist (pronto)">
+              ☑
+            </button>
+          </div>
+        </div>
+        {mobileDraftTask.labelIds.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {mobileDraftTask.labelIds.map(labelId => {
+              const label = labels.find(item => item.id === labelId)
+              if (!label) {
+                return null
+              }
+              return (
+                <span key={label.id} className="px-2 py-1 rounded-full bg-slate-800 text-xs text-white">
+                  {label.name}
+                </span>
+              )
+            })}
+          </div>
+        )}
+        {mobileDraftTask.due_at && (
+          <p className="text-xs text-slate-300">Plazo: {formatDateForLabel(mobileDraftTask.due_at)}</p>
+        )}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={handleCancelMobileDraftTask}
+            className="px-4 py-2 rounded-full border border-slate-600 text-sm text-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveMobileDraftTask}
+            disabled={addTaskMutation.isPending}
+            className="px-4 py-2 rounded-full bg-[var(--color-primary-600)] text-white text-sm font-semibold disabled:opacity-60"
+          >
+            {addTaskMutation.isPending ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const renderMobileTaskBoard = () => (
     <div className="space-y-4">
       {renderTaskBody('mobile')}
@@ -2218,7 +2640,13 @@ export default function TasksPage() {
   const renderMobileFab = () => (
     <button
       type="button"
-      onClick={handleOpenTaskModal}
+      onClick={() => {
+        if (showMobileHome) {
+          setShowMobileCreationSheet(true)
+        } else {
+          startMobileTaskDraft(activeQuickView)
+        }
+      }}
       className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
       aria-label="Crear tarea"
     >
@@ -2263,7 +2691,12 @@ export default function TasksPage() {
       return null
     }
 
-    const selectedValue = datePickerTarget === 'new' ? newTaskDueAt : editingDueAt
+    const selectedValue =
+      datePickerTarget === 'new'
+        ? newTaskDueAt
+        : datePickerTarget === 'edit'
+          ? editingDueAt
+          : mobileDraftTask?.due_at || ''
     const monthLabel = datePickerMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
     const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
@@ -2319,7 +2752,11 @@ export default function TasksPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400">
-                {datePickerTarget === 'new' ? 'Fecha para nueva tarea' : 'Actualizar vencimiento'}
+                {datePickerTarget === 'new'
+                  ? 'Fecha para nueva tarea'
+                  : datePickerTarget === 'edit'
+                    ? 'Actualizar vencimiento'
+                    : 'Plazo'}
               </p>
               <p className="text-lg font-semibold text-slate-800 capitalize">{monthLabel}</p>
             </div>
@@ -2417,55 +2854,80 @@ export default function TasksPage() {
 
   // Mutación para agregar tarea
   const addTaskMutation = useMutation({
-    mutationFn: (args: {
+    mutationFn: async (args: {
       title: string
-      notes: string
-      priority: number
-      due_at: string
-      status: 'open' | 'done' | 'snoozed'
-      project_id: string | null
-      area_id: string | null
-      heading_id: string | null
-    }) =>
-      addTask(
+      notes?: string
+      priority?: number
+      due_at?: string | null
+      status?: 'open' | 'done' | 'snoozed'
+      project_id?: string | null
+      area_id?: string | null
+      heading_id?: string | null
+      labelIds?: string[]
+    }) => {
+      const result = await addTask(
         args.title,
         args.notes || undefined,
-        args.priority,
+        args.priority ?? 0,
         args.due_at || undefined,
-        args.status,
-        args.project_id,
-        args.area_id,
-        args.heading_id
-      ),
-    onSuccess: async (result) => {
-      if (result.success) {
-        const labelsToAssign = [...newTaskLabelIds]
-        setNewTaskTitle('')
-        setNewTaskNotes('')
-        setNewTaskPriority(0)
-        setNewTaskDueAt('')
-        setNewTaskStatus('open')
-        setNewTaskProjectId(null)
-        setNewTaskAreaId(null)
-        setNewTaskHeadingId(null)
-        setNewTaskLabelIds([])
-        setNewTaskView('inbox')
-        setError('')
-        setIsTaskModalOpen(false)
-        if (result.task && labelsToAssign.length > 0) {
-          const responses = await Promise.all(labelsToAssign.map(labelId => addTaskLabel(result.task!.id, labelId)))
-          const failed = responses.find(response => !response.success)
-          if (failed) {
-            setError(failed.error || 'Algunas etiquetas no se pudieron asignar')
-          }
+        args.status ?? 'open',
+        args.project_id ?? null,
+        args.area_id ?? null,
+        args.heading_id ?? null
+      )
+      if (!result.success || !result.task) {
+        throw new Error(result.error || 'Error al crear tarea')
+      }
+      if (args.labelIds && args.labelIds.length > 0) {
+        const responses = await Promise.all(args.labelIds.map(labelId => addTaskLabel(result.task!.id, labelId)))
+        const failed = responses.find(response => !response.success)
+        if (failed) {
+          throw new Error(failed.error || 'Algunas etiquetas no se pudieron asignar')
         }
-        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      }
+      return result.task
+    },
+    onSuccess: () => {
+      setError('')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Error inesperado al crear tarea')
+    },
+  })
+
+  const addLabelMutation = useMutation({
+    mutationFn: (name: string) => addLabel(name),
+    onSuccess: (result) => {
+      if (result.success) {
+        setError('')
+        queryClient.invalidateQueries({ queryKey: ['labels'] })
       } else {
-        setError(result.error || 'Error al crear tarea')
+        setError(result.error || 'Error al crear etiqueta')
       }
     },
     onError: () => {
-      setError('Error inesperado al crear tarea')
+      setError('Error inesperado al crear etiqueta')
+    },
+  })
+
+  const deleteLabelMutation = useMutation({
+    mutationFn: (labelId: string) => deleteLabel(labelId),
+    onSuccess: (result, labelId) => {
+      if (result.success) {
+        setError('')
+        setSelectedLabelIds(prev => prev.filter(id => id !== labelId))
+        setMobileDraftTask(prev =>
+          prev ? { ...prev, labelIds: prev.labelIds.filter(id => id !== labelId) } : prev
+        )
+        queryClient.invalidateQueries({ queryKey: ['labels'] })
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al eliminar etiqueta')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al eliminar etiqueta')
     },
   })
 
@@ -2693,6 +3155,61 @@ export default function TasksPage() {
     setActiveProjectFilterChip(chipId)
   }
 
+  const startMobileTaskDraft = (
+    view: QuickViewId,
+    overrides?: { areaId?: string | null; projectId?: string | null; stayHome?: boolean }
+  ) => {
+    const targetProjectId = overrides?.projectId ?? selectedProjectId ?? null
+    const appliedAreaId =
+      overrides?.areaId ??
+      selectedAreaId ??
+      (targetProjectId ? projects.find(project => project.id === targetProjectId)?.area_id || null : null)
+    if (!overrides?.stayHome) {
+      setShowMobileHome(false)
+    }
+    setMobileDraftTask({
+      title: 'Nueva tarea',
+      notes: '',
+      view,
+      areaId: appliedAreaId || null,
+      projectId: targetProjectId || null,
+      due_at: defaultDueForView(view),
+      labelIds: [],
+    })
+  }
+
+  const handleCancelMobileDraftTask = () => {
+    setMobileDraftTask(null)
+    setShowMobileCreationSheet(false)
+  }
+
+  const handleSaveMobileDraftTask = () => {
+    if (!mobileDraftTask) {
+      return
+    }
+    if (!mobileDraftTask.title.trim()) {
+      setError('El título no puede estar vacío')
+      return
+    }
+    addTaskMutation.mutate(
+      {
+        title: mobileDraftTask.title.trim(),
+        notes: mobileDraftTask.notes,
+        status: deriveStatusFromView(mobileDraftTask.view),
+        due_at: mobileDraftTask.due_at,
+        project_id: mobileDraftTask.projectId,
+        area_id: mobileDraftTask.areaId,
+        labelIds: mobileDraftTask.labelIds,
+      },
+      {
+        onSuccess: () => {
+          setMobileDraftTask(null)
+          setShowMobileCreationSheet(false)
+        },
+      }
+    )
+  }
+
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTaskTitle.trim()) {
@@ -2708,6 +3225,21 @@ export default function TasksPage() {
       project_id: newTaskProjectId,
       area_id: newTaskAreaId,
       heading_id: newTaskHeadingId,
+      labelIds: newTaskLabelIds,
+    }, {
+      onSuccess: () => {
+        setNewTaskTitle('')
+        setNewTaskNotes('')
+        setNewTaskPriority(0)
+        setNewTaskDueAt('')
+        setNewTaskStatus('open')
+        setNewTaskProjectId(null)
+        setNewTaskAreaId(null)
+        setNewTaskHeadingId(null)
+        setNewTaskLabelIds([])
+        setNewTaskView('inbox')
+        setIsTaskModalOpen(false)
+      },
     })
   }
 
@@ -2789,6 +3321,48 @@ export default function TasksPage() {
       return
     }
     addAreaMutation.mutate(newAreaName.trim())
+  }
+
+  const handleSaveMobileDraftArea = () => {
+    if (!mobileDraftArea) {
+      return
+    }
+    if (!mobileDraftArea.name.trim()) {
+      setMobileDraftArea({ name: 'Nueva área' })
+      return
+    }
+    addAreaMutation.mutate(mobileDraftArea.name.trim(), {
+      onSuccess: (result) => {
+        if (result.success) {
+          setMobileDraftArea(null)
+          setShowMobileCreationSheet(false)
+        }
+      },
+    })
+  }
+
+  const handleSaveMobileDraftProject = () => {
+    if (!mobileDraftProject) {
+      return
+    }
+    if (!mobileDraftProject.name.trim()) {
+      setMobileDraftProject(prev => (prev ? { ...prev, name: 'Nuevo proyecto' } : null))
+      return
+    }
+    addProjectMutation.mutate(
+      {
+        name: mobileDraftProject.name.trim(),
+        areaId: mobileDraftProject.areaId,
+      },
+      {
+        onSuccess: (result) => {
+          if (result.success) {
+            setMobileDraftProject(null)
+            setShowMobileCreationSheet(false)
+          }
+        },
+      }
+    )
   }
 
   const handleAddHeading = (e: React.FormEvent) => {
@@ -2895,6 +3469,9 @@ export default function TasksPage() {
       <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="max-w-md mx-auto px-4 py-6">{renderMobileHome()}</div>
         {renderTaskModal()}
+        {renderMobileCreationSheet()}
+        {renderScheduleSheet()}
+        {renderLabelSheet()}
         {renderDatePickerOverlay()}
       </main>
     )
@@ -2934,6 +3511,9 @@ export default function TasksPage() {
       {renderNewAreaModal()}
       {renderNewProjectModal()}
       {renderQuickHeadingForm()}
+      {renderMobileCreationSheet()}
+      {renderScheduleSheet()}
+      {renderLabelSheet()}
       {renderDatePickerOverlay()}
     </main>
   )
