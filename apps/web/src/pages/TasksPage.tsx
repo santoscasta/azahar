@@ -106,6 +106,13 @@ export default function TasksPage() {
     setLabelSheetSelection([])
     setLabelSheetInput('')
   }
+  const closeMobileCreationSheet = (preserveDrafts = false) => {
+    setShowMobileCreationSheet(false)
+    if (!preserveDrafts) {
+      setMobileDraftProject(null)
+      setMobileDraftArea(null)
+    }
+  }
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -183,7 +190,15 @@ export default function TasksPage() {
     const mediaQuery = window.matchMedia('(max-width: 768px)')
     const updateMatches = (matches: boolean) => {
       setIsMobile(matches)
-      setShowMobileHome(matches)
+      if (matches) {
+        setShowMobileHome(true)
+      } else {
+        setShowMobileHome(false)
+        setShowMobileCreationSheet(false)
+        setMobileDraftTask(null)
+        setMobileDraftProject(null)
+        setMobileDraftArea(null)
+      }
     }
     updateMatches(mediaQuery.matches)
     const listener = (event: MediaQueryListEvent) => {
@@ -626,7 +641,7 @@ export default function TasksPage() {
 
   const renderMobileHome = () => (
     <div className="space-y-6 pb-28">
-      {mobileDraftTask && renderMobileDraftTaskCard()}
+      {showMobileHome && mobileDraftTask && renderMobileDraftTaskCard()}
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
         <input
@@ -769,12 +784,15 @@ export default function TasksPage() {
         </button>
       </div>
 
-      <button
-        onClick={handleOpenTaskModal}
-        className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-blue-500 text-white text-3xl shadow-2xl flex items-center justify-center"
-      >
-        +
-      </button>
+      {isMobile && (
+        <button
+          onClick={() => setShowMobileCreationSheet(true)}
+          className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
+          aria-label="Abrir creación rápida"
+        >
+          +
+        </button>
+      )}
     </div>
   )
 
@@ -1230,6 +1248,9 @@ export default function TasksPage() {
   const handleClearSearch = () => {
     setSearchQuery('')
     setIsSearchFocused(false)
+    if (isMobile) {
+      setShowMobileHome(true)
+    }
   }
 
   const formatDateForLabel = (value: string) => {
@@ -2339,7 +2360,7 @@ export default function TasksPage() {
     return (
       <div
         className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
-        onClick={() => setShowMobileCreationSheet(false)}
+        onClick={() => closeMobileCreationSheet()}
       >
         <div
           className="absolute bottom-6 left-4 right-4 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
@@ -2349,7 +2370,7 @@ export default function TasksPage() {
             type="button"
             className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
             onClick={() => {
-              setShowMobileCreationSheet(false)
+              closeMobileCreationSheet()
               startMobileTaskDraft('inbox', { areaId: null, projectId: null, stayHome: true })
             }}
           >
@@ -2361,7 +2382,7 @@ export default function TasksPage() {
             className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
             onClick={() => {
               setMobileDraftProject({ name: 'Nuevo proyecto', areaId: null })
-              setShowMobileCreationSheet(false)
+              closeMobileCreationSheet(true)
               setShowMobileHome(true)
             }}
           >
@@ -2373,7 +2394,7 @@ export default function TasksPage() {
             className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
             onClick={() => {
               setMobileDraftArea({ name: 'Nueva área' })
-              setShowMobileCreationSheet(false)
+              closeMobileCreationSheet(true)
               setShowMobileHome(true)
             }}
           >
@@ -2538,7 +2559,10 @@ export default function TasksPage() {
     }
     const scheduleLabel = quickViewLabels[mobileDraftTask.view]
     return (
-      <div className="bg-slate-900/5 rounded-3xl border border-slate-700/20 p-4 space-y-3">
+      <div
+        className="rounded-3xl border p-4 space-y-3"
+        style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-primary-100)' }}
+      >
         <div>
           <input
             ref={mobileDraftTaskTitleRef}
@@ -2553,7 +2577,7 @@ export default function TasksPage() {
                 setMobileDraftTask(prev => (prev ? { ...prev, title: 'Nueva tarea' } : prev))
               }
             }}
-            className="w-full bg-transparent text-lg font-semibold text-white placeholder-slate-400 outline-none"
+            className="w-full bg-transparent text-lg font-semibold text-slate-900 placeholder-slate-400 outline-none"
           />
           <textarea
             value={mobileDraftTask.notes}
@@ -2561,7 +2585,7 @@ export default function TasksPage() {
               setMobileDraftTask(prev => (prev ? { ...prev, notes: e.target.value } : prev))
             }
             placeholder="Notas"
-            className="w-full bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none resize-none mt-1"
+            className="w-full bg-transparent text-sm text-slate-600 placeholder-slate-400 outline-none resize-none mt-1"
             rows={2}
           />
         </div>
@@ -2569,11 +2593,12 @@ export default function TasksPage() {
           <button
             type="button"
             onClick={() => setScheduleSheetOpen(true)}
-            className="text-sm font-semibold text-white bg-slate-800 rounded-full px-3 py-1"
+            className="text-sm font-semibold text-white rounded-full px-3 py-1"
+            style={{ backgroundColor: 'var(--color-primary-600)' }}
           >
             {scheduleLabel}
           </button>
-          <div className="flex items-center gap-3 text-slate-300 text-xl">
+          <div className="flex items-center gap-3 text-slate-500 text-xl">
             <button
               type="button"
               onClick={() => {
@@ -2600,7 +2625,11 @@ export default function TasksPage() {
                 return null
               }
               return (
-                <span key={label.id} className="px-2 py-1 rounded-full bg-slate-800 text-xs text-white">
+                <span
+                  key={label.id}
+                  className="px-2 py-1 rounded-full text-xs"
+                  style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
+                >
                   {label.name}
                 </span>
               )
@@ -2608,13 +2637,14 @@ export default function TasksPage() {
           </div>
         )}
         {mobileDraftTask.due_at && (
-          <p className="text-xs text-slate-300">Plazo: {formatDateForLabel(mobileDraftTask.due_at)}</p>
+          <p className="text-xs text-slate-500">Plazo: {formatDateForLabel(mobileDraftTask.due_at)}</p>
         )}
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={handleCancelMobileDraftTask}
-            className="px-4 py-2 rounded-full border border-slate-600 text-sm text-slate-200"
+            className="px-4 py-2 rounded-full border text-sm"
+            style={{ borderColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
           >
             Cancelar
           </button>
@@ -2622,7 +2652,8 @@ export default function TasksPage() {
             type="button"
             onClick={handleSaveMobileDraftTask}
             disabled={addTaskMutation.isPending}
-            className="px-4 py-2 rounded-full bg-[var(--color-primary-600)] text-white text-sm font-semibold disabled:opacity-60"
+            className="px-4 py-2 rounded-full text-white text-sm font-semibold disabled:opacity-60"
+            style={{ backgroundColor: 'var(--color-primary-600)' }}
           >
             {addTaskMutation.isPending ? 'Guardando...' : 'Guardar'}
           </button>
@@ -2637,11 +2668,13 @@ export default function TasksPage() {
     </div>
   )
 
-  const renderMobileFab = () => (
+  const renderMobileFab = () => {
+    const isHomeFab = isMobile && showMobileHome
+    return (
     <button
       type="button"
       onClick={() => {
-        if (showMobileHome) {
+        if (isHomeFab) {
           setShowMobileCreationSheet(true)
         } else {
           startMobileTaskDraft(activeQuickView)
@@ -2652,7 +2685,8 @@ export default function TasksPage() {
     >
       +
     </button>
-  )
+    )
+  }
 
   const renderDesktopDock = () => (
     <div className="hidden lg:flex fixed inset-x-0 bottom-6 justify-center pointer-events-none">
@@ -3181,6 +3215,7 @@ export default function TasksPage() {
   const handleCancelMobileDraftTask = () => {
     setMobileDraftTask(null)
     setShowMobileCreationSheet(false)
+    setShowMobileHome(true)
   }
 
   const handleSaveMobileDraftTask = () => {
@@ -3205,6 +3240,7 @@ export default function TasksPage() {
         onSuccess: () => {
           setMobileDraftTask(null)
           setShowMobileCreationSheet(false)
+          setShowMobileHome(true)
         },
       }
     )
@@ -3336,6 +3372,7 @@ export default function TasksPage() {
         if (result.success) {
           setMobileDraftArea(null)
           setShowMobileCreationSheet(false)
+          setShowMobileHome(true)
         }
       },
     })
@@ -3359,6 +3396,7 @@ export default function TasksPage() {
           if (result.success) {
             setMobileDraftProject(null)
             setShowMobileCreationSheet(false)
+            setShowMobileHome(true)
           }
         },
       }
