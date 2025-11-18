@@ -13,7 +13,7 @@
 | Progreso | 97% ✅ |
 | Errores TypeScript | 0 ✅ |
 | Errores en Navegador | 0 ✅ |
-| Tests Pasados | 9/9 (Día 2) ✅ |
+| Tests Pasados | 35/35 (Vitest) ✅ |
 | Commits Totales | 18 |
 | Líneas de Código | ~3,100 |
 
@@ -116,6 +116,34 @@ Después: [✓] ~~Tarea~~ [Editar] [Eliminar]
 - Commits: 5
 - Errores: 0
 - Tests: 9/9 ✅
+
+---
+
+## 📅 DÍA 6 - 20 de Noviembre (Refactor creación + Test Suite)
+
+**Objetivo:** Extraer la lógica de creación de tareas/proyectos/áreas y estabilizar la suite de tests.
+
+### ✅ Completado
+- [x] Hooks reutilizables `useTaskCreation`, `useProjectCreation` y `useAreaCreation` para encapsular el estado de los formularios (tanto modal como móvil).
+- [x] `TasksPage.tsx` simplificado: los formularios consumen los hooks y ahora es más fácil resetear y reutilizar la lógica.
+- [x] Migración total de la suite de tests a **Vitest** con entorno jsdom configurado desde `vite.config.ts`.
+- [x] Nuevos tests de integración ligera:
+  - `LoginPage.test.tsx` (Testing Library sobre vitest)
+  - `scheduleUtils.test.ts`, `taskFilters.test.ts`, `tasksSelectors.test.ts` (migrados a Vitest)
+  - `useCreationHooks.test.ts` para validar el comportamiento de los hooks extraídos.
+- [x] Script `pnpm -C apps/web test` documentado y funcionando (35 tests verdes).
+
+### 📝 Cambios Técnicos
+- `apps/web/src/hooks/*`: nuevos hooks + tests.
+- `TasksPage.tsx`: usa los hooks, menos `useState` sueltos y resets centralizados.
+- `vite.config.ts` + `package.json`: configuración de Vitest y nuevo flujo de pruebas.
+- `PROGRESS.md`: tabla de métricas actualizada.
+
+### 📎 Notas
+- Para correr la suite: `pnpm -C apps/web test` (Vitest + jsdom).
+- Los formularios modales se limpian automáticamente al cerrar o tras crear registros.
+- Se añadieron componentes móviles (`MobileCreationSheet`, `MobileDraftCard`, `MobileScheduleSheet`) y tests específicos para el flujo rápido.
+- documentado helper `renderWithProviders` para futuras pruebas con router/query client.
 
 ---
 
@@ -357,6 +385,35 @@ Resultado:
 - Mutaciones nuevas: 6 (áreas + headings)
 - Tests: 19/19 ✅
 - Errores: 0
+
+---
+
+## 📅 DÍA 8 - 16 de Noviembre (Modularización + Test UI)
+
+**Objetivo:** Reducir la complejidad de `TasksPage` y fortalecer la cobertura de UI (Login + móviles).
+
+### ✅ Completado
+- [x] Rediseño completo de `LoginPage` con branding y CTA principal; `LoginPage.test.tsx` cubre 10 escenarios (login, registro, loading, errores, soporte, toggle, retry).
+- [x] Hooks `useTaskCreation`, `useProjectCreation`, `useAreaCreation` reutilizados en modales.
+- [x] Extracciones clave en `TasksPage`:
+  - `TaskCreationModal`, `NewAreaModal`, `NewProjectModal`, `QuickHeadingForm`.
+  - `DatePickerOverlay`, `LabelSheet`, `MobileOverview`.
+  - `DesktopSidebar` y `MobileHome`.
+  - `TaskList` + `TaskLabels` para todo el rendering de tareas (desktop/móvil/edición).
+- [x] Ajuste de tipos (`AuthResult`) para el cliente de Supabase y consumo desde `LoginPage`.
+- [x] `tsconfig.test.json` actualizado con todos los componentes nuevos; Vitest (46 tests) en verde.
+
+### 📝 Cambios Técnicos
+- `TasksPage.tsx`: pasa de ~3100 a ~2700 líneas delegando UI en componentes y manteniendo sólo la lógica/orquestación (fetch, filtros, handlers). `renderTaskBody` ahora se apoya en `TaskList`.
+- Nuevos directorios `components/mobile`, `components/sidebar`, `components/tasks` con JSX aislado y props explícitas.
+- `LoginPage` ahora acepta `authClient` y `navigateTo` para pruebas; `AuthResult` unifica la firma de `signIn/signUp`.
+- `TaskList.tsx` reutiliza `TaskLabels` e integra el modo edición, toggles, metadatos, badges y el card borrador móvil.
+
+### 📊 Estadísticas Día 8
+- Componentes nuevos: 10+
+- Tests: 46/46 ✅
+- Errores TypeScript: 0
+- Tiempo de test: ~5s (Vitest)
 
 ---
 

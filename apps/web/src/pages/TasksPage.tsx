@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -21,8 +22,8 @@ import {
   addProjectHeading,
   updateProjectHeading,
   deleteProjectHeading,
-} from '../lib/supabase'
-import type { Task, TaskLabelSummary, Label, Area, Project } from '../lib/supabase'
+} from '../lib/supabase.js'
+import type { Task, TaskLabelSummary, Label, Area, Project, ProjectHeading } from '../lib/supabase.js'
 import {
   buildQuickViewStats,
   filterTasksByQuickView,
@@ -31,19 +32,47 @@ import {
   normalizeDate,
   getTaskView,
   type QuickViewId,
-} from './tasksSelectors'
-import { applyTaskFilters } from '../lib/taskFilters'
+  type ActiveFilterDescriptor,
+} from './tasksSelectors.js'
+import { defaultDueForView, determineViewFromDate } from '../lib/scheduleUtils.js'
+import { applyTaskFilters } from '../lib/taskFilters.js'
+import { useTaskCreation } from '../hooks/useTaskCreation.js'
+import { useProjectCreation } from '../hooks/useProjectCreation.js'
+import { useAreaCreation } from '../hooks/useAreaCreation.js'
+import { MobileCreationSheet } from '../components/mobile/MobileCreationSheet.js'
+import { MobileDraftCard } from '../components/mobile/MobileDraftCard.js'
+import { MobileScheduleSheet } from '../components/mobile/MobileScheduleSheet.js'
+import { buildMobileTaskPayload } from '../lib/mobileDraftUtils.js'
+import DesktopSidebar from '../components/sidebar/DesktopSidebar.js'
+import MobileHome from '../components/mobile/MobileHome.js'
+import MobileHeader from '../components/mobile/MobileHeader.js'
+import NewAreaModal from '../components/tasks/NewAreaModal.js'
+import NewProjectModal from '../components/tasks/NewProjectModal.js'
+import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
+import ActiveFilterChips from '../components/tasks/ActiveFilterChips.js'
+import ErrorBanner from '../components/tasks/ErrorBanner.js'
+import TaskCreationModal from '../components/tasks/TaskCreationModal.js'
+import DatePickerOverlay from '../components/tasks/DatePickerOverlay.js'
+import LabelSheet from '../components/tasks/LabelSheet.js'
+import TaskList from '../components/tasks/TaskList.js'
+import DesktopSearch from '../components/tasks/DesktopSearch.js'
+import QuickViewBoard from '../components/tasks/boards/QuickViewBoard.js'
+import AreaBoard from '../components/tasks/boards/AreaBoard.js'
+import ProjectBoard from '../components/tasks/boards/ProjectBoard.js'
+import MobileOverview from '../components/mobile/MobileOverview.js'
 
 export default function TasksPage() {
-  const [newTaskTitle, setNewTaskTitle] = useState('')
-  const [newTaskNotes, setNewTaskNotes] = useState('')
-  const [newTaskPriority, setNewTaskPriority] = useState<0 | 1 | 2 | 3>(0)
-  const [newTaskDueAt, setNewTaskDueAt] = useState('')
-  const [newTaskProjectId, setNewTaskProjectId] = useState<string | null>(null)
-  const [newTaskAreaId, setNewTaskAreaId] = useState<string | null>(null)
-  const [newTaskHeadingId, setNewTaskHeadingId] = useState<string | null>(null)
-  const [newTaskStatus, setNewTaskStatus] = useState<'open' | 'done' | 'snoozed'>('open')
-  const [newTaskLabelIds, setNewTaskLabelIds] = useState<string[]>([])
+  const {
+    taskDraft,
+    updateTaskDraft,
+    setTaskLabels,
+    resetTaskDraft,
+    isTaskModalOpen,
+    openTaskModal,
+    closeTaskModal,
+    mobileDraftTask,
+    updateMobileDraft,
+  } = useTaskCreation()
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -55,11 +84,22 @@ export default function TasksPage() {
   const [editingHeadingId, setEditingHeadingId] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
-  const [newProjectName, setNewProjectName] = useState('')
-  const [newProjectAreaId, setNewProjectAreaId] = useState<string | null>(null)
-  const [showNewProject, setShowNewProject] = useState(false)
-  const [newAreaName, setNewAreaName] = useState('')
-  const [showNewArea, setShowNewArea] = useState(false)
+  const {
+    projectDraft,
+    setProjectName,
+    setProjectAreaId,
+    showProjectModal,
+    openProjectModal,
+    closeProjectModal,
+    resetProjectDraft,
+  } = useProjectCreation()
+  const {
+    areaNameDraft,
+    setAreaNameDraft,
+    showAreaModal,
+    openAreaModal,
+    closeAreaModal,
+  } = useAreaCreation()
   const [inlineLabelName, setInlineLabelName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
@@ -68,8 +108,6 @@ export default function TasksPage() {
   const [newHeadingName, setNewHeadingName] = useState('')
   const [headingEditingId, setHeadingEditingId] = useState<string | null>(null)
   const [headingEditingName, setHeadingEditingName] = useState('')
-  const [newTaskView, setNewTaskView] = useState<QuickViewId>('inbox')
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileHome, setShowMobileHome] = useState(true)
@@ -81,15 +119,6 @@ export default function TasksPage() {
   const [showNewListMenu, setShowNewListMenu] = useState(false)
   const [showQuickHeadingForm, setShowQuickHeadingForm] = useState(false)
   const [showMobileCreationSheet, setShowMobileCreationSheet] = useState(false)
-  const [mobileDraftTask, setMobileDraftTask] = useState<{
-    title: string
-    notes: string
-    view: QuickViewId
-    areaId: string | null
-    projectId: string | null
-    due_at: string | null
-    labelIds: string[]
-  } | null>(null)
   const [mobileDraftProject, setMobileDraftProject] = useState<{ name: string; areaId: string | null } | null>(null)
   const [mobileDraftArea, setMobileDraftArea] = useState<{ name: string } | null>(null)
   const [labelSheetTarget, setLabelSheetTarget] = useState<'draft-task' | null>(null)
@@ -101,6 +130,12 @@ export default function TasksPage() {
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftProjectRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftAreaRef = useRef<HTMLInputElement | null>(null)
+  const assignMobileDraftAreaInput = useCallback((node: HTMLInputElement | null) => {
+    mobileDraftAreaRef.current = node
+  }, [])
+  const assignMobileDraftProjectInput = useCallback((node: HTMLInputElement | null) => {
+    mobileDraftProjectRef.current = node
+  }, [])
   const closeLabelSheet = () => {
     setLabelSheetTarget(null)
     setLabelSheetSelection([])
@@ -164,7 +199,7 @@ export default function TasksPage() {
     },
   })
 
-  const { data: projectHeadings = [] } = useQuery({
+  const { data: projectHeadings = [] } = useQuery<ProjectHeading[]>({
     queryKey: ['project-headings'],
     queryFn: async () => {
       const result = await getProjectHeadings()
@@ -195,7 +230,7 @@ export default function TasksPage() {
       } else {
         setShowMobileHome(false)
         setShowMobileCreationSheet(false)
-        setMobileDraftTask(null)
+        updateMobileDraft(() => null)
         setMobileDraftProject(null)
         setMobileDraftArea(null)
       }
@@ -339,61 +374,36 @@ export default function TasksPage() {
     const day = `${tomorrow.getDate()}`.padStart(2, '0')
     return `${tomorrow.getFullYear()}-${month}-${day}`
   }, [todayISO])
-  const defaultDueForView = (view: QuickViewId) => {
-    if (view === 'today') {
-      return todayISO
-    }
-    if (view === 'upcoming') {
-      return tomorrowISO
-    }
-    return null
-  }
-  const deriveStatusFromView = (view: QuickViewId): 'open' | 'snoozed' => {
-    return view === 'someday' ? 'snoozed' : 'open'
-  }
-
-  const determineViewFromDate = (value: string | null, fallback: QuickViewId = 'inbox'): QuickViewId => {
-    if (!value) {
-      return fallback === 'someday' ? 'someday' : 'anytime'
-    }
-    if (value <= todayISO) {
-      return 'today'
-    }
-    return 'upcoming'
-  }
-
   const applyViewPreset = (view: QuickViewId) => {
-    setNewTaskView(view)
+    updateTaskDraft('view', view)
     switch (view) {
       case 'today':
-        setNewTaskDueAt(todayISO)
-        setNewTaskStatus('open')
+        updateTaskDraft('due_at', todayISO)
+        updateTaskDraft('status', 'open')
         break
-      case 'upcoming':
-        setNewTaskDueAt(prev => {
-          if (prev && prev > todayISO) {
-            return prev
-          }
-          return tomorrowISO
-        })
-        setNewTaskStatus('open')
+      case 'upcoming': {
+        const currentDue = taskDraft.due_at
+        const nextDue = currentDue && currentDue > todayISO ? currentDue : tomorrowISO
+        updateTaskDraft('due_at', nextDue)
+        updateTaskDraft('status', 'open')
         break
+      }
       case 'anytime':
-        setNewTaskDueAt('')
-        setNewTaskStatus('open')
+        updateTaskDraft('due_at', '')
+        updateTaskDraft('status', 'open')
         break
       case 'someday':
-        setNewTaskDueAt('')
-        setNewTaskStatus('snoozed')
+        updateTaskDraft('due_at', '')
+        updateTaskDraft('status', 'snoozed')
         break
       default:
-        setNewTaskDueAt('')
-        setNewTaskStatus('open')
+        updateTaskDraft('due_at', '')
+        updateTaskDraft('status', 'open')
     }
   }
 
   const toggleNewTaskLabel = (labelId: string) => {
-    setNewTaskLabelIds(prev => (prev.includes(labelId) ? prev.filter(id => id !== labelId) : [...prev, labelId]))
+    setTaskLabels(prev => (prev.includes(labelId) ? prev.filter(id => id !== labelId) : [...prev, labelId]))
   }
 
   const handleOpenMobileProject = (projectId: string) => {
@@ -408,6 +418,30 @@ export default function TasksPage() {
     setShowMobileHome(false)
   }
 
+  const handleMobileAreaNameChange = (value: string) => {
+    setMobileDraftArea(prev => (prev ? { ...prev, name: value } : { name: value }))
+  }
+
+  const handleMobileAreaNameBlur = (value: string) => {
+    if (!value.trim()) {
+      setMobileDraftArea({ name: 'Nueva área' })
+    }
+  }
+
+  const handleCancelMobileAreaDraft = () => setMobileDraftArea(null)
+
+  const handleMobileProjectNameChange = (value: string) => {
+    setMobileDraftProject(prev => (prev ? { ...prev, name: value } : { name: value, areaId: null }))
+  }
+
+  const handleMobileProjectNameBlur = (value: string) => {
+    if (!value.trim()) {
+      setMobileDraftProject(prev => (prev ? { ...prev, name: 'Nuevo proyecto' } : prev))
+    }
+  }
+
+  const handleCancelMobileProjectDraft = () => setMobileDraftProject(null)
+
   const handleInlineLabelCreate = (event?: React.FormEvent) => {
     if (event) {
       event.preventDefault()
@@ -418,6 +452,108 @@ export default function TasksPage() {
     }
     addInlineLabelMutation.mutate(inlineLabelName.trim())
   }
+
+  const handleRemoveFilter = (filter: ActiveFilterDescriptor) => {
+    if (filter.type === 'project') {
+      setSelectedProjectId(null)
+    } else if (filter.type === 'area') {
+      setSelectedAreaId(null)
+    } else {
+      setSelectedLabelIds(prev => prev.filter(id => id !== filter.referenceId))
+    }
+  }
+
+  const handleLabelSheetToggle = (labelId: string) => {
+    setLabelSheetSelection(prev =>
+      prev.includes(labelId) ? prev.filter(id => id !== labelId) : [...prev, labelId]
+    )
+  }
+
+  const handleLabelSheetSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!labelSheetInput.trim()) {
+      return
+    }
+    addLabelMutation.mutate(labelSheetInput.trim(), {
+      onSuccess: (result) => {
+        const createdLabel = result.label
+        if (result.success && createdLabel) {
+          setLabelSheetSelection(prev => [...prev, createdLabel.id])
+          setLabelSheetInput('')
+        } else if (!result.success && result.error) {
+          setError(result.error)
+        }
+      },
+    })
+  }
+
+  const handleLabelSheetConfirm = () => {
+    if (labelSheetTarget === 'draft-task' && mobileDraftTask) {
+      updateMobileDraft(prev => (prev ? { ...prev, labelIds: labelSheetSelection } : prev))
+    }
+    closeLabelSheet()
+  }
+
+  const editingState = {
+    id: editingId,
+    title: editingTitle,
+    notes: editingNotes,
+    priority: editingPriority,
+    dueAt: editingDueAt,
+    projectId: editingProjectId,
+    areaId: editingAreaId,
+    headingId: editingHeadingId,
+  }
+
+  const editingHandlers = {
+    setTitle: setEditingTitle,
+    setNotes: setEditingNotes,
+    setPriority: setEditingPriority,
+    setAreaId: setEditingAreaId,
+    setProjectId: setEditingProjectId,
+    setHeadingId: setEditingHeadingId,
+  }
+
+  const renderTaskList = (
+    variant: 'desktop' | 'mobile',
+    tasks: Task[],
+    options: {
+      showEmptyState?: boolean
+      showLoadingState?: boolean
+      renderDraftCard?: () => ReactNode
+      showDraftCard?: boolean
+    } = {}
+  ) => (
+    <TaskList
+      variant={variant}
+      tasks={tasks}
+      isLoading={isLoading}
+      showEmptyState={options.showEmptyState}
+      showLoadingState={options.showLoadingState}
+      filteredViewActive={filteredViewActive}
+      projects={projects}
+      areas={areas}
+      headings={projectHeadings}
+      labels={labels}
+      editingState={editingState}
+      editingHandlers={editingHandlers}
+      onStartEdit={handleEditTask}
+      onSaveEdit={handleSaveEdit}
+      onCancelEdit={handleCancelEdit}
+      onToggleTask={(taskId) => toggleTaskMutation.mutate(taskId)}
+      togglePending={toggleTaskMutation.isPending}
+      onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
+      deletePending={deleteTaskMutation.isPending}
+      selectedTaskForLabel={selectedTaskForLabel}
+      onToggleLabelPicker={handleToggleLabelPicker}
+      onAddLabel={handleAddLabelToTask}
+      onRemoveLabel={handleRemoveLabelFromTask}
+      onOpenEditDatePicker={() => openDatePicker('edit')}
+      formatDateLabel={formatDateForLabel}
+      renderDraftCard={options.renderDraftCard}
+      showDraftCard={options.showDraftCard}
+    />
+  )
 
   const quickLists = [
     { id: 'inbox', label: 'Inbox', icon: '📥', accent: 'text-slate-700' },
@@ -442,626 +578,45 @@ export default function TasksPage() {
     }
   }
 
-  const renderDesktopSidebar = () => {
-    const standaloneProjects = projects.filter(project => !project.area_id)
-    const renderCount = (total?: number, overdue?: number) => {
-      if (!total && !overdue) {
-        return null
-      }
-      return (
-        <div className="flex items-center gap-1 text-[11px] font-semibold">
-          {total ? <span className="text-slate-400">{total}</span> : null}
-          {overdue ? <span className="text-rose-500">{overdue}</span> : null}
-        </div>
-      )
-    }
+  const toggleNewListMenu = () => setShowNewListMenu(prev => !prev)
 
-    return (
-      <aside className="rounded-[32px] border border-slate-100 bg-white shadow-2xl flex flex-col h-full">
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.4em] text-slate-400">Azahar</p>
-            <p className="text-xl font-semibold text-slate-900">Workspace</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300"
-          >
-            Salir
-          </button>
-        </div>
-        <div className="px-5">
-          <div className="rounded-2xl border border-slate-100 p-3 flex items-center justify-between bg-slate-50">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">En progreso</p>
-              <p className="text-lg font-semibold text-slate-800">
-                {filteredTasks.filter(task => task.status !== 'done').length} tareas
-              </p>
-            </div>
-            <span className="text-sm text-slate-400">
-              {completedCount}/{filteredTasks.length}
-            </span>
-          </div>
-        </div>
-        <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-5">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Focus</p>
-            <ul className="space-y-1">
-              {quickLists.map(view => {
-                const viewId = view.id as QuickViewId
-                const total = quickViewStats[viewId]
-                const overdue = quickViewOverdueStats[viewId]
-                const isActive = !selectedProjectId && !selectedAreaId && activeQuickView === viewId
-                return (
-                  <li key={view.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectQuickView(viewId)}
-                      className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
-                        isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <span className={`text-base ${view.accent}`}>{view.icon}</span>
-                        {view.label}
-                      </span>
-                      {renderCount(total, overdue)}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+  const handleCreateProjectFromSidebar = () => {
+    openProjectModal()
+    setShowNewListMenu(false)
+  }
 
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Áreas</p>
-            <div className="space-y-3">
-              {areas.length === 0 && <p className="text-sm text-slate-400">Crea tu primera área para organizarte.</p>}
-              {areas.map(area => {
-                const areaProjects = projects.filter(project => project.area_id === area.id)
-                const stats = areaStats.get(area.id)
-                const isActiveArea = selectedAreaId === area.id && !selectedProjectId
-                return (
-                  <div key={area.id} className="rounded-2xl border border-slate-100 px-3 py-2 bg-slate-50/60">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectArea(area.id)}
-                      className={`w-full flex items-center justify-between text-sm font-semibold ${
-                        isActiveArea ? 'text-slate-900' : 'text-slate-600'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-slate-400" />
-                        {area.name}
-                      </span>
-                      {renderCount(stats?.total, stats?.overdue)}
-                    </button>
-                    <div className="mt-1 ml-7 space-y-1">
-                      {areaProjects.map(project => {
-                        const projectStat = projectStats.get(project.id)
-                        const isActiveProject = selectedProjectId === project.id
-                        return (
-                          <button
-                            key={project.id}
-                            type="button"
-                            onClick={() => handleSelectProject(project.id)}
-                            className={`w-full flex items-center justify-between text-xs rounded-xl px-2 py-1 ${
-                              isActiveProject ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                          >
-                            <span>{project.name}</span>
-                            {renderCount(projectStat?.total, projectStat?.overdue)}
-                          </button>
-                        )
-                      })}
-                      {areaProjects.length === 0 && (
-                        <p className="text-xs text-slate-400">Sin proyectos todavía</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {standaloneProjects.length > 0 && (
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Proyectos</p>
-              <div className="space-y-1">
-                {standaloneProjects.map(project => {
-                  const stats = projectStats.get(project.id)
-                  const isActive = selectedProjectId === project.id
-                  return (
-                    <button
-                      key={project.id}
-                      type="button"
-                      onClick={() => handleSelectProject(project.id)}
-                      className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
-                        isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
-                        {project.name}
-                      </span>
-                      {renderCount(stats?.total, stats?.overdue)}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </nav>
-        <div className="relative px-6 py-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => setShowNewListMenu(prev => !prev)}
-            className="w-full flex items-center justify-center gap-2 rounded-full bg-slate-900 text-white py-2 text-sm font-semibold shadow-lg"
-          >
-            +
-            <span>Nueva lista</span>
-          </button>
-          {showNewListMenu && (
-            <div className="absolute left-6 right-6 bottom-20 bg-slate-900 text-slate-100 rounded-3xl p-4 space-y-4 shadow-2xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewProject(true)
-                  setShowNewListMenu(false)
-                }}
-                className="w-full text-left flex flex-col gap-1"
-              >
-                <span className="text-sm font-semibold flex items-center gap-2">
-                  <span className="text-blue-300">🌀</span> Nuevo proyecto
-                </span>
-                <span className="text-xs text-slate-300">Define un objetivo y avanza tarea a tarea.</span>
-              </button>
-              <div className="h-px bg-slate-700" />
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewArea(true)
-                  setShowNewListMenu(false)
-                }}
-                className="w-full text-left flex flex-col gap-1"
-              >
-                <span className="text-sm font-semibold flex items-center gap-2">
-                  <span className="text-emerald-300">🧩</span> Nueva área
-                </span>
-                <span className="text-xs text-slate-300">Agrupa proyectos por responsabilidades.</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </aside>
-    )
+  const handleCreateAreaFromSidebar = () => {
+    openAreaModal()
+    setShowNewListMenu(false)
   }
 
 
-  const renderMobileHome = () => (
-    <div className="space-y-6 pb-28">
-      {showMobileHome && mobileDraftTask && renderMobileDraftTaskCard()}
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-        <input
-          type="text"
-          value={searchQuery}
-          onFocus={handleMobileHomeSearchFocus}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Búsqueda rápida"
-          className="w-full pl-10 pr-3 py-3 rounded-3xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none bg-white"
-        />
-      </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 divide-y">
-        {quickLists.map(view => (
-          <button
-            key={`mobile-${view.id}`}
-            onClick={() => handleSelectQuickView(view.id)}
-            className="w-full flex items-center justify-between px-4 py-4 text-left"
-          >
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">{view.icon}</span>
-              <span className="text-base font-medium text-slate-700">{view.label}</span>
-            </span>
-            <div className="flex items-center gap-2 text-slate-400">
-              {quickViewStats[view.id] > 0 && <span className="text-sm">{quickViewStats[view.id]}</span>}
-              <span>›</span>
-            </div>
-          </button>
-        ))}
-      </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-          <span>Áreas</span>
-        </div>
-        {mobileDraftArea && (
-          <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
-            <input
-              ref={mobileDraftAreaRef}
-              type="text"
-              value={mobileDraftArea.name}
-              onChange={(e) => setMobileDraftArea({ name: e.target.value })}
-              onBlur={(e) => {
-                if (!e.target.value.trim()) {
-                  setMobileDraftArea({ name: 'Nueva área' })
-                }
-              }}
-              className="w-full px-3 py-2 rounded-2xl border border-slate-200 text-sm outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setMobileDraftArea(null)}
-                className="px-3 py-1 rounded-full border border-slate-200 text-xs"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveMobileDraftArea}
-                className="px-3 py-1 rounded-full bg-[var(--color-primary-600)] text-white text-xs"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        )}
-        <div className="space-y-2">
-          {areas.slice(0, 4).map(area => (
-            <button
-              key={`mobile-area-${area.id}`}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-slate-200"
-              onClick={() => handleOpenMobileArea(area.id)}
-            >
-              <span className="text-sm text-slate-700">{area.name}</span>
-              <span className="text-slate-400">›</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-          <span>Proyectos</span>
-        </div>
-        {mobileDraftProject && (
-          <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
-            <input
-              ref={mobileDraftProjectRef}
-              type="text"
-              value={mobileDraftProject.name}
-              onChange={(e) =>
-                setMobileDraftProject(prev => (prev ? { ...prev, name: e.target.value } : prev))
-              }
-              onBlur={(e) => {
-                if (!e.target.value.trim()) {
-                  setMobileDraftProject(prev => (prev ? { ...prev, name: 'Nuevo proyecto' } : prev))
-                }
-              }}
-              className="w-full px-3 py-2 rounded-2xl border border-slate-200 text-sm outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setMobileDraftProject(null)}
-                className="px-3 py-1 rounded-full border border-slate-200 text-xs"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveMobileDraftProject}
-                className="px-3 py-1 rounded-full bg-[var(--color-primary-600)] text-white text-xs"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        )}
-        <div className="space-y-2">
-          {projects.slice(0, 4).map(project => (
-            <button
-              key={`mobile-project-${project.id}`}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-slate-200"
-              onClick={() => handleOpenMobileProject(project.id)}
-            >
-              <span className="text-sm text-slate-700">{project.name}</span>
-              <span className="text-slate-400">›</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between text-slate-400 px-2">
-        <button className="text-sm flex items-center gap-2">
-          ⚙ <span>Ajustes</span>
-        </button>
-        <button className="text-sm flex items-center gap-2">
-          ❓<span>Ayuda</span>
-        </button>
-      </div>
-
-      {isMobile && (
-        <button
-          onClick={() => setShowMobileCreationSheet(true)}
-          className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
-          aria-label="Abrir creación rápida"
-        >
-          +
-        </button>
-      )}
-    </div>
+  const renderTaskModal = () => (
+    <TaskCreationModal
+      open={isTaskModalOpen}
+      isMobile={isMobile}
+      draft={taskDraft}
+      projects={projects}
+      areas={areas}
+      headings={projectHeadings}
+      labels={labels}
+      creationViewOptions={creationViewOptions}
+      dueDateLabel={formatDateForLabel(taskDraft.due_at)}
+      savingTask={addTaskMutation.isPending}
+      savingLabel={addInlineLabelMutation.isPending}
+      onClose={handleCloseTaskModal}
+      onSubmit={handleAddTask}
+      onUpdateDraft={updateTaskDraft}
+      onApplyViewPreset={applyViewPreset}
+      onRequestDueDate={() => openDatePicker('new')}
+      onToggleLabel={toggleNewTaskLabel}
+      inlineLabelName={inlineLabelName}
+      onInlineLabelNameChange={setInlineLabelName}
+      onCreateInlineLabel={handleInlineLabelCreate}
+    />
   )
-
-  const renderTaskModal = () => {
-    if (!isTaskModalOpen) return null
-    const wrapperClasses = isMobile
-      ? 'fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm overflow-y-auto'
-      : 'fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4'
-    const cardClasses = isMobile
-      ? 'az-card w-full min-h-full rounded-none border-0 shadow-none'
-      : 'az-card max-w-xl w-full max-h-[calc(100vh-2rem)] overflow-y-auto'
-    return (
-      <div className={wrapperClasses}>
-        <div className={cardClasses}>
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <div>
-              <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-                Nueva tarea
-              </p>
-              <p className="text-lg font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-                Detalles
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCloseTaskModal}
-              className="text-slate-400 hover:text-slate-600 text-xl"
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-          </div>
-          <form onSubmit={handleAddTask} className="p-6 space-y-4">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-                Vista destino
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {creationViewOptions.map(option => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    aria-pressed={newTaskView === option.id}
-                    onClick={() => applyViewPreset(option.id)}
-                    className="px-3 py-2 rounded-2xl border flex items-center gap-2 text-sm font-medium transition"
-                    style={
-                      newTaskView === option.id
-                        ? {
-                            background: 'var(--color-primary-600)',
-                            color: 'var(--on-primary)',
-                            borderColor: 'var(--color-primary-600)',
-                          }
-                        : {
-                            color: 'var(--color-primary-600)',
-                            borderColor: 'var(--color-primary-100)',
-                          }
-                    }
-                  >
-                    <span>{option.icon}</span>
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                Título
-              </label>
-              <input
-                type="text"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                placeholder="Escribe el título de la tarea..."
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                  Área
-                </label>
-                <select
-                  value={newTaskAreaId || ''}
-                  onChange={(e) => {
-                    const value = e.target.value || null
-                    setNewTaskAreaId(value)
-                    if (value && newTaskProjectId) {
-                      const project = projects.find(project => project.id === newTaskProjectId)
-                      if (project?.area_id !== value) {
-                        setNewTaskProjectId(null)
-                        setNewTaskHeadingId(null)
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                >
-                  <option value="">Sin área</option>
-                  {areas.map(area => (
-                    <option key={area.id} value={area.id}>
-                      {area.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                  Proyecto
-                </label>
-                <select
-                  value={newTaskProjectId || ''}
-                  onChange={(e) => {
-                    const value = e.target.value || null
-                    setNewTaskProjectId(value)
-                    if (value) {
-                      const project = projects.find(project => project.id === value)
-                      setNewTaskAreaId(project?.area_id || null)
-                    }
-                    setNewTaskHeadingId(null)
-                  }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                >
-                  <option value="">Sin proyecto</option>
-                  {(newTaskAreaId ? projects.filter(project => project.area_id === newTaskAreaId) : projects).map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {newTaskProjectId && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                  Sección
-                </label>
-                <select
-                  value={newTaskHeadingId || ''}
-                  onChange={(e) => setNewTaskHeadingId(e.target.value || null)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                >
-                  <option value="">Sin sección</option>
-                  {projectHeadings
-                    .filter(heading => heading.project_id === newTaskProjectId)
-                    .map(heading => (
-                      <option key={heading.id} value={heading.id}>
-                        {heading.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            )}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                  Prioridad
-                </label>
-                <select
-                  value={newTaskPriority}
-                  onChange={(e) => setNewTaskPriority(Number(e.target.value) as 0 | 1 | 2 | 3)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                >
-                  <option value="0">Sin prioridad</option>
-                  <option value="1">🟢 Baja</option>
-                  <option value="2">🟡 Media</option>
-                  <option value="3">🔴 Alta</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                  Vencimiento
-                </label>
-                <button
-                  type="button"
-                  onClick={() => openDatePicker('new')}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-left text-sm font-medium text-slate-600 hover:border-slate-400"
-                >
-                  {formatDateForLabel(newTaskDueAt)}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                Notas
-              </label>
-              <textarea
-                value={newTaskNotes}
-                onChange={(e) => setNewTaskNotes(e.target.value)}
-                placeholder="Añade contexto o pasos..."
-                rows={3}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none resize-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium" style={{ color: 'var(--color-primary-600)' }}>
-                  Etiquetas
-                </label>
-                {labels.length > 0 && (
-                  <span className="text-xs text-slate-400">
-                    Márcalas para aplicarlas a la tarea
-                  </span>
-                )}
-              </div>
-              {labels.length === 0 ? (
-                <p className="text-sm text-slate-400">
-                  Aún no tienes etiquetas. Crea la primera aquí abajo.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {labels.map(label => {
-                    const isSelected = newTaskLabelIds.includes(label.id)
-                    return (
-                      <button
-                        key={`new-task-label-${label.id}`}
-                        type="button"
-                        onClick={() => toggleNewTaskLabel(label.id)}
-                        className={`az-pill transition ${
-                          isSelected
-                            ? 'bg-[var(--color-accent-500)] text-white'
-                            : ''
-                        }`}
-                        style={
-                          isSelected
-                            ? {
-                                border: '1px solid var(--color-accent-500)',
-                                boxShadow: '0 5px 15px rgba(47, 125, 87, 0.25)',
-                              }
-                            : undefined
-                        }
-                      >
-                        {isSelected ? '✓ ' : ''}
-                        #{label.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-              <form onSubmit={handleInlineLabelCreate} className="flex flex-col sm:flex-row gap-2 pt-2">
-                <input
-                  type="text"
-                  value={inlineLabelName}
-                  onChange={(e) => setInlineLabelName(e.target.value)}
-                  placeholder="Ej. Diseño, Personal..."
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none text-sm"
-                  disabled={addInlineLabelMutation.isPending}
-                />
-                <button
-                  type="submit"
-                  disabled={addInlineLabelMutation.isPending}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
-                  style={{ background: 'var(--color-accent-500)' }}
-                >
-                  {addInlineLabelMutation.isPending ? 'Añadiendo...' : 'Crear etiqueta'}
-                </button>
-              </form>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={handleCloseTaskModal} className="az-btn-secondary px-4 py-2 text-sm">
-                Cancelar
-              </button>
-              <button type="submit" disabled={addTaskMutation.isPending} className="az-btn-primary px-6 py-2 text-sm">
-                {addTaskMutation.isPending ? 'Creando...' : 'Guardar tarea'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
   const quickViewLabels: Record<typeof quickLists[number]['id'], string> = {
     inbox: 'Inbox',
     today: 'Today',
@@ -1079,8 +634,9 @@ export default function TasksPage() {
     logbook: 'A record of everything you have finished.',
   }
 
-  const selectedProject = selectedProjectId ? projects.find(project => project.id === selectedProjectId) : null
-  const selectedArea = selectedAreaId ? areas.find(area => area.id === selectedAreaId) : null
+  const selectedProject = selectedProjectId ? projects.find(project => project.id === selectedProjectId) ?? null : null
+  const selectedArea = selectedAreaId ? areas.find(area => area.id === selectedAreaId) ?? null : null
+  const activeTaskCount = filteredTasks.filter(task => task.status !== 'done').length
   const completedCount = filteredTasks.filter(task => task.status === 'done').length
   const activeFilters = useMemo(
     () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas),
@@ -1103,7 +659,8 @@ export default function TasksPage() {
   }, [])
 
   const isMobileDetail = isMobile && !showMobileHome
-  const mobileProject = mobileProjectFocusId ? projects.find(project => project.id === mobileProjectFocusId) : null
+  const mobileProject = mobileProjectFocusId ? projects.find(project => project.id === mobileProjectFocusId) ?? null : null
+  const selectedAreaProjectCount = selectedArea ? projects.filter(project => project.area_id === selectedArea.id).length : 0
   const isMobileProjectView = isMobileDetail && !!mobileProject
   const visibleMobileTasks = isMobileDetail ? filteredTasks.slice(0, mobileTaskLimit) : filteredTasks
   const canShowMoreMobileTasks = isMobileDetail && mobileTaskLimit < filteredTasks.length
@@ -1270,7 +827,7 @@ export default function TasksPage() {
 
   const openDatePicker = (target: 'new' | 'edit' | 'draft') => {
     const rawValue =
-      target === 'new' ? newTaskDueAt : target === 'edit' ? editingDueAt : mobileDraftTask?.due_at || ''
+      target === 'new' ? taskDraft.due_at : target === 'edit' ? editingDueAt : mobileDraftTask?.due_at || ''
     if (rawValue) {
       const [year, month, day] = rawValue.split('-').map(Number)
       if (year && month) {
@@ -1291,14 +848,14 @@ export default function TasksPage() {
   const applyPickedDate = (value: string | null) => {
     const normalized = value || ''
     if (datePickerTarget === 'new') {
-      setNewTaskDueAt(normalized)
-      const nextView = determineViewFromDate(normalized, newTaskView)
-      setNewTaskView(nextView)
-      setNewTaskStatus(nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
+      updateTaskDraft('due_at', normalized)
+      const nextView = determineViewFromDate(normalized, todayISO, taskDraft.view)
+      updateTaskDraft('view', nextView)
+      updateTaskDraft('status', nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
     } else if (datePickerTarget === 'edit') {
       setEditingDueAt(normalized)
     } else if (datePickerTarget === 'draft') {
-      setMobileDraftTask(prev => (prev ? { ...prev, due_at: normalized || null } : prev))
+      updateMobileDraft(prev => (prev ? { ...prev, due_at: normalized || null } : prev))
     }
     setDatePickerTarget(null)
   }
@@ -1312,609 +869,37 @@ export default function TasksPage() {
   }
 
 
-  const renderNewAreaModal = () => {
-    if (!showNewArea) {
-      return null
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Nueva área</p>
-              <p className="text-2xl font-semibold text-slate-900">Organiza tus espacios</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowNewArea(false)
-                setNewAreaName('')
-              }}
-              className="text-slate-400 hover:text-slate-600 text-xl"
-            >
-              ✕
-            </button>
-          </div>
-          <form onSubmit={handleAddArea} className="space-y-3">
-            <input
-              type="text"
-              value={newAreaName}
-              onChange={(e) => setNewAreaName(e.target.value)}
-              placeholder="Nombre del área"
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewArea(false)
-                  setNewAreaName('')
-                }}
-                className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={addAreaMutation.isPending}
-                className="px-5 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg disabled:opacity-60"
-              >
-                {addAreaMutation.isPending ? 'Guardando...' : 'Crear área'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
-  const renderNewProjectModal = () => {
-    if (!showNewProject) {
-      return null
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-        <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Nuevo proyecto</p>
-              <p className="text-2xl font-semibold text-slate-900">Da forma a un objetivo</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowNewProject(false)
-                setNewProjectName('')
-                setNewProjectAreaId(null)
-              }}
-              className="text-slate-400 hover:text-slate-600 text-xl"
-            >
-              ✕
-            </button>
-          </div>
-          <form onSubmit={handleAddProject} className="space-y-3">
-            <input
-              type="text"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              placeholder="Nombre del proyecto"
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-            />
-            <select
-              value={newProjectAreaId || ''}
-              onChange={(e) => setNewProjectAreaId(e.target.value || null)}
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-            >
-              <option value="">Sin área</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.id}>
-                  {area.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewProject(false)
-                  setNewProjectName('')
-                  setNewProjectAreaId(null)
-                }}
-                className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={addProjectMutation.isPending}
-                className="px-5 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg disabled:opacity-60"
-              >
-                {addProjectMutation.isPending ? 'Guardando...' : 'Crear proyecto'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
 
-  const renderQuickHeadingForm = () => {
-    if (!showQuickHeadingForm) {
-      return null
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={() => setShowQuickHeadingForm(false)}>
-        <div
-          className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 space-y-4"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Nueva sección</p>
-              <p className="text-2xl font-semibold text-slate-900">Agrupa tus tareas</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowQuickHeadingForm(false)}
-              className="text-slate-400 hover:text-slate-600 text-xl"
-            >
-              ✕
-            </button>
-          </div>
-          <form onSubmit={handleAddHeading} className="space-y-3">
-            <input
-              type="text"
-              value={newHeadingName}
-              onChange={(e) => setNewHeadingName(e.target.value)}
-              placeholder="Nombre de la sección"
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowQuickHeadingForm(false)}
-                className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={!selectedProjectId || addHeadingMutation.isPending}
-                className="px-5 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-lg disabled:opacity-60"
-              >
-                {addHeadingMutation.isPending ? 'Guardando...' : 'Crear sección'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
+  
 
-  const renderActiveFilterChips = () => {
-    if (activeFilters.length === 0) {
-      return null
-    }
-    return (
-      <div className={`flex flex-wrap gap-2 ${isMobileDetail ? 'px-1' : ''}`}>
-        {activeFilters.map(filter => (
-          <span key={filter.key} className="az-pill">
-            {filter.label}
-            <button
-              type="button"
-              onClick={() => {
-                if (filter.type === 'project') {
-                  setSelectedProjectId(null)
-                } else if (filter.type === 'area') {
-                  setSelectedAreaId(null)
-                } else {
-                  setSelectedLabelIds(prev => prev.filter(id => id !== filter.referenceId))
-                }
-              }}
-              className="text-xs font-bold"
-              style={{ color: 'var(--color-primary-600)' }}
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-      </div>
-    )
-  }
-
-  const renderErrorBanner = () => {
-    if (!error) {
-      return null
-    }
-    return (
-      <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 text-sm">
-        {error}
-      </div>
-    )
-  }
-
-  const renderTaskBody = (variant: 'desktop' | 'mobile', taskSource?: Task[], showEmptyState = true) => {
-    const defaultTasks = variant === 'mobile' ? visibleMobileTasks : filteredTasks
-    const tasksToRender = taskSource ?? defaultTasks
-    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-slate-500' : 'p-10 text-center text-slate-500'
-    if (isLoading && showEmptyState && !taskSource) {
-      return <div className={loadingClass}>Cargando tareas...</div>
-    }
-    if (tasksToRender.length === 0) {
-      if (!showEmptyState) {
-        return null
-      }
-      return (
-        <div className={loadingClass}>
-          {filteredViewActive
-            ? 'No hay tareas que coincidan con tu vista actual.'
-            : 'No hay tareas todavía. ¡Crea la primera!'}
-        </div>
-      )
-    }
-
-    return (
-      <>
-        {variant === 'mobile' && !taskSource && mobileDraftTask && renderMobileDraftTaskCard()}
-        <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'divide-y divide-slate-100'}>
-          {tasksToRender.map(task => {
-            const taskProject = projects.find(p => p.id === task.project_id)
-            const taskArea = task.area_id ? areas.find(area => area.id === task.area_id) : null
-            const taskHeading = task.heading_id ? projectHeadings.find(heading => heading.id === task.heading_id) : null
-            const baseLiClass =
-              variant === 'mobile'
-                ? 'p-4 rounded-3xl border border-slate-100 bg-white shadow-sm'
-                : 'px-6 py-5'
-            const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
-            const metaClass =
-              variant === 'mobile'
-                ? 'flex flex-wrap items-center gap-2 text-sm'
-                : 'flex flex-wrap items-center gap-3'
-            const checkboxClass =
-              variant === 'mobile'
-                ? `mt-1 h-7 w-7 rounded-2xl border-2 flex items-center justify-center transition ${
-                    task.status === 'done'
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-slate-300 text-transparent'
-                  }`
-                : `mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${
-                    task.status === 'done'
-                      ? 'bg-emerald-500 border-emerald-500'
-                      : 'border-slate-300 hover:border-emerald-500'
-                  }`
-
-            return (
-              <li key={task.id} className={baseLiClass}>
-                {editingId === task.id ? (
-                  <form onSubmit={handleSaveEdit} className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <input
-                      type="text"
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      placeholder="Título"
-                      autoFocus
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                    />
-                    <textarea
-                      value={editingNotes}
-                      onChange={(e) => setEditingNotes(e.target.value)}
-                      placeholder="Notas..."
-                      rows={2}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none resize-none"
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <select
-                        value={editingAreaId || ''}
-                        onChange={(e) => {
-                          const value = e.target.value || null
-                          setEditingAreaId(value)
-                          if (value && editingProjectId) {
-                            const project = projects.find(p => p.id === editingProjectId)
-                            if (project?.area_id !== value) {
-                              setEditingProjectId(null)
-                              setEditingHeadingId(null)
-                            }
-                          }
-                        }}
-                        className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                      >
-                        <option value="">Sin área</option>
-                        {areas.map(area => (
-                          <option key={area.id} value={area.id}>
-                            {area.name}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={editingProjectId || ''}
-                        onChange={(e) => {
-                          const value = e.target.value || null
-                          setEditingProjectId(value)
-                          if (value) {
-                            const project = projects.find(project => project.id === value)
-                            setEditingAreaId(project?.area_id || null)
-                          }
-                          setEditingHeadingId(null)
-                        }}
-                        className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                      >
-                        <option value="">Sin proyecto</option>
-                        {(editingAreaId ? projects.filter(project => project.area_id === editingAreaId) : projects).map(project => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {editingProjectId && (
-                      <select
-                        value={editingHeadingId || ''}
-                        onChange={(e) => setEditingHeadingId(e.target.value || null)}
-                        className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                      >
-                        <option value="">Sin sección</option>
-                        {projectHeadings
-                          .filter(heading => heading.project_id === editingProjectId)
-                          .map(heading => (
-                            <option key={heading.id} value={heading.id}>
-                              {heading.name}
-                            </option>
-                          ))}
-                      </select>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <select
-                        value={editingPriority}
-                        onChange={(e) => setEditingPriority(Number(e.target.value) as 0 | 1 | 2 | 3)}
-                        className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                      >
-                        <option value="0">Sin prioridad</option>
-                        <option value="1">🟢 Baja</option>
-                        <option value="2">🟡 Media</option>
-                        <option value="3">🔴 Alta</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => openDatePicker('edit')}
-                        className="px-3 py-2 rounded-xl border border-slate-200 text-left text-sm font-medium text-slate-600 hover:border-slate-400"
-                      >
-                        {formatDateForLabel(editingDueAt)}
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        disabled={updateTaskMutation.isPending}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
-                      >
-                        {updateTaskMutation.isPending ? 'Guardando...' : 'Guardar'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:border-slate-400"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <>
-                    <div className="flex items-start gap-4">
-                      <button
-                        onClick={() => toggleTaskMutation.mutate(task.id)}
-                        disabled={toggleTaskMutation.isPending}
-                        className={`${checkboxClass} disabled:opacity-50`}
-                        aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
-                      >
-                        {task.status === 'done' && (
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className={`${metaClass} ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
-                          <p className={titleClass}>{task.title}</p>
-                          {taskProject && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                              {taskProject.name}
-                            </span>
-                          )}
-                          {!taskProject && taskArea && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                              Área: {taskArea.name}
-                            </span>
-                          )}
-                          {taskHeading && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
-                              {taskHeading.name}
-                            </span>
-                          )}
-                          {task.priority && task.priority > 0 && (
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full border font-medium ${
-                                task.priority === 1
-                                  ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                  : task.priority === 2
-                                    ? 'bg-amber-50 border-amber-100 text-amber-600'
-                                    : 'bg-rose-50 border-rose-100 text-rose-600'
-                              }`}
-                            >
-                              {task.priority === 1 ? 'Baja' : task.priority === 2 ? 'Media' : 'Alta'}
-                            </span>
-                          )}
-                          {task.due_at && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                              📅 {new Date(task.due_at).toLocaleDateString('es-ES')}
-                            </span>
-                          )}
-                        </div>
-                        {task.notes && <p className="mt-2 text-sm text-slate-500">{task.notes}</p>}
-                        {task.labels && task.labels.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {task.labels.map(label => (
-                              <span key={label.id} className="az-pill">
-                                {label.name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="mt-3 text-xs text-slate-400">
-                          Creada el{' '}
-                          {new Date(task.created_at).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleLabelPicker(task.id)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                            selectedTaskForLabel === task.id
-                              ? 'border-slate-900 text-slate-900'
-                              : 'border-slate-200 text-slate-500 hover:border-slate-400'
-                          }`}
-                        >
-                          Etiquetas
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleEditTask(task)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-slate-200 text-slate-500 hover:border-slate-400"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteTaskMutation.mutate(task.id)}
-                          disabled={deleteTaskMutation.isPending}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-rose-200 text-rose-600 hover:border-rose-400 disabled:opacity-50"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                    {labels.length > 0 && (
-                      <TaskLabels
-                        taskId={task.id}
-                        labels={labels}
-                        assignedLabels={task.labels || []}
-                        onAddLabel={handleAddLabelToTask}
-                        onRemoveLabel={handleRemoveLabelFromTask}
-                        isOpen={selectedTaskForLabel === task.id}
-                        compact={variant === 'mobile'}
-                      />
-                    )}
-                  </>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-        {variant === 'mobile' && canShowMoreMobileTasks && (
-          <button
-            type="button"
-            onClick={handleShowMoreMobileTasks}
-            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600"
-          >
-            Mostrar más
-          </button>
-        )}
-      </>
-    )
+  const renderTaskBody = (
+    variant: 'desktop' | 'mobile',
+    taskSource?: Task[],
+    showEmptyState = true,
+    options: { showLoadingState?: boolean; renderDraftCard?: () => ReactNode; showDraftCard?: boolean } = {}
+  ) => {
+    const tasks = taskSource ?? (variant === 'mobile' ? visibleMobileTasks : filteredTasks)
+    const showLoadingState = options.showLoadingState ?? !taskSource
+    return renderTaskList(variant, tasks, {
+      showEmptyState,
+      showLoadingState,
+      renderDraftCard: options.renderDraftCard,
+      showDraftCard: options.showDraftCard,
+    })
   }
 
   const renderDesktopSearch = () => (
-    <div className="relative">
-      <div className="az-card az-card--flat p-4">
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-          <input
-            type="text"
-            value={searchQuery}
-            onFocus={handleSearchFocus}
-            onBlur={handleSearchBlur}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por título, notas o proyecto..."
-            className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              aria-label="Limpiar búsqueda"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      </div>
-      {showSuggestionPanel && (
-        <div className="absolute left-0 right-0 mt-3 z-30 drop-shadow-2xl">
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
-              Coincidencias ({suggestionResults.length})
-            </div>
-            {suggestionResults.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-slate-500">
-                Sigue escribiendo para encontrar tareas que coincidan con "{searchQuery}"
-              </div>
-            ) : (
-              <ul className="max-h-72 overflow-auto">
-                {suggestionResults.map(task => {
-                  const taskProject = projects.find(project => project.id === task.project_id)
-                  return (
-                    <li key={`suggestion-${task.id}`}>
-                      <button
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => handleSuggestionSelect(task)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 transition"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="h-2 w-2 rounded-full bg-slate-300" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-slate-900">{task.title}</p>
-                            <div className="flex flex-wrap gap-2 text-xs text-slate-500 mt-0.5">
-                              {taskProject && <span>📁 {taskProject.name}</span>}
-                              {task.due_at && (
-                                <span>
-                                  📅 {new Date(task.due_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
-                                </span>
-                              )}
-                              {task.notes && <span className="truncate max-w-[200px]">{task.notes}</span>}
-                            </div>
-                          </div>
-                          {task.priority > 0 && (
-                            <span className="text-xs text-slate-500">
-                              {task.priority === 1 ? 'Baja' : task.priority === 2 ? 'Media' : 'Alta'}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    </li>
-                  )
-                })}
-                <li>
-                  <div className="px-4 py-2 border-t border-slate-100 text-xs text-slate-500">
-                    Presiona Enter para buscar "{searchQuery}"
-                  </div>
-                </li>
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    <DesktopSearch
+      searchQuery={searchQuery}
+      suggestions={suggestionResults}
+      projects={projects}
+      showSuggestions={showSuggestionPanel}
+      onQueryChange={setSearchQuery}
+      onFocus={handleSearchFocus}
+      onBlur={handleSearchBlur}
+      onClear={handleClearSearch}
+      onSelectSuggestion={handleSuggestionSelect}
+    />
   )
 
   const renderMobileSearch = () => (
@@ -1927,7 +912,7 @@ export default function TasksPage() {
           value={searchQuery}
           onFocus={handleSearchFocus}
           onBlur={handleSearchBlur}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Buscar tareas..."
           className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
         />
@@ -1955,7 +940,7 @@ export default function TasksPage() {
         ? `Ubicado en ${selectedArea.name}`
         : 'Sin área asignada'
       : selectedArea
-        ? `${projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s) · ${areaTaskSummary?.total || 0} tareas`
+        ? `${selectedAreaProjectCount} proyecto(s) · ${areaTaskSummary?.total || 0} tareas`
         : quickViewDescriptions[activeQuickView]
     const pendingCount = selectedProject
       ? visibleProjectTasks.filter(task => task.status !== 'done').length
@@ -2006,7 +991,6 @@ export default function TasksPage() {
     )
   }
 
-
   const renderQuickViewBoard = () => {
     if (isLoading && filteredTasks.length === 0) {
       return (
@@ -2025,64 +1009,16 @@ export default function TasksPage() {
       )
     }
     return (
-      <div className="az-card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <div>
-            <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-500)' }}>
-              Vista
-            </p>
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-              {quickViewLabels[activeQuickView]}
-            </h2>
-          </div>
-          <span className="text-sm text-slate-500">
-            {completedCount} / {filteredTasks.length} completadas
-          </span>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {quickViewGroups.map(group => (
-            <section key={group.areaId || 'sin-area'} className="px-6 py-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Área</p>
-                  <p className="text-base font-semibold text-slate-800">{group.area?.name || 'Sin área'}</p>
-                </div>
-                {group.areaId && (
-                  <button type="button" onClick={() => handleSelectArea(group.areaId!)} className="az-btn-secondary px-3 py-1 text-xs">
-                    Ver área
-                  </button>
-                )}
-              </div>
-              {Array.from(group.projects.values()).map(projectGroup => (
-                <div key={projectGroup.project?.id || 'proyecto-independiente'} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
-                      <p className="text-sm font-semibold text-slate-800">{projectGroup.project?.name || 'Sin proyecto'}</p>
-                    </div>
-                    {projectGroup.project && (
-                      <button
-                        type="button"
-                        onClick={() => handleSelectProject(projectGroup.project!.id)}
-                        className="az-btn-secondary px-3 py-1 text-xs"
-                      >
-                        Abrir
-                      </button>
-                    )}
-                  </div>
-                  {renderTaskBody('desktop', projectGroup.tasks, false)}
-                </div>
-              ))}
-              {group.standalone.length > 0 && (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Tareas sin proyecto</p>
-                  {renderTaskBody('desktop', group.standalone, false)}
-                </div>
-              )}
-            </section>
-          ))}
-        </div>
-      </div>
+      <QuickViewBoard
+        quickViewLabel={quickViewLabels[activeQuickView]}
+        quickViewDescription={quickViewDescriptions[activeQuickView]}
+        completedCount={completedCount}
+        totalCount={filteredTasks.length}
+        groups={quickViewGroups}
+        onSelectArea={(areaId) => handleSelectArea(areaId)}
+        onSelectProject={handleSelectProject}
+        renderTaskList={(tasks) => renderTaskBody('desktop', tasks, false)}
+      />
     )
   }
 
@@ -2100,120 +1036,47 @@ export default function TasksPage() {
       tasksByHeading.get(key)!.push(task)
     })
     const unassignedTasks = tasksByHeading.get('unassigned') || []
-
     return (
-      <div className="az-card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
-            <h2 className="text-lg font-semibold text-slate-800">{selectedProject.name}</h2>
-            {selectedArea && <p className="text-sm text-slate-500">Área: {selectedArea.name}</p>}
-          </div>
-          <span className="text-sm text-slate-500">
-            {completedCount} / {visibleProjectTasks.length} completadas
-          </span>
-        </div>
-        <div className="px-6 py-6 space-y-6">
+      <ProjectBoard
+        project={selectedProject}
+        headings={headingsForProject}
+        tasksByHeading={tasksByHeading}
+        unassignedTasks={unassignedTasks}
+        completedCount={completedCount}
+        totalCount={visibleProjectTasks.length}
+        headingEditingId={headingEditingId}
+        headingEditingName={headingEditingName}
+        onStartEditHeading={handleStartEditHeading}
+        onChangeHeadingName={setHeadingEditingName}
+        onSaveHeadingName={handleSaveHeadingEdit}
+        onCancelHeadingEdit={handleCancelHeadingEdit}
+        onDeleteHeading={handleDeleteHeading}
+        onSelectArea={(areaId) => handleSelectArea(areaId)}
+        renderTaskList={(tasks, opts) => renderTaskBody('desktop', tasks, opts?.showEmptyState ?? false)}
+        renderHeadingForm={() => (
           <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-wide text-slate-500">Secciones</p>
-              <form onSubmit={handleAddHeading} className="flex items-center gap-2">
+              <form onSubmit={handleAddHeading} className="flex gap-2">
                 <input
                   type="text"
                   value={newHeadingName}
-                  onChange={(e) => setNewHeadingName(e.target.value)}
-                  placeholder="Nueva sección"
+                  onChange={(event) => setNewHeadingName(event.target.value)}
+                  placeholder="Nombre de la sección"
                   className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
                 />
-                <button type="submit" className="az-btn-secondary px-3 py-1 text-xs" disabled={addHeadingMutation.isPending}>
-                  {addHeadingMutation.isPending ? '...' : 'Añadir'}
+                <button
+                  type="submit"
+                  disabled={addHeadingMutation.isPending}
+                  className="az-btn-primary px-4 py-2 text-sm"
+                >
+                  {addHeadingMutation.isPending ? 'Guardando...' : 'Crear'}
                 </button>
               </form>
             </div>
-            <div className="space-y-2">
-              {headingsForProject.length === 0 && <p className="text-sm text-slate-500">Aún no hay secciones para este proyecto.</p>}
-              {headingsForProject.map(heading => (
-                <div
-                  key={heading.id}
-                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-2xl border border-white bg-white"
-                >
-                  {headingEditingId === heading.id ? (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        handleSaveHeadingEdit()
-                      }}
-                      className="flex-1 flex items-center gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={headingEditingName}
-                        onChange={(e) => setHeadingEditingName(e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      />
-                      <button type="submit" className="az-btn-primary px-3 py-1 text-xs" disabled={updateHeadingMutation.isPending}>
-                        Guardar
-                      </button>
-                      <button type="button" onClick={handleCancelHeadingEdit} className="az-btn-secondary px-3 py-1 text-xs">
-                        Cancelar
-                      </button>
-                    </form>
-                  ) : (
-                    <>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">{heading.name}</p>
-                        <p className="text-xs text-slate-400">
-                          {(tasksByHeading.get(heading.id)?.length || 0)} tarea
-                          {tasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleStartEditHeading(heading.id, heading.name)}
-                          className="p-1 rounded-full text-xs text-slate-500 hover:text-slate-800"
-                          title="Renombrar"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteHeading(heading.id)}
-                          className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
-          {headingsForProject.map(heading => (
-            <section key={heading.id} className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Sección</p>
-                  <p className="text-base font-semibold text-slate-800">{heading.name}</p>
-                  <p className="text-xs text-slate-400">
-                    {(tasksByHeading.get(heading.id)?.length || 0)} tarea
-                    {tasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
-                  </p>
-                </div>
-              </div>
-              {renderTaskBody('desktop', tasksByHeading.get(heading.id) || [], false)}
-            </section>
-          ))}
-          {unassignedTasks.length > 0 && (
-            <section className="space-y-3">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin sección</p>
-              {renderTaskBody('desktop', unassignedTasks, false)}
-            </section>
-          )}
-        </div>
-      </div>
+        )}
+      />
     )
   }
 
@@ -2231,44 +1094,18 @@ export default function TasksPage() {
       tasksByProject.get(key)!.push(task)
     })
     const looseTasks = tasksByProject.get('loose') || []
-
     return (
-      <div className="az-card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Área</p>
-            <h2 className="text-lg font-semibold text-slate-800">{selectedArea.name}</h2>
-            <p className="text-sm text-slate-500">
-              {projectsInArea.length} proyecto{projectsInArea.length === 1 ? '' : 's'}
-            </p>
-          </div>
-          <span className="text-sm text-slate-500">
-            {completedCount} / {filteredTasks.length} completadas
-          </span>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {projectsInArea.map(project => (
-            <section key={project.id} className="px-6 py-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
-                  <p className="text-base font-semibold text-slate-800">{project.name}</p>
-                </div>
-                <button type="button" onClick={() => handleSelectProject(project.id)} className="az-btn-secondary px-3 py-1 text-xs">
-                  Abrir
-                </button>
-              </div>
-              {renderTaskBody('desktop', tasksByProject.get(project.id) || [], false)}
-            </section>
-          ))}
-          {looseTasks.length > 0 && (
-            <section className="px-6 py-5 space-y-3">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin proyecto</p>
-              {renderTaskBody('desktop', looseTasks, false)}
-            </section>
-          )}
-        </div>
-      </div>
+      <AreaBoard
+        areaName={selectedArea.name}
+        projectCount={projectsInArea.length}
+        completedCount={completedCount}
+        totalCount={filteredTasks.length}
+        projects={projectsInArea}
+        tasksByProject={tasksByProject}
+        looseTasks={looseTasks}
+        onSelectProject={handleSelectProject}
+        renderTaskList={(tasks) => renderTaskBody('desktop', tasks, false)}
+      />
     )
   }
 
@@ -2282,389 +1119,113 @@ export default function TasksPage() {
     return renderQuickViewBoard()
   }
 
+
+
   const renderMobileHeader = () => (
-    <header className="space-y-5">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={handleMobileBack}
-          className="text-2xl text-slate-500 pl-1"
-          aria-label="Volver"
-        >
-          ←
-        </button>
-        <div className="flex-1 text-center">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            {isMobileProjectView ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'}
-          </p>
-          <p className="text-2xl font-semibold text-slate-800">
-            {isMobileProjectView
-              ? mobileProject?.name || 'Proyecto'
-              : selectedArea
-                ? selectedArea.name
-                : currentQuickView.label}
-          </p>
-          <p className={`text-sm text-slate-500 ${isMobileProjectView ? '' : 'capitalize'}`}>
-            {isMobileProjectView
-              ? `${filteredTasks.length} tarea${filteredTasks.length === 1 ? '' : 's'} en este proyecto`
-              : selectedArea
-                ? `${projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s)`
-                : friendlyToday}
-          </p>
-        </div>
-        <button className="text-2xl text-slate-400 pr-1" aria-label="Más opciones">
-          ⋯
-        </button>
-      </div>
-      <div className="rounded-3xl bg-white border border-slate-100 shadow px-5 py-4 space-y-2">
-        {isMobileProjectView ? (
-          <>
-            <p className="text-sm text-slate-600">
-              Añade notas o info clave para mantener el proyecto alineado.
-            </p>
-            <div className="flex items-center justify-between text-sm text-slate-500">
-              <span>Pendientes: {filteredTasks.filter(task => task.status !== 'done').length}</span>
-              <span>
-                {completedCount}/{filteredTasks.length} completadas
-              </span>
-            </div>
-          </>
-        ) : selectedArea ? (
-          <>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Área activa</p>
-            <p className="text-lg font-semibold text-slate-800">
-              {completedCount}/{filteredTasks.length} completadas
-            </p>
-            <p className="text-sm text-slate-500">
-              {projects.filter(project => project.area_id === selectedArea.id).length} proyecto(s) asociados
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-xs uppercase tracking-wide text-slate-400">En esta vista</p>
-            <p className="text-lg font-semibold text-slate-800">
-              {completedCount}/{filteredTasks.length} completadas
-            </p>
-            <p className="text-sm text-slate-500">
-              {selectedProject ? `Proyecto activo: ${selectedProject.name}` : 'Sin proyecto destacado'}
-            </p>
-          </>
-        )}
-      </div>
-    </header>
+    <MobileHeader
+      onBack={handleMobileBack}
+      isProjectView={isMobileProjectView}
+      selectedArea={selectedArea}
+      mobileProject={mobileProject}
+      quickViewLabel={currentQuickView.label}
+      friendlyToday={friendlyToday}
+      filteredTaskCount={filteredTasks.length}
+      completedCount={completedCount}
+      projectsInArea={selectedAreaProjectCount}
+    />
   )
 
-  const renderMobileCreationSheet = () => {
-    if (!isMobile || !showMobileCreationSheet) {
-      return null
-    }
-    return (
-      <div
-        className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
-        onClick={() => closeMobileCreationSheet()}
-      >
-        <div
-          className="absolute bottom-6 left-4 right-4 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
-            onClick={() => {
-              closeMobileCreationSheet()
-              startMobileTaskDraft('inbox', { areaId: null, projectId: null, stayHome: true })
-            }}
-          >
-            <span className="text-base font-semibold">Nueva tarea</span>
-            <span className="text-sm text-slate-300">Añade rápidamente una tarea a la Entrada.</span>
-          </button>
-          <button
-            type="button"
-            className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
-            onClick={() => {
-              setMobileDraftProject({ name: 'Nuevo proyecto', areaId: null })
-              closeMobileCreationSheet(true)
-              setShowMobileHome(true)
-            }}
-          >
-            <span className="text-base font-semibold">Nuevo proyecto</span>
-            <span className="text-sm text-slate-300">Define un objetivo y avanza tarea tras tarea.</span>
-          </button>
-          <button
-            type="button"
-            className="w-full text-left flex flex-col gap-1 p-3 rounded-2xl hover:bg-slate-800 transition"
-            onClick={() => {
-              setMobileDraftArea({ name: 'Nueva área' })
-              closeMobileCreationSheet(true)
-              setShowMobileHome(true)
-            }}
-          >
-            <span className="text-base font-semibold">Nueva área</span>
-            <span className="text-sm text-slate-300">
-              Agrupa proyectos y tareas por responsabilidades.
-            </span>
-          </button>
-        </div>
-      </div>
-    )
-  }
 
-  const renderScheduleSheet = () => {
-    if (!scheduleSheetOpen || !mobileDraftTask) {
-      return null
-    }
-    const options: { id: QuickViewId; label: string; icon: string }[] = [
-      { id: 'today', label: 'Hoy', icon: '⭐' },
-      { id: 'upcoming', label: 'Programadas', icon: '📆' },
-      { id: 'anytime', label: 'En cualquier momento', icon: '🌤️' },
-      { id: 'someday', label: 'Algún día', icon: '📦' },
-      { id: 'inbox', label: 'Entrada', icon: '📥' },
-    ]
-    return (
-      <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={() => setScheduleSheetOpen(false)}>
-        <div
-          className="absolute inset-x-4 bottom-6 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold">¿Cuándo?</span>
-            <button type="button" onClick={() => setScheduleSheetOpen(false)} className="text-2xl">
-              ✕
-            </button>
-          </div>
-          {options.map(option => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => {
-                setMobileDraftTask(prev =>
-                  prev ? { ...prev, view: option.id, due_at: defaultDueForView(option.id) } : prev
-                )
-                setScheduleSheetOpen(false)
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-left ${
-                mobileDraftTask.view === option.id ? 'bg-slate-800' : ''
-              }`}
-            >
-              <span>{option.icon}</span>
-              <span>{option.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
 
-  const renderLabelSheet = () => {
-    if (!labelSheetTarget) {
-      return null
-    }
-    return (
-      <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={closeLabelSheet}>
-        <div
-          className="absolute inset-x-4 bottom-6 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold">Etiquetas</span>
-            <button type="button" onClick={closeLabelSheet} className="text-2xl">
-              ✕
-            </button>
-          </div>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {labels.length === 0 && <p className="text-sm text-slate-300">Aún no tienes etiquetas.</p>}
-            {labels.map(label => {
-              const active = labelSheetSelection.includes(label.id)
-              return (
-                <div key={label.id} className="flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLabelSheetSelection(prev =>
-                        prev.includes(label.id) ? prev.filter(id => id !== label.id) : [...prev, label.id]
-                      )
-                    }}
-                    className={`flex-1 text-left px-3 py-2 rounded-2xl ${
-                      active ? 'bg-slate-800' : 'bg-slate-800/30'
-                    }`}
-                  >
-                    {label.name}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteLabelMutation.mutate(label.id)}
-                    className="text-xl text-slate-400"
-                    aria-label={`Eliminar ${label.name}`}
-                  >
-                    🗑
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!labelSheetInput.trim()) {
-                return
+  const renderMobileCreationSheet = () => (
+    <MobileCreationSheet
+      isOpen={isMobile && showMobileCreationSheet}
+      onClose={closeMobileCreationSheet}
+      onCreateTask={() => startMobileTaskDraft('inbox', { areaId: null, projectId: null, stayHome: true })}
+      onCreateProject={() => {
+        setMobileDraftProject({ name: 'Nuevo proyecto', areaId: null })
+        setShowMobileHome(true)
+      }}
+      onCreateArea={() => {
+        setMobileDraftArea({ name: 'Nueva área' })
+        setShowMobileHome(true)
+      }}
+    />
+  )
+
+  const renderScheduleSheet = () => (
+    <MobileScheduleSheet
+      open={scheduleSheetOpen && !!mobileDraftTask}
+      view={mobileDraftTask?.view || 'inbox'}
+      onClose={() => setScheduleSheetOpen(false)}
+      onSelect={(view) => {
+        updateMobileDraft(prev =>
+          prev
+            ? {
+                ...prev,
+                view,
+                due_at: defaultDueForView(view, todayISO, tomorrowISO),
               }
-              addLabelMutation.mutate(labelSheetInput.trim(), {
-                onSuccess: (result) => {
-                  if (result.success && result.label) {
-                    setLabelSheetSelection(prev => [...prev, result.label!.id])
-                    setLabelSheetInput('')
-                  }
-                },
-              })
-            }}
-            className="flex gap-2"
-          >
-            <input
-              type="text"
-              value={labelSheetInput}
-              onChange={(e) => setLabelSheetInput(e.target.value)}
-              placeholder="Nueva etiqueta"
-              className="flex-1 rounded-2xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-2xl bg-[var(--color-primary-600)] text-sm font-semibold disabled:opacity-60"
-              disabled={addLabelMutation.isPending}
-            >
-              Añadir
-            </button>
-          </form>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                if (labelSheetTarget === 'draft-task' && mobileDraftTask) {
-                  setMobileDraftTask({ ...mobileDraftTask, labelIds: labelSheetSelection })
-                }
-                closeLabelSheet()
-              }}
-              className="px-4 py-2 rounded-full bg-[var(--color-primary-600)] text-sm font-semibold"
-            >
-              Listo
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+            : prev
+        )
+      }}
+    />
+  )
+
+  const renderLabelSheet = () => (
+    <LabelSheet
+      open={!!labelSheetTarget}
+      labels={labels}
+      selection={labelSheetSelection}
+      inputValue={labelSheetInput}
+      isSaving={addLabelMutation.isPending}
+      onClose={closeLabelSheet}
+      onToggle={handleLabelSheetToggle}
+      onDelete={(labelId) => deleteLabelMutation.mutate(labelId)}
+      onInputChange={setLabelSheetInput}
+      onSubmit={handleLabelSheetSubmit}
+      onConfirm={handleLabelSheetConfirm}
+    />
+  )
 
 
-  const renderMobileDraftTaskCard = () => {
-    if (!mobileDraftTask) {
-      return null
-    }
-    const scheduleLabel = quickViewLabels[mobileDraftTask.view]
-    return (
-      <div
-        className="rounded-3xl border p-4 space-y-3"
-        style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-primary-100)' }}
-      >
-        <div>
-          <input
-            ref={mobileDraftTaskTitleRef}
-            type="text"
-            value={mobileDraftTask.title}
-            onChange={(e) => {
-              const value = e.target.value
-              setMobileDraftTask(prev => (prev ? { ...prev, title: value } : prev))
-            }}
-            onBlur={(e) => {
-              if (!e.target.value.trim()) {
-                setMobileDraftTask(prev => (prev ? { ...prev, title: 'Nueva tarea' } : prev))
-              }
-            }}
-            className="w-full bg-transparent text-lg font-semibold text-slate-900 placeholder-slate-400 outline-none"
-          />
-          <textarea
-            value={mobileDraftTask.notes}
-            onChange={(e) =>
-              setMobileDraftTask(prev => (prev ? { ...prev, notes: e.target.value } : prev))
-            }
-            placeholder="Notas"
-            className="w-full bg-transparent text-sm text-slate-600 placeholder-slate-400 outline-none resize-none mt-1"
-            rows={2}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setScheduleSheetOpen(true)}
-            className="text-sm font-semibold text-white rounded-full px-3 py-1"
-            style={{ backgroundColor: 'var(--color-primary-600)' }}
-          >
-            {scheduleLabel}
-          </button>
-          <div className="flex items-center gap-3 text-slate-500 text-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setLabelSheetSelection(mobileDraftTask.labelIds)
-                setLabelSheetTarget('draft-task')
-              }}
-              aria-label="Etiquetas"
-            >
-              🏷
-            </button>
-            <button type="button" onClick={() => openDatePicker('draft')} aria-label="Plazo">
-              📅
-            </button>
-            <button type="button" disabled className="opacity-50" aria-label="Checklist (pronto)">
-              ☑
-            </button>
-          </div>
-        </div>
-        {mobileDraftTask.labelIds.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {mobileDraftTask.labelIds.map(labelId => {
-              const label = labels.find(item => item.id === labelId)
-              if (!label) {
-                return null
-              }
-              return (
-                <span
-                  key={label.id}
-                  className="px-2 py-1 rounded-full text-xs"
-                  style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
-                >
-                  {label.name}
-                </span>
-              )
-            })}
-          </div>
-        )}
-        {mobileDraftTask.due_at && (
-          <p className="text-xs text-slate-500">Plazo: {formatDateForLabel(mobileDraftTask.due_at)}</p>
-        )}
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleCancelMobileDraftTask}
-            className="px-4 py-2 rounded-full border text-sm"
-            style={{ borderColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveMobileDraftTask}
-            disabled={addTaskMutation.isPending}
-            className="px-4 py-2 rounded-full text-white text-sm font-semibold disabled:opacity-60"
-            style={{ backgroundColor: 'var(--color-primary-600)' }}
-          >
-            {addTaskMutation.isPending ? 'Guardando...' : 'Guardar'}
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const renderMobileDraftTaskCard = () => (
+    mobileDraftTask ? (
+      <MobileDraftCard
+        draft={mobileDraftTask}
+        labels={labels}
+        scheduleLabel={quickViewLabels[mobileDraftTask.view]}
+        onTitleChange={(value) => updateMobileDraft(prev => (prev ? { ...prev, title: value } : prev))}
+        onNotesChange={(value) => updateMobileDraft(prev => (prev ? { ...prev, notes: value } : prev))}
+        onSchedulePress={() => setScheduleSheetOpen(true)}
+        onLabelsPress={() => {
+          setLabelSheetSelection(mobileDraftTask.labelIds)
+          setLabelSheetTarget('draft-task')
+        }}
+        onDatePress={() => openDatePicker('draft')}
+        onCancel={handleCancelMobileDraftTask}
+        onSave={handleSaveMobileDraftTask}
+        saving={addTaskMutation.isPending}
+      />
+    ) : null
+  )
 
   const renderMobileTaskBoard = () => (
     <div className="space-y-4">
-      {renderTaskBody('mobile')}
+      {renderTaskBody('mobile', undefined, true, {
+        showLoadingState: true,
+        renderDraftCard: renderMobileDraftTaskCard,
+        showDraftCard: !!mobileDraftTask,
+      })}
+      {canShowMoreMobileTasks && (
+        <button
+          type="button"
+          onClick={handleShowMoreMobileTasks}
+          className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600"
+        >
+          Mostrar más
+        </button>
+      )}
     </div>
   )
 
@@ -2720,171 +1281,29 @@ export default function TasksPage() {
     </div>
   )
 
-  const renderDatePickerOverlay = () => {
-    if (!datePickerTarget) {
-      return null
-    }
+  const currentDatePickerValue =
+    datePickerTarget === 'new'
+      ? taskDraft.due_at
+      : datePickerTarget === 'edit'
+        ? editingDueAt
+        : datePickerTarget === 'draft' && mobileDraftTask?.due_at
+          ? mobileDraftTask.due_at
+          : ''
 
-    const selectedValue =
-      datePickerTarget === 'new'
-        ? newTaskDueAt
-        : datePickerTarget === 'edit'
-          ? editingDueAt
-          : mobileDraftTask?.due_at || ''
-    const monthLabel = datePickerMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-    const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-
-    const buildCalendarDays = () => {
-      const firstDay = new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth(), 1)
-      const startOffset = (firstDay.getDay() + 6) % 7
-      const cursor = new Date(firstDay)
-      cursor.setDate(firstDay.getDate() - startOffset)
-      const days = []
-      for (let i = 0; i < 42; i++) {
-        const current = new Date(cursor)
-        current.setDate(cursor.getDate() + i)
-        const iso = current.toISOString().slice(0, 10)
-        days.push({
-          iso,
-          label: current.getDate(),
-          inMonth: current.getMonth() === datePickerMonth.getMonth(),
-          isToday: iso === todayISO,
-          isSelected: selectedValue ? iso === selectedValue : false,
-        })
-      }
-      return days
-    }
-
-    const weekendDate = new Date(todayISO)
-    const dayOfWeek = weekendDate.getDay()
-    const daysUntilWeekend = dayOfWeek === 6 ? 0 : 6 - dayOfWeek
-    weekendDate.setDate(weekendDate.getDate() + daysUntilWeekend)
-    const weekendISO = weekendDate.toISOString().slice(0, 10)
-    const nextWeekDate = new Date(todayISO)
-    nextWeekDate.setDate(nextWeekDate.getDate() + 7)
-    const nextWeekISO = nextWeekDate.toISOString().slice(0, 10)
-
-    const quickOptions = [
-      { id: 'today', label: 'Hoy', value: todayISO },
-      { id: 'tomorrow', label: 'Mañana', value: tomorrowISO },
-      { id: 'weekend', label: 'Este fin', value: weekendISO },
-      { id: 'nextweek', label: 'Próxima semana', value: nextWeekISO },
-      { id: 'clear', label: 'Sin fecha', value: '' },
-    ]
-
-    const calendarDays = buildCalendarDays()
-
-    return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
-        onClick={closeDatePicker}
-      >
-        <div
-          className="w-full max-w-md bg-white rounded-3xl shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">
-                {datePickerTarget === 'new'
-                  ? 'Fecha para nueva tarea'
-                  : datePickerTarget === 'edit'
-                    ? 'Actualizar vencimiento'
-                    : 'Plazo'}
-              </p>
-              <p className="text-lg font-semibold text-slate-800 capitalize">{monthLabel}</p>
-            </div>
-            <button
-              type="button"
-              onClick={closeDatePicker}
-              className="text-slate-400 hover:text-slate-600 text-xl"
-              aria-label="Cerrar selector de fecha"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="p-5 space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {quickOptions.map(option => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => applyPickedDate(option.value || null)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                    selectedValue === option.value
-                      ? 'border-[var(--color-primary-600)] text-[var(--color-primary-600)] bg-[var(--color-primary-100)]'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-400'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => handleDatePickerMonthChange(-1)}
-                className="p-2 rounded-full border border-slate-200 text-slate-500 hover:border-slate-400"
-                aria-label="Mes anterior"
-              >
-                ←
-              </button>
-              <span className="text-sm font-semibold text-slate-600 capitalize">
-                {monthLabel}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleDatePickerMonthChange(1)}
-                className="p-2 rounded-full border border-slate-200 text-slate-500 hover:border-slate-400"
-                aria-label="Mes siguiente"
-              >
-                →
-              </button>
-            </div>
-            <div>
-              <div className="grid grid-cols-7 text-center text-xs uppercase text-slate-400 tracking-wide mb-2">
-                {weekdays.map(day => (
-                  <span key={day}>{day}</span>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map(day => (
-                  <button
-                    key={day.iso}
-                    type="button"
-                    onClick={() => applyPickedDate(day.iso)}
-                    className={`py-2 rounded-2xl text-sm font-semibold transition ${
-                      day.isSelected
-                        ? 'bg-[var(--color-primary-600)] text-white'
-                        : day.isToday
-                          ? 'border border-[var(--color-primary-200)] text-[var(--color-primary-600)]'
-                          : day.inMonth
-                            ? 'text-slate-700 hover:bg-slate-100'
-                            : 'text-slate-300'
-                    }`}
-                  >
-                    {day.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm text-slate-500">
-              <span>
-                {selectedValue ? `Seleccionada: ${formatDateForLabel(selectedValue)}` : 'Sin fecha asignada'}
-              </span>
-              <button
-                type="button"
-                onClick={() => applyPickedDate('')}
-                className="text-[var(--color-primary-600)] font-semibold"
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const renderDatePickerOverlay = () => (
+    <DatePickerOverlay
+      open={!!datePickerTarget}
+      mode={datePickerTarget || 'new'}
+      month={datePickerMonth}
+      todayISO={todayISO}
+      tomorrowISO={tomorrowISO}
+      selectedDate={currentDatePickerValue}
+      selectedDateLabel={currentDatePickerValue ? formatDateForLabel(currentDatePickerValue) : 'Sin fecha'}
+      onClose={closeDatePicker}
+      onMonthChange={handleDatePickerMonthChange}
+      onSelectDate={applyPickedDate}
+    />
+  )
 
   // Mutación para agregar tarea
   const addTaskMutation = useMutation({
@@ -2951,7 +1370,7 @@ export default function TasksPage() {
       if (result.success) {
         setError('')
         setSelectedLabelIds(prev => prev.filter(id => id !== labelId))
-        setMobileDraftTask(prev =>
+        updateMobileDraft(prev =>
           prev ? { ...prev, labelIds: prev.labelIds.filter(id => id !== labelId) } : prev
         )
         queryClient.invalidateQueries({ queryKey: ['labels'] })
@@ -3032,8 +1451,8 @@ export default function TasksPage() {
     mutationFn: (name: string) => addArea(name),
     onSuccess: (result) => {
       if (result.success) {
-        setNewAreaName('')
-        setShowNewArea(false)
+        setAreaNameDraft('')
+        closeAreaModal()
         setError('')
         queryClient.invalidateQueries({ queryKey: ['areas'] })
       } else {
@@ -3050,9 +1469,8 @@ export default function TasksPage() {
     mutationFn: ({ name, areaId }: { name: string; areaId: string | null }) => addProject(name, '#3b82f6', areaId),
     onSuccess: (result) => {
       if (result.success) {
-        setNewProjectName('')
-        setNewProjectAreaId(null)
-        setShowNewProject(false)
+        resetProjectDraft()
+        closeProjectModal()
         setError('')
         queryClient.invalidateQueries({ queryKey: ['projects'] })
       } else {
@@ -3122,7 +1540,7 @@ export default function TasksPage() {
         const createdLabel = result.label
         setError('')
         setInlineLabelName('')
-        setNewTaskLabelIds(prev => (prev.includes(createdLabel.id) ? prev : [...prev, createdLabel.id]))
+        setTaskLabels(prev => (prev.includes(createdLabel.id) ? prev : [...prev, createdLabel.id]))
         queryClient.setQueryData<Label[]>(['labels'], (prev) => {
           if (!prev) {
             return [createdLabel]
@@ -3201,19 +1619,19 @@ export default function TasksPage() {
     if (!overrides?.stayHome) {
       setShowMobileHome(false)
     }
-    setMobileDraftTask({
+    updateMobileDraft(() => ({
       title: 'Nueva tarea',
       notes: '',
       view,
       areaId: appliedAreaId || null,
       projectId: targetProjectId || null,
-      due_at: defaultDueForView(view),
+      due_at: defaultDueForView(view, todayISO, tomorrowISO),
       labelIds: [],
-    })
+    }))
   }
 
   const handleCancelMobileDraftTask = () => {
-    setMobileDraftTask(null)
+    updateMobileDraft(() => null)
     setShowMobileCreationSheet(false)
     setShowMobileHome(true)
   }
@@ -3227,18 +1645,10 @@ export default function TasksPage() {
       return
     }
     addTaskMutation.mutate(
-      {
-        title: mobileDraftTask.title.trim(),
-        notes: mobileDraftTask.notes,
-        status: deriveStatusFromView(mobileDraftTask.view),
-        due_at: mobileDraftTask.due_at,
-        project_id: mobileDraftTask.projectId,
-        area_id: mobileDraftTask.areaId,
-        labelIds: mobileDraftTask.labelIds,
-      },
+      buildMobileTaskPayload(mobileDraftTask),
       {
         onSuccess: () => {
-          setMobileDraftTask(null)
+          updateMobileDraft(() => null)
           setShowMobileCreationSheet(false)
           setShowMobileHome(true)
         },
@@ -3248,33 +1658,24 @@ export default function TasksPage() {
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTaskTitle.trim()) {
+    if (!taskDraft.title.trim()) {
       setError('El título no puede estar vacío')
       return
     }
     addTaskMutation.mutate({
-      title: newTaskTitle,
-      notes: newTaskNotes,
-      priority: newTaskPriority,
-      due_at: newTaskDueAt,
-      status: newTaskStatus,
-      project_id: newTaskProjectId,
-      area_id: newTaskAreaId,
-      heading_id: newTaskHeadingId,
-      labelIds: newTaskLabelIds,
+      title: taskDraft.title,
+      notes: taskDraft.notes,
+      priority: taskDraft.priority,
+      due_at: taskDraft.due_at,
+      status: taskDraft.status,
+      project_id: taskDraft.projectId,
+      area_id: taskDraft.areaId,
+      heading_id: taskDraft.headingId,
+      labelIds: taskDraft.labelIds,
     }, {
       onSuccess: () => {
-        setNewTaskTitle('')
-        setNewTaskNotes('')
-        setNewTaskPriority(0)
-        setNewTaskDueAt('')
-        setNewTaskStatus('open')
-        setNewTaskProjectId(null)
-        setNewTaskAreaId(null)
-        setNewTaskHeadingId(null)
-        setNewTaskLabelIds([])
-        setNewTaskView('inbox')
-        setIsTaskModalOpen(false)
+        resetTaskDraft()
+        closeTaskModal()
       },
     })
   }
@@ -3340,23 +1741,23 @@ export default function TasksPage() {
 
   const handleAddProject = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newProjectName.trim()) {
+    if (!projectDraft.name.trim()) {
       setError('El nombre del proyecto no puede estar vacío')
       return
     }
     addProjectMutation.mutate({
-      name: newProjectName.trim(),
-      areaId: newProjectAreaId,
+      name: projectDraft.name.trim(),
+      areaId: projectDraft.areaId,
     })
   }
 
   const handleAddArea = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newAreaName.trim()) {
+    if (!areaNameDraft.trim()) {
       setError('El nombre del área no puede estar vacío')
       return
     }
-    addAreaMutation.mutate(newAreaName.trim())
+    addAreaMutation.mutate(areaNameDraft.trim())
   }
 
   const handleSaveMobileDraftArea = () => {
@@ -3474,24 +1875,24 @@ export default function TasksPage() {
 
   const handleOpenTaskModal = () => {
     const defaultView = activeQuickView === 'logbook' ? 'inbox' : activeQuickView
-    setNewTaskProjectId(selectedProjectId)
+    updateTaskDraft('projectId', selectedProjectId || null)
     if (selectedProjectId) {
       const project = projects.find(project => project.id === selectedProjectId)
-      setNewTaskAreaId(project?.area_id || null)
+      updateTaskDraft('areaId', project?.area_id || null)
     } else if (selectedAreaId) {
-      setNewTaskAreaId(selectedAreaId)
+      updateTaskDraft('areaId', selectedAreaId)
     } else {
-      setNewTaskAreaId(null)
+      updateTaskDraft('areaId', null)
     }
-    setNewTaskHeadingId(null)
-    setNewTaskLabelIds([])
+    updateTaskDraft('headingId', null)
+    setTaskLabels([])
     applyViewPreset(defaultView)
-    setIsTaskModalOpen(true)
+    openTaskModal()
   }
 
   const handleCloseTaskModal = () => {
-    setIsTaskModalOpen(false)
-    setNewTaskLabelIds([])
+    closeTaskModal()
+    resetTaskDraft()
   }
 
   const handleLogout = async () => {
@@ -3505,7 +1906,35 @@ export default function TasksPage() {
   if (isMobile && showMobileHome) {
     return (
       <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
-        <div className="max-w-md mx-auto px-4 py-6">{renderMobileHome()}</div>
+        <div className="max-w-md mx-auto px-4 py-6">
+          <MobileOverview
+            showDraftCard={!!mobileDraftTask}
+            renderDraftCard={renderMobileDraftTaskCard}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSearchFocus={handleMobileHomeSearchFocus}
+            quickLists={quickLists}
+            quickViewStats={quickViewStats}
+            onSelectQuickView={handleSelectQuickView}
+            areas={areas}
+            areaDraft={mobileDraftArea}
+            areaInputRef={assignMobileDraftAreaInput}
+            onAreaDraftChange={handleMobileAreaNameChange}
+            onAreaDraftBlur={handleMobileAreaNameBlur}
+            onCancelAreaDraft={handleCancelMobileAreaDraft}
+            onSaveAreaDraft={handleSaveMobileDraftArea}
+            onSelectArea={handleOpenMobileArea}
+            projects={projects}
+            projectDraft={mobileDraftProject}
+            projectInputRef={assignMobileDraftProjectInput}
+            onProjectDraftChange={handleMobileProjectNameChange}
+            onProjectDraftBlur={handleMobileProjectNameBlur}
+            onCancelProjectDraft={handleCancelMobileProjectDraft}
+            onSaveProjectDraft={handleSaveMobileDraftProject}
+            onSelectProject={handleOpenMobileProject}
+            onOpenCreationSheet={() => setShowMobileCreationSheet(true)}
+          />
+        </div>
         {renderTaskModal()}
         {renderMobileCreationSheet()}
         {renderScheduleSheet()}
@@ -3519,12 +1948,22 @@ export default function TasksPage() {
     <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       {isMobile ? (
         <>
-          <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-28">
-            {renderMobileSearch()}
-            {renderMobileHeader()}
-            {renderActiveFilterChips()}
-            {renderErrorBanner()}
-            {renderMobileTaskBoard()}
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <MobileHome
+              renderSearch={renderMobileSearch}
+              renderHeader={renderMobileHeader}
+              renderFilters={() => (
+                <ActiveFilterChips
+                  filters={activeFilters}
+                  compact={isMobileDetail}
+                  onRemove={handleRemoveFilter}
+                />
+              )}
+              renderError={() => <ErrorBanner message={error} />}
+              renderTaskBoard={renderMobileTaskBoard}
+              renderDraftCard={renderMobileDraftTaskCard}
+              showDraft={showMobileHome && !!mobileDraftTask}
+            />
           </div>
           {renderMobileFab()}
         </>
@@ -3532,12 +1971,39 @@ export default function TasksPage() {
         <>
           <div className="max-w-6xl mx-auto px-4 py-10 lg:px-8">
             <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
-              <div className="hidden lg:block">{renderDesktopSidebar()}</div>
+              <div className="hidden lg:block">
+                <DesktopSidebar
+                  filteredTaskCount={activeTaskCount}
+                  completedCount={completedCount}
+                  quickLists={quickLists}
+                  quickViewStats={quickViewStats}
+                  quickViewOverdueStats={quickViewOverdueStats}
+                  projects={projects}
+                  areas={areas}
+                  projectStats={projectStats}
+                  areaStats={areaStats}
+                  selectedProjectId={selectedProjectId}
+                  selectedAreaId={selectedAreaId}
+                  activeQuickView={activeQuickView}
+                  showNewListMenu={showNewListMenu}
+                  onSelectQuickView={handleSelectQuickView}
+                  onSelectArea={handleSelectArea}
+                  onSelectProject={handleSelectProject}
+                  onToggleNewListMenu={toggleNewListMenu}
+                  onCreateProject={handleCreateProjectFromSidebar}
+                  onCreateArea={handleCreateAreaFromSidebar}
+                  onLogout={handleLogout}
+                />
+              </div>
               <section className="space-y-6">
                 {renderDesktopSearch()}
                 {renderDesktopHeader()}
-                {renderActiveFilterChips()}
-                {renderErrorBanner()}
+                <ActiveFilterChips
+                  filters={activeFilters}
+                  compact={false}
+                  onRemove={handleRemoveFilter}
+                />
+                <ErrorBanner message={error} />
                 {renderDesktopTaskBoard()}
               </section>
             </div>
@@ -3546,9 +2012,34 @@ export default function TasksPage() {
         </>
       )}
       {renderTaskModal()}
-      {renderNewAreaModal()}
-      {renderNewProjectModal()}
-      {renderQuickHeadingForm()}
+      <NewAreaModal
+        open={showAreaModal}
+        areaName={areaNameDraft}
+        isSaving={addAreaMutation.isPending}
+        onClose={closeAreaModal}
+        onSubmit={handleAddArea}
+        onNameChange={(value) => setAreaNameDraft(value)}
+      />
+      <NewProjectModal
+        open={showProjectModal}
+        projectName={projectDraft.name}
+        selectedAreaId={projectDraft.areaId}
+        areas={areas}
+        isSaving={addProjectMutation.isPending}
+        onClose={closeProjectModal}
+        onSubmit={handleAddProject}
+        onNameChange={(value) => setProjectName(value)}
+        onAreaChange={(value) => setProjectAreaId(value)}
+      />
+      <QuickHeadingForm
+        open={showQuickHeadingForm}
+        headingName={newHeadingName}
+        hasProjectSelected={!!selectedProjectId}
+        isSaving={addHeadingMutation.isPending}
+        onClose={() => setShowQuickHeadingForm(false)}
+        onSubmit={handleAddHeading}
+        onNameChange={(value) => setNewHeadingName(value)}
+      />
       {renderMobileCreationSheet()}
       {renderScheduleSheet()}
       {renderLabelSheet()}
@@ -3560,80 +2051,3 @@ export default function TasksPage() {
 }
 
 // Componente auxiliar para mostrar etiquetas de una tarea
-function TaskLabels({
-  taskId,
-  labels,
-  assignedLabels,
-  isOpen,
-  onAddLabel,
-  onRemoveLabel,
-  compact = false,
-}: {
-  taskId: string
-  labels: Label[]
-  assignedLabels: TaskLabelSummary[]
-  isOpen: boolean
-  onAddLabel: (taskId: string, labelId: string) => void
-  onRemoveLabel: (taskId: string, labelId: string) => void
-  compact?: boolean
-}) {
-  if (!isOpen) {
-    return null
-  }
-
-  const assignedIds = new Set(assignedLabels.map(label => label.id))
-
-  return (
-    <div
-      className={`${compact ? 'mt-3' : 'ml-9 mt-3'} p-3 rounded-2xl space-y-3`}
-      style={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid var(--color-primary-100)' }}
-    >
-      <div>
-        <p className="text-xs font-semibold text-pink-800 uppercase tracking-wide mb-2">Etiquetas asignadas</p>
-        {assignedLabels.length === 0 ? (
-          <p className="text-xs text-pink-700">La tarea aún no tiene etiquetas.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-              {assignedLabels.map(label => (
-                <span key={label.id} className="az-pill">
-                  {label.name}
-                  <button
-                    type="button"
-                    onClick={() => onRemoveLabel(taskId, label.id)}
-                    style={{ color: 'var(--color-primary-600)' }}
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <p className="text-xs font-semibold text-pink-800 uppercase tracking-wide mb-2">Agregar etiquetas</p>
-        <div className="flex flex-wrap gap-2">
-          {labels.map(label => {
-            const isAssigned = assignedIds.has(label.id)
-            return (
-              <button
-                key={label.id}
-                onClick={() => onAddLabel(taskId, label.id)}
-                disabled={isAssigned}
-                className="az-pill"
-                style={{
-                  backgroundColor: isAssigned ? 'var(--color-primary-100)' : 'var(--color-surface)',
-                  opacity: isAssigned ? 0.5 : 1,
-                  border: '1px solid var(--color-primary-100)',
-                  cursor: isAssigned ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isAssigned ? 'Asignada' : `+ ${label.name}`}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}

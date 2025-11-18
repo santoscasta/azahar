@@ -1,4 +1,4 @@
-import type { Task } from './supabase'
+import type { Task, TaskLabelSummary } from './supabase.js'
 
 export interface TaskFilterOptions {
   projectId?: string | null
@@ -30,7 +30,8 @@ function matchesQuery(task: Task, queryValue: string) {
 
 function matchesLabels(task: Task, labelIds?: string[] | null) {
   if (!labelIds || labelIds.length === 0) return true
-  const labelSet = new Set((task.labels || []).map(label => label.id))
+  const labels = (task.labels ?? []) as TaskLabelSummary[]
+  const labelSet = new Set(labels.map(label => label.id))
   return labelIds.every(labelId => labelSet.has(labelId))
 }
 

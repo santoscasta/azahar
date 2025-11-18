@@ -1,5 +1,6 @@
 node_modules/
 dist/
+apps/web/dist-test/
 build/
 .env.local
 .env.*.local

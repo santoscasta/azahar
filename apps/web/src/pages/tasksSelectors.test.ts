@@ -1,6 +1,5 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
-import type { Task, Project, Label, Area } from '../lib/supabase'
+import { describe, it, expect } from 'vitest'
+import type { Task, Project, Label, Area } from '../lib/supabase.js'
 import {
   normalizeDate,
   buildQuickViewStats,
@@ -61,12 +60,12 @@ const labelFactory = (id: string, name: string): Label => ({
 
 describe('normalizeDate', () => {
   it('returns YYYY-MM-DD for valid ISO strings', () => {
-    assert.equal(normalizeDate('2024-01-10T12:00:00.000Z'), '2024-01-10')
+    expect(normalizeDate('2024-01-10T12:00:00.000Z')).toBe('2024-01-10')
   })
 
   it('returns null for invalid inputs', () => {
-    assert.equal(normalizeDate('not-a-date'), null)
-    assert.equal(normalizeDate(undefined), null)
+    expect(normalizeDate('not-a-date')).toBeNull()
+    expect(normalizeDate(undefined)).toBeNull()
   })
 })
 
@@ -84,7 +83,7 @@ describe('buildQuickViewStats', () => {
 
     const stats = buildQuickViewStats(tasks, today)
 
-    assert.deepEqual(stats, {
+    expect(stats).toEqual({
       inbox: 1,
       today: 1,
       upcoming: 1,
@@ -119,10 +118,7 @@ describe('filterTasksByQuickView', () => {
   cases.forEach(([view, expectedIds]) => {
     it(`filters tasks for quick view "${view}"`, () => {
       const result = filterTasksByQuickView(tasks, view, today)
-      assert.deepEqual(
-        result.map(task => task.id),
-        expectedIds
-      )
+      expect(result.map(task => task.id)).toEqual(expectedIds)
     })
   })
 })
@@ -134,7 +130,7 @@ describe('buildActiveFilters', () => {
 
     const filters = buildActiveFilters('project-1', projects, ['label-1'], labels, 'area-1', [emptyArea])
 
-    assert.deepEqual(filters, [
+    expect(filters).toEqual([
       {
         key: 'area-area-1',
         label: 'Área: Trabajo',
@@ -158,18 +154,18 @@ describe('buildActiveFilters', () => {
 
   it('ignores ids that do not exist in source arrays', () => {
     const filters = buildActiveFilters('missing', [], ['not-found'], [], 'missing', [])
-    assert.deepEqual(filters, [])
+    expect(filters).toEqual([])
   })
 })
 
 describe('isFilteredView', () => {
   it('detects when any filter is active', () => {
-    assert.equal(isFilteredView('inbox', '', null, [], null), false)
-    assert.equal(isFilteredView('today', '', null, [], null), true)
-    assert.equal(isFilteredView('inbox', 'hola', null, [], null), true)
-    assert.equal(isFilteredView('inbox', '', 'project', [], null), true)
-    assert.equal(isFilteredView('inbox', '', null, ['label'], null), true)
-    assert.equal(isFilteredView('inbox', '', null, [], 'area'), true)
+    expect(isFilteredView('inbox', '', null, [], null)).toBe(false)
+    expect(isFilteredView('today', '', null, [], null)).toBe(true)
+    expect(isFilteredView('inbox', 'hola', null, [], null)).toBe(true)
+    expect(isFilteredView('inbox', '', 'project', [], null)).toBe(true)
+    expect(isFilteredView('inbox', '', null, ['label'], null)).toBe(true)
+    expect(isFilteredView('inbox', '', null, [], 'area')).toBe(true)
   })
 })
 
@@ -188,7 +184,7 @@ describe('getTaskView', () => {
     ]
 
     cases.forEach(([task, expected]) => {
-      assert.equal(getTaskView(task, today), expected)
+      expect(getTaskView(task, today)).toBe(expected)
     })
   })
 })

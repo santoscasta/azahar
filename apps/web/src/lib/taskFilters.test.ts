@@ -1,6 +1,5 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
-import type { Task } from './supabase'
+import { describe, it, expect } from 'vitest'
+import type { Task } from './supabase.js'
 import { applyTaskFilters } from './taskFilters.js'
 
 const taskFactory = (overrides: Partial<Task>): Task => {
@@ -52,30 +51,30 @@ describe('applyTaskFilters', () => {
 
   it('filters by project id', () => {
     const filtered = applyTaskFilters(tasks, { projectId: 'work' })
-    assert.deepEqual(filtered.map(task => task.id), ['work-urgent', 'work-document'])
+    expect(filtered.map(task => task.id)).toEqual(['work-urgent', 'work-document'])
   })
 
   it('filters by area id when no project specified', () => {
     const filtered = applyTaskFilters(tasks, { areaId: 'personal' })
-    assert.deepEqual(filtered.map(task => task.id), ['inbox'])
+    expect(filtered.map(task => task.id)).toEqual(['inbox'])
   })
 
   it('filters by search query in title or notes (case insensitive)', () => {
     const filtered = applyTaskFilters(tasks, { query: 'documentar' })
-    assert.deepEqual(filtered.map(task => task.id), ['work-document'])
+    expect(filtered.map(task => task.id)).toEqual(['work-document'])
 
     const matchesNotes = applyTaskFilters(tasks, { query: 'MERCADO' })
-    assert.deepEqual(matchesNotes.map(task => task.id), ['inbox'])
+    expect(matchesNotes.map(task => task.id)).toEqual(['inbox'])
   })
 
   it('requires tasks to contain all selected labels', () => {
     const filtered = applyTaskFilters(tasks, { labelIds: ['urgent', 'dev'] })
-    assert.deepEqual(filtered.map(task => task.id), ['work-urgent'])
+    expect(filtered.map(task => task.id)).toEqual(['work-urgent'])
   })
 
   it('returns empty result when label filter includes ids not present on a task', () => {
     const filtered = applyTaskFilters(tasks, { labelIds: ['missing'] })
-    assert.equal(filtered.length, 0)
+    expect(filtered).toHaveLength(0)
   })
 
   it('combines project, query and label filters', () => {
@@ -84,11 +83,11 @@ describe('applyTaskFilters', () => {
       query: 'revisar',
       labelIds: ['urgent'],
     })
-    assert.deepEqual(filtered.map(task => task.id), ['work-urgent'])
+    expect(filtered.map(task => task.id)).toEqual(['work-urgent'])
   })
 
   it('ignores empty/whitespace queries and empty label arrays', () => {
     const filtered = applyTaskFilters(tasks, { query: '   ', labelIds: [] })
-    assert.equal(filtered.length, tasks.length)
+    expect(filtered).toHaveLength(tasks.length)
   })
 })

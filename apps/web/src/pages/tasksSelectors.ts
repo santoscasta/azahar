@@ -1,4 +1,4 @@
-import type { Task, Project, Label, Area } from '../lib/supabase'
+import type { Task, Project, Label, Area } from '../lib/supabase.js'
 
 export type QuickViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook'
 

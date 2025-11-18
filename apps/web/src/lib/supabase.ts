@@ -1,15 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
-import { applyTaskFilters } from './taskFilters'
+import { applyTaskFilters } from './taskFilters.js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const appBaseUrl = import.meta.env.VITE_APP_BASE_URL
+type RuntimeEnv = Record<string, string | undefined>
 
-if (!supabaseUrl || !supabaseKey) {
+const runtimeEnv: RuntimeEnv | undefined =
+  (import.meta as ImportMeta & { env?: RuntimeEnv }).env ??
+  ((globalThis as { process?: { env?: RuntimeEnv } }).process?.env ?? undefined)
+
+const supabaseUrl = runtimeEnv?.VITE_SUPABASE_URL
+const supabaseKey = runtimeEnv?.VITE_SUPABASE_ANON_KEY
+const appBaseUrl = runtimeEnv?.VITE_APP_BASE_URL
+
+const hasSupabaseCreds = Boolean(supabaseUrl && supabaseKey)
+type MaybeNodeProcess = { versions?: { node?: string } }
+const nodeProcess = (globalThis as { process?: MaybeNodeProcess }).process
+const runningInNode = !!nodeProcess?.versions?.node
+
+if (!hasSupabaseCreds && !runningInNode) {
   throw new Error('Faltan variables de entorno VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(
+  supabaseUrl ?? 'https://placeholder.supabase.co',
+  supabaseKey ?? 'public-anon-key'
+)
 
 const getRedirectUrl = (path: string) => {
   if (typeof window !== 'undefined' && window.location?.origin) {
@@ -22,7 +36,12 @@ const getRedirectUrl = (path: string) => {
 }
 
 // Tipos y funciones de autenticación
-export async function signUp(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export interface AuthResult {
+  success: boolean
+  error?: string
+}
+
+export async function signUp(email: string, password: string): Promise<AuthResult> {
   try {
     const { error } = await supabase.auth.signUp({
       email,
@@ -40,7 +59,7 @@ export async function signUp(email: string, password: string): Promise<{ success
   }
 }
 
-export async function signIn(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function signIn(email: string, password: string): Promise<AuthResult> {
   try {
     const { error } = await supabase.auth.signInWithPassword({
       email,
