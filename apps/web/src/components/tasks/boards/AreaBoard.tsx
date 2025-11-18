@@ -40,21 +40,21 @@ export default function AreaBoard({
       <div className="divide-y divide-slate-100">
         {projects.map(project => (
           <section key={project.id} className="px-6 py-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
-                <p className="text-base font-semibold text-slate-800">{project.name}</p>
-              </div>
-              <button type="button" onClick={() => onSelectProject(project.id)} className="az-btn-secondary px-3 py-1 text-xs">
-                Abrir
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
+              <button
+                type="button"
+                onClick={() => onSelectProject(project.id)}
+                className="text-base font-semibold text-slate-800 hover:underline text-left"
+              >
+                {project.name}
               </button>
             </div>
             {renderTaskList(tasksByProject.get(project.id) || [])}
           </section>
         ))}
         {looseTasks.length > 0 && (
-          <section className="px-6 py-5 space-y-3">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin proyecto</p>
+          <section className="px-6 py-5">
             {renderTaskList(looseTasks)}
           </section>
         )}

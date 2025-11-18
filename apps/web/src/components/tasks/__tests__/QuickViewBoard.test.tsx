@@ -40,6 +40,8 @@ const mockTask: Task = {
   created_at: '2025-01-01T00:00:00.000Z',
   completed_at: null,
   labels: [],
+  pinned: false,
+  checklist_items: [],
 }
 
 describe('QuickViewBoard', () => {
@@ -67,10 +69,10 @@ describe('QuickViewBoard', () => {
       />
     )
 
-    fireEvent.click(screen.getByText('Abrir área'))
+    fireEvent.click(screen.getByText('Área Uno'))
     expect(onSelectArea).toHaveBeenCalledWith('area-1')
 
-    fireEvent.click(screen.getByText('Abrir'))
+    fireEvent.click(screen.getByText('Proyecto Uno'))
     expect(onSelectProject).toHaveBeenCalledWith('project-1')
     expect(screen.getByText('1 tarea(s)')).toBeDefined()
   })

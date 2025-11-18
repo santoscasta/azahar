@@ -15,6 +15,7 @@ interface ProjectBoardProps {
   onCancelHeadingEdit: () => void
   onDeleteHeading: (headingId: string) => void
   onSelectArea: (areaId: string) => void
+  areaName?: string | null
   renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean }) => React.ReactNode
   renderHeadingForm?: () => React.ReactNode
 }
@@ -34,6 +35,7 @@ export default function ProjectBoard({
   onCancelHeadingEdit,
   onDeleteHeading,
   onSelectArea,
+  areaName,
   renderTaskList,
   renderHeadingForm,
 }: ProjectBoardProps) {
@@ -45,13 +47,13 @@ export default function ProjectBoard({
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
               <h2 className="text-lg font-semibold text-slate-800">{project.name}</h2>
-              {project.area_id && (
+              {project.area_id && areaName && (
                 <button
                   type="button"
                   onClick={() => onSelectArea(project.area_id!)}
                   className="text-xs font-semibold text-slate-500 underline-offset-2 hover:underline"
                 >
-                  Ver área vinculada
+                  {areaName}
                 </button>
               )}
             </div>

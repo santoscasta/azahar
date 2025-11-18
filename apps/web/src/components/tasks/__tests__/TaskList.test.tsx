@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from '../../../tests/renderWithProviders'
 import TaskList from '../TaskList'
-import type { Task, Project, Area, ProjectHeading, Label } from '../../../lib/supabase.js'
+import type { Task, Project, Area, ProjectHeading } from '../../../lib/supabase.js'
 
 const baseTask = (overrides: Partial<Task> = {}): Task => ({
   id: 'task-1',
@@ -22,6 +22,8 @@ const baseTask = (overrides: Partial<Task> = {}): Task => ({
   created_at: '2025-01-01T00:00:00.000Z',
   completed_at: null,
   labels: [],
+  pinned: false,
+  checklist_items: [],
   ...overrides,
 })
 
@@ -37,10 +39,6 @@ const headings: ProjectHeading[] = [
   { id: 'heading-1', project_id: 'project-1', user_id: 'user-1', name: 'To Do', sort_order: 0, created_at: '2025-01-01T00:00:00.000Z' },
 ]
 
-const labels: Label[] = [
-  { id: 'label-1', user_id: 'user-1', name: 'Urgente', color: '#ff0000' },
-]
-
 const editingState = {
   id: null as string | null,
   title: '',
@@ -50,6 +48,7 @@ const editingState = {
   projectId: null as string | null,
   areaId: null as string | null,
   headingId: null as string | null,
+  checklist: [],
 }
 
 const editingHandlers = {
@@ -77,7 +76,6 @@ describe('TaskList', () => {
         projects={projects}
         areas={areas}
         headings={headings}
-        labels={labels}
         editingState={editingState}
         editingHandlers={editingHandlers}
         onStartEdit={onStartEdit}
@@ -85,11 +83,13 @@ describe('TaskList', () => {
         onCancelEdit={vi.fn()}
         onToggleTask={onToggle}
         onDeleteTask={onDelete}
-        selectedTaskForLabel={null}
-        onToggleLabelPicker={vi.fn()}
-        onAddLabel={vi.fn()}
-        onRemoveLabel={vi.fn()}
         onOpenEditDatePicker={vi.fn()}
+        onOpenLabelSheet={vi.fn()}
+        onOpenChecklist={vi.fn()}
+        onOpenPriorityMenu={vi.fn()}
+        onOpenMoveSheet={vi.fn()}
+        onOpenOverflowMenu={vi.fn()}
+        onToggleCollapsedChecklist={vi.fn()}
         formatDateLabel={() => 'Sin fecha'}
       />
     )
@@ -98,7 +98,7 @@ describe('TaskList', () => {
     fireEvent.click(screen.getByLabelText('Marcar como completada'))
     expect(onToggle).toHaveBeenCalledWith('task-1')
 
-    fireEvent.click(screen.getByText('Editar'))
+    fireEvent.doubleClick(screen.getByText('Demo Task'))
     expect(onStartEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'task-1' }))
   })
 
@@ -115,7 +115,6 @@ describe('TaskList', () => {
         projects={projects}
         areas={areas}
         headings={headings}
-        labels={labels}
         editingState={state}
         editingHandlers={editingHandlers}
         onStartEdit={vi.fn()}
@@ -123,15 +122,54 @@ describe('TaskList', () => {
         onCancelEdit={vi.fn()}
         onToggleTask={vi.fn()}
         onDeleteTask={vi.fn()}
-        selectedTaskForLabel={null}
-        onToggleLabelPicker={vi.fn()}
-        onAddLabel={vi.fn()}
-        onRemoveLabel={vi.fn()}
         onOpenEditDatePicker={vi.fn()}
+        onOpenLabelSheet={vi.fn()}
+        onOpenChecklist={vi.fn()}
+        onOpenPriorityMenu={vi.fn()}
+        onOpenMoveSheet={vi.fn()}
+        onOpenOverflowMenu={vi.fn()}
+        onToggleCollapsedChecklist={vi.fn()}
         formatDateLabel={() => 'Sin fecha'}
       />
     )
 
     expect(screen.getByPlaceholderText('Título')).toBeDefined()
+  })
+
+  it('auto-saves on mobile when tapping outside the editor', () => {
+    const onSave = vi.fn()
+    const state = { ...editingState, id: 'task-1', title: 'Task', notes: '', dueAt: '' }
+
+    renderWithProviders(
+      <TaskList
+        variant="mobile"
+        tasks={[baseTask()]}
+        isLoading={false}
+        showEmptyState
+        filteredViewActive={false}
+        projects={projects}
+        areas={areas}
+        headings={headings}
+        editingState={state}
+        editingHandlers={editingHandlers}
+        onStartEdit={vi.fn()}
+        onSaveEdit={onSave}
+        onCancelEdit={vi.fn()}
+        onToggleTask={vi.fn()}
+        onDeleteTask={vi.fn()}
+        onOpenEditDatePicker={vi.fn()}
+        onOpenLabelSheet={vi.fn()}
+        onOpenChecklist={vi.fn()}
+        onOpenPriorityMenu={vi.fn()}
+        onOpenMoveSheet={vi.fn()}
+        onOpenOverflowMenu={vi.fn()}
+        onToggleCollapsedChecklist={vi.fn()}
+        formatDateLabel={() => 'Sin fecha'}
+        autoSaveOnMobileBlur
+      />
+    )
+
+    fireEvent.pointerDown(document.body)
+    expect(onSave).toHaveBeenCalledTimes(1)
   })
 })

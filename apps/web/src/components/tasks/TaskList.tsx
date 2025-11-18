@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import type { Area, Label, Project, ProjectHeading, Task } from '../../lib/supabase.js'
-import TaskLabels from './TaskLabels.js'
+import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
+import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
 
 type Priority = 0 | 1 | 2 | 3
 
@@ -34,24 +35,33 @@ interface TaskListProps {
   projects: Project[]
   areas: Area[]
   headings: ProjectHeading[]
-  labels: Label[]
   editingState: EditingState
   editingHandlers: EditingHandlers
   onStartEdit: (task: Task) => void
-  onSaveEdit: (event: FormEvent<HTMLFormElement>) => void
+  onSaveEdit: (event?: FormEvent<HTMLFormElement>) => void
   onCancelEdit: () => void
   onToggleTask: (taskId: string) => void
   togglePending?: boolean
   onDeleteTask: (taskId: string) => void
   deletePending?: boolean
-  selectedTaskForLabel: string | null
-  onToggleLabelPicker: (taskId: string) => void
-  onAddLabel: (taskId: string, labelId: string) => void
-  onRemoveLabel: (taskId: string, labelId: string) => void
   onOpenEditDatePicker: () => void
+  onOpenLabelSheet: (task: Task) => void
+  onOpenChecklist: (task: Task) => void
+  onOpenPriorityMenu: () => void
+  onOpenMoveSheet: (task: Task) => void
+  onOpenOverflowMenu: (task: Task) => void
+  onToggleCollapsedChecklist: (taskId: string, itemId: string, completed: boolean) => void
   formatDateLabel: (value: string) => string
   renderDraftCard?: () => ReactNode
   showDraftCard?: boolean
+  autoSaveOnMobileBlur?: boolean
+}
+
+const priorityLabels: Record<Priority, string> = {
+  0: 'Sin prioridad',
+  1: 'Prioridad baja',
+  2: 'Prioridad media',
+  3: 'Prioridad alta',
 }
 
 export default function TaskList({
@@ -64,7 +74,6 @@ export default function TaskList({
   projects,
   areas,
   headings,
-  labels,
   editingState,
   editingHandlers,
   onStartEdit,
@@ -74,14 +83,17 @@ export default function TaskList({
   togglePending,
   onDeleteTask,
   deletePending,
-  selectedTaskForLabel,
-  onToggleLabelPicker,
-  onAddLabel,
-  onRemoveLabel,
   onOpenEditDatePicker,
+  onOpenLabelSheet,
+  onOpenChecklist,
+  onOpenPriorityMenu,
+  onOpenMoveSheet,
+  onOpenOverflowMenu,
+  onToggleCollapsedChecklist,
   formatDateLabel,
   renderDraftCard,
   showDraftCard,
+  autoSaveOnMobileBlur = false,
 }: TaskListProps) {
   if (isLoading && showEmptyState && showLoadingState) {
     const loadingClass = variant === 'mobile' ? 'p-6 text-center text-slate-500' : 'p-10 text-center text-slate-500'
@@ -95,13 +107,12 @@ export default function TaskList({
     const emptyClass = variant === 'mobile' ? 'p-6 text-center text-slate-500' : 'p-10 text-center text-slate-500'
     return (
       <div className={emptyClass}>
-        {filteredViewActive
-          ? 'No hay tareas que coincidan con tu vista actual.'
-          : 'No hay tareas todavía. ¡Crea la primera!'}
+        {filteredViewActive ? 'No hay tareas que coincidan con tu vista actual.' : 'No hay tareas todavía. ¡Crea la primera!'}
       </div>
     )
   }
 
+  const editingContainerRef = useRef<HTMLDivElement | null>(null)
   const {
     id: editingId,
     title: editingTitle,
@@ -115,30 +126,84 @@ export default function TaskList({
   const {
     setTitle: setEditingTitle,
     setNotes: setEditingNotes,
-    setPriority: setEditingPriority,
-    setAreaId: setEditingAreaId,
-    setProjectId: setEditingProjectId,
-    setHeadingId: setEditingHeadingId,
+    setPriority: _setEditingPriority,
+    setAreaId: _setEditingAreaId,
+    setProjectId: _setEditingProjectId,
+    setHeadingId: _setEditingHeadingId,
   } = editingHandlers
+
+  useEffect(() => {
+    if (variant !== 'mobile' || !editingId || !autoSaveOnMobileBlur) {
+      editingContainerRef.current = null
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!editingContainerRef.current) {
+        return
+      }
+      if (editingContainerRef.current.contains(event.target as Node)) {
+        return
+      }
+      onSaveEdit()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [variant, editingId, autoSaveOnMobileBlur, onSaveEdit])
+
+  const checkboxIcon = (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+      <path
+        fillRule="evenodd"
+        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
 
   return (
     <>
       {variant === 'mobile' && showDraftCard && renderDraftCard ? renderDraftCard() : null}
       <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'divide-y divide-slate-100'}>
         {tasks.map(task => {
-          const taskProject = projects.find(project => project.id === task.project_id)
-          const taskArea = task.area_id ? areas.find(area => area.id === task.area_id) : null
-          const taskHeading = task.heading_id ? headings.find(heading => heading.id === task.heading_id) : null
+          const legacyContent = deserializeChecklistNotes(task.notes)
+          const plainNotes = legacyContent.text
+          const checklistItems =
+            task.checklist_items && task.checklist_items.length > 0
+              ? task.checklist_items
+                  .slice()
+                  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                  .map(item => ({
+                    id: item.id,
+                    text: item.text,
+                    completed: item.completed,
+                    persisted: true,
+                  }))
+              : legacyContent.items.map((item, index) => ({
+                  id: item.id || `${task.id}-legacy-${index}`,
+                  text: item.text,
+                  completed: item.completed,
+                  persisted: false,
+                }))
+          const taskProject = task.project_id ? projects.find(project => project.id === task.project_id) || null : null
+          const taskArea = task.area_id ? areas.find(area => area.id === task.area_id) || null : null
+          const taskHeading = task.heading_id ? headings.find(heading => heading.id === task.heading_id) || null : null
+          const editingArea = editingAreaId ? areas.find(area => area.id === editingAreaId) || null : null
+          const editingProject = editingProjectId ? projects.find(project => project.id === editingProjectId) || null : null
+          const editingHeading = editingHeadingId ? headings.find(heading => heading.id === editingHeadingId) || null : null
           const isEditing = editingId === task.id
           const baseLiClass =
             variant === 'mobile'
-              ? 'p-4 rounded-3xl border border-slate-100 bg-white shadow-sm'
-              : 'px-6 py-5'
+              ? 'p-4 rounded-3xl border border-slate-100 bg-white shadow-sm transition-colors'
+              : 'px-6 py-5 transition-colors'
           const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
           const metaClass =
             variant === 'mobile'
               ? 'flex flex-wrap items-center gap-2 text-sm'
-              : 'flex flex-wrap items-center gap-3'
+              : 'flex flex-wrap items-center gap-3 text-xs text-slate-500'
           const checkboxClass =
             variant === 'mobile'
               ? `mt-1 h-7 w-7 rounded-2xl border-2 flex items-center justify-center transition ${
@@ -148,246 +213,239 @@ export default function TaskList({
                 }`
               : `mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${
                   task.status === 'done'
-                    ? 'bg-emerald-500 border-emerald-500'
-                    : 'border-slate-300 hover:border-emerald-500'
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-slate-300 hover:border-emerald-500 text-transparent'
                 }`
+          const compactActivationProps =
+            !isEditing && variant === 'mobile'
+              ? {
+                  onClick: () => onStartEdit(task),
+                }
+              : !isEditing && variant === 'desktop'
+                ? {
+                    onDoubleClick: () => onStartEdit(task),
+                  }
+                : {}
 
           return (
-            <li key={task.id} className={baseLiClass}>
+            <li key={task.id} className={baseLiClass} {...compactActivationProps}>
               {isEditing ? (
-                <form onSubmit={onSaveEdit} className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                  <input
-                    type="text"
-                    value={editingTitle}
-                    onChange={(event) => setEditingTitle(event.target.value)}
-                    placeholder="Título"
-                    autoFocus
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                  />
-                  <textarea
-                    value={editingNotes}
-                    onChange={(event) => setEditingNotes(event.target.value)}
-                    placeholder="Notas..."
-                    rows={2}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none resize-none"
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <select
-                      value={editingAreaId || ''}
-                      onChange={(event) => {
-                        const value = event.target.value || null
-                        setEditingAreaId(value)
-                        if (value && editingProjectId) {
-                          const project = projects.find(project => project.id === editingProjectId)
-                          if (project?.area_id !== value) {
-                            setEditingProjectId(null)
-                            setEditingHeadingId(null)
-                          }
-                        }
-                      }}
-                      className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                    >
-                      <option value="">Sin área</option>
-                      {areas.map(area => (
-                        <option key={area.id} value={area.id}>
-                          {area.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={editingProjectId || ''}
-                      onChange={(event) => {
-                        const value = event.target.value || null
-                        setEditingProjectId(value)
-                        if (value) {
-                          const project = projects.find(project => project.id === value)
-                          setEditingAreaId(project?.area_id || null)
-                        }
-                        setEditingHeadingId(null)
-                      }}
-                      className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                    >
-                      <option value="">Sin proyecto</option>
-                      {(editingAreaId ? projects.filter(project => project.area_id === editingAreaId) : projects).map(project => (
-                        <option key={project.id} value={project.id}>
-                          {project.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {editingProjectId && (
-                    <select
-                      value={editingHeadingId || ''}
-                      onChange={(event) => setEditingHeadingId(event.target.value || null)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                    >
-                      <option value="">Sin sección</option>
-                      {headings
-                        .filter(heading => heading.project_id === editingProjectId)
-                        .map(heading => (
-                          <option key={heading.id} value={heading.id}>
-                            {heading.name}
-                          </option>
-                        ))}
-                    </select>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <select
-                      value={editingPriority}
-                      onChange={(event) => setEditingPriority(Number(event.target.value) as Priority)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                    >
-                      <option value="0">Sin prioridad</option>
-                      <option value="1">🟢 Baja</option>
-                      <option value="2">🟡 Media</option>
-                      <option value="3">🔴 Alta</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={onOpenEditDatePicker}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-left text-sm font-medium text-slate-600 hover:border-slate-400"
-                    >
-                      {formatDateLabel(editingDueAt)}
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onCancelEdit}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:border-slate-400"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => onToggleTask(task.id)}
-                      disabled={togglePending}
-                      className={`${checkboxClass} disabled:opacity-50`}
-                      aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
-                    >
-                      {task.status === 'done' && (
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                <div ref={(node) => (isEditing ? (editingContainerRef.current = node) : undefined)}>
+                  <form
+                    onSubmit={(event) => onSaveEdit(event)}
+                    className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200"
+                  >
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(event) => setEditingTitle(event.target.value)}
+                      placeholder="Título"
+                      autoFocus
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                    />
+                    <textarea
+                      value={editingNotes}
+                      onChange={(event) => setEditingNotes(event.target.value)}
+                      placeholder="Notas..."
+                      rows={variant === 'mobile' ? 3 : 2}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none resize-none"
+                    />
+                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-slate-600">
+                      <button
+                        type="button"
+                        onClick={onOpenEditDatePicker}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                      >
+                        <span>📅</span>
+                        <span>{formatDateLabel(editingDueAt)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onOpenLabelSheet(task)}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                      >
+                        <span>🏷</span>
+                        <span>Etiquetas</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onOpenChecklist(task)}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                      >
+                        <span>☑</span>
+                        <span>Checklist</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onOpenPriorityMenu}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                      >
+                        <span>⚑</span>
+                        <span>{priorityLabels[editingPriority]}</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                      {editingArea && (
+                        <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                          Área: {editingArea.name}
+                        </span>
                       )}
+                      {editingProject && (
+                        <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                          Proyecto: {editingProject.name}
+                        </span>
+                      )}
+                      {editingHeading && (
+                        <span className="px-3 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
+                          Sección: {editingHeading.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onCancelEdit}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:border-slate-400"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                  <div
+                    className={`mt-4 ${
+                      variant === 'mobile'
+                        ? 'flex items-center justify-between gap-3'
+                        : 'flex items-center justify-end gap-3'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onOpenMoveSheet(task)}
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                    >
+                      <span className="text-lg">→</span>
+                      <span>Mover</span>
                     </button>
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex flex-col gap-2">
-                        <div className={`flex justify-between ${variant === 'mobile' ? 'flex-col gap-2' : 'flex-row items-start'}`}>
-                          <p className={`${titleClass} ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
-                            {task.title}
-                          </p>
-                          <div className={metaClass}>
-                            {taskProject && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                                {taskProject.name}
-                              </span>
-                            )}
-                            {!taskProject && taskArea && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                                Área: {taskArea.name}
-                              </span>
-                            )}
-                            {taskHeading && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-100">
-                                {taskHeading.name}
-                              </span>
-                            )}
-                            {task.priority && task.priority > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteTask(task.id)}
+                      disabled={deletePending}
+                      className="flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 hover:border-rose-400 disabled:opacity-50"
+                    >
+                      <span>🗑</span>
+                      <span>Papelera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenOverflowMenu(task)}
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 hover:border-slate-400"
+                    >
+                      <span>…</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-4">
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onToggleTask(task.id)
+                    }}
+                    disabled={togglePending}
+                    className={`${checkboxClass} disabled:opacity-50`}
+                    aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
+                  >
+                    {task.status === 'done' ? checkboxIcon : null}
+                  </button>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div
+                      className={`flex justify-between ${variant === 'mobile' ? 'flex-col gap-2' : 'flex-row items-start'}`}
+                    >
+                      <p className={`${titleClass} ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                        {task.title}
+                      </p>
+                      {task.pinned ? <span className="text-lg" aria-label="Tarea fijada">📌</span> : null}
+                    </div>
+                    {plainNotes && <p className="text-sm text-slate-500">{plainNotes}</p>}
+                    <div className={metaClass}>
+                      {taskProject && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                          {taskProject.name}
+                        </span>
+                      )}
+                      {!taskProject && taskArea && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+                          {taskArea.name}
+                        </span>
+                      )}
+                      {taskHeading && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-100">
+                          {taskHeading.name}
+                        </span>
+                      )}
+                      {task.due_at && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          📅 {new Date(task.due_at).toLocaleDateString('es-ES')}
+                        </span>
+                      )}
+                    </div>
+                    {task.labels && task.labels.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {task.labels.map(label => (
+                          <span key={label.id} className="az-pill">
+                            {label.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {!isEditing && checklistItems.length > 0 && (
+                      <ul className="space-y-1">
+                        {checklistItems.map(item => (
+                          <li key={item.id} className="flex items-center gap-2 text-sm text-slate-600">
+                            {item.persisted ? (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  onToggleCollapsedChecklist(task.id, item.id, item.completed)
+                                }}
+                                className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                  item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'
+                                }`}
+                                aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completada'}
+                              >
+                                ✓
+                              </button>
+                            ) : (
                               <span
-                                className={`text-xs px-2 py-1 rounded-full border font-medium ${
-                                  task.priority === 1
-                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                                    : task.priority === 2
-                                      ? 'bg-amber-50 border-amber-100 text-amber-600'
-                                      : 'bg-rose-50 border-rose-100 text-rose-600'
+                                className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                  item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'
                                 }`}
                               >
-                                {task.priority === 1 ? 'Baja' : task.priority === 2 ? 'Media' : 'Alta'}
+                                ✓
                               </span>
                             )}
-                            {task.due_at && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                                📅 {new Date(task.due_at).toLocaleDateString('es-ES')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {task.notes && <p className="text-sm text-slate-500">{task.notes}</p>}
-                        {task.labels && task.labels.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {task.labels.map(label => (
-                              <span key={label.id} className="az-pill">
-                                {label.name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="text-xs text-slate-400">
-                          Creada el{' '}
-                          {new Date(task.created_at).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onToggleLabelPicker(task.id)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                            selectedTaskForLabel === task.id
-                              ? 'border-slate-900 text-slate-900'
-                              : 'border-slate-200 text-slate-500 hover:border-slate-400'
-                          }`}
-                        >
-                          Etiquetas
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onStartEdit(task)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-slate-200 text-slate-500 hover:border-slate-400"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDeleteTask(task.id)}
-                          disabled={deletePending}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-rose-200 text-rose-600 hover:border-rose-400 disabled:opacity-50"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
+                            <span className={item.completed ? 'line-through text-slate-400' : ''}>{item.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="text-xs text-slate-400">
+                      Creada el{' '}
+                      {new Date(task.created_at).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </div>
                   </div>
-                  {labels.length > 0 && (
-                    <TaskLabels
-                      taskId={task.id}
-                      labels={labels}
-                      assignedLabels={task.labels || []}
-                      onAddLabel={onAddLabel}
-                      onRemoveLabel={onRemoveLabel}
-                      isOpen={selectedTaskForLabel === task.id}
-                      compact={variant === 'mobile'}
-                    />
-                  )}
-                </>
+                </div>
               )}
             </li>
           )

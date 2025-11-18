@@ -34,10 +34,8 @@ export default function LabelSheet({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={onClose}>
-      <div
-        className="absolute inset-x-4 bottom-6 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
+        <div className="mx-auto w-full max-w-md bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl">
         <div className="flex items-center justify-between">
           <span className="text-lg font-semibold">Etiquetas</span>
           <button type="button" onClick={onClose} className="text-2xl">
@@ -95,6 +93,7 @@ export default function LabelSheet({
           >
             Listo
           </button>
+        </div>
         </div>
       </div>
     </div>

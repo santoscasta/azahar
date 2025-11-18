@@ -49,17 +49,18 @@ export default function QuickViewBoard({
           {groups.map(group => (
             <section key={group.areaId || 'none'} className="px-6 py-5 space-y-5">
               {group.area && (
-              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-400">Área</p>
-                  <p className="text-base font-semibold text-slate-800">{group.area.name}</p>
-                    <p className="text-xs text-slate-400">
-                      {group.projects.size} proyecto{group.projects.size === 1 ? '' : 's'} / {group.standalone.length} tareas sueltas
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => onSelectArea(group.areaId!)} className="az-btn-secondary px-3 py-1 text-xs">
-                    Abrir área
+                  <button
+                    type="button"
+                    onClick={() => onSelectArea(group.areaId!)}
+                    className="text-base font-semibold text-slate-800 hover:underline text-left"
+                  >
+                    {group.area.name}
                   </button>
+                  <p className="text-xs text-slate-400">
+                    {group.projects.size} proyecto{group.projects.size === 1 ? '' : 's'} / {group.standalone.length} tareas sueltas
+                  </p>
                 </div>
               )}
               <div className="space-y-5">
@@ -68,18 +69,19 @@ export default function QuickViewBoard({
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs uppercase tracking-wide text-slate-400">Proyecto</p>
-                        <p className="text-base font-semibold text-slate-800">{project?.name ?? 'Proyecto'}</p>
+                        {project?.id ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectProject(project.id)}
+                            className="text-base font-semibold text-slate-800 hover:underline text-left"
+                          >
+                            {project.name}
+                          </button>
+                        ) : (
+                          <p className="text-base font-semibold text-slate-800">{project?.name ?? 'Proyecto'}</p>
+                        )}
                         <p className="text-xs text-slate-400">{tasks.length} tarea{tasks.length === 1 ? '' : 's'}</p>
                       </div>
-                      {project?.id ? (
-                        <button
-                          type="button"
-                          onClick={() => onSelectProject(project.id)}
-                          className="az-btn-secondary px-3 py-1 text-xs"
-                        >
-                          Abrir
-                        </button>
-                      ) : null}
                     </div>
                     {renderTaskList(tasks)}
                   </article>

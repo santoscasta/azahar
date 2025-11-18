@@ -29,6 +29,8 @@ function makeTask(overrides: Partial<Task>): Task {
     created_at: new Date().toISOString(),
     completed_at: null,
     labels: [],
+    pinned: false,
+    checklist_items: [],
     ...overrides,
   }
 }

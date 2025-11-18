@@ -16,6 +16,9 @@ import {
   deleteLabel,
   addTaskLabel,
   removeTaskLabel,
+  toggleChecklistItemCompletion,
+  syncTaskChecklist,
+  setTaskPinned,
   getAreas,
   addArea,
   getProjectHeadings,
@@ -35,6 +38,7 @@ import {
   type ActiveFilterDescriptor,
 } from './tasksSelectors.js'
 import { defaultDueForView, determineViewFromDate } from '../lib/scheduleUtils.js'
+import { deserializeChecklistNotes, generateChecklistId } from '../lib/checklistNotes.js'
 import { applyTaskFilters } from '../lib/taskFilters.js'
 import { useTaskCreation } from '../hooks/useTaskCreation.js'
 import { useProjectCreation } from '../hooks/useProjectCreation.js'
@@ -46,6 +50,8 @@ import { buildMobileTaskPayload } from '../lib/mobileDraftUtils.js'
 import DesktopSidebar from '../components/sidebar/DesktopSidebar.js'
 import MobileHome from '../components/mobile/MobileHome.js'
 import MobileHeader from '../components/mobile/MobileHeader.js'
+import MobileSearchBar from '../components/mobile/MobileSearchBar.js'
+import MobileFab from '../components/mobile/MobileFab.js'
 import NewAreaModal from '../components/tasks/NewAreaModal.js'
 import NewProjectModal from '../components/tasks/NewProjectModal.js'
 import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
@@ -56,10 +62,26 @@ import DatePickerOverlay from '../components/tasks/DatePickerOverlay.js'
 import LabelSheet from '../components/tasks/LabelSheet.js'
 import TaskList from '../components/tasks/TaskList.js'
 import DesktopSearch from '../components/tasks/DesktopSearch.js'
+import DesktopContextHeader from '../components/tasks/DesktopContextHeader.js'
+import DesktopDock from '../components/tasks/DesktopDock.js'
 import QuickViewBoard from '../components/tasks/boards/QuickViewBoard.js'
 import AreaBoard from '../components/tasks/boards/AreaBoard.js'
 import ProjectBoard from '../components/tasks/boards/ProjectBoard.js'
 import MobileOverview from '../components/mobile/MobileOverview.js'
+import MoveTaskSheet from '../components/tasks/MoveTaskSheet.js'
+import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
+import PriorityMenu from '../components/tasks/PriorityMenu.js'
+import TaskOverflowMenu from '../components/tasks/TaskOverflowMenu.js'
+
+type LabelSheetTarget = { kind: 'draft-task' } | { kind: 'task'; taskId: string } | null
+type Priority = 0 | 1 | 2 | 3
+interface EditingChecklistItem {
+  id: string
+  text: string
+  completed: boolean
+  sortOrder: number
+  persisted: boolean
+}
 
 export default function TasksPage() {
   const {
@@ -104,7 +126,6 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
   const [activeQuickView, setActiveQuickView] = useState<QuickViewId>('inbox')
-  const [selectedTaskForLabel, setSelectedTaskForLabel] = useState<string | null>(null)
   const [newHeadingName, setNewHeadingName] = useState('')
   const [headingEditingId, setHeadingEditingId] = useState<string | null>(null)
   const [headingEditingName, setHeadingEditingName] = useState('')
@@ -121,10 +142,15 @@ export default function TasksPage() {
   const [showMobileCreationSheet, setShowMobileCreationSheet] = useState(false)
   const [mobileDraftProject, setMobileDraftProject] = useState<{ name: string; areaId: string | null } | null>(null)
   const [mobileDraftArea, setMobileDraftArea] = useState<{ name: string } | null>(null)
-  const [labelSheetTarget, setLabelSheetTarget] = useState<'draft-task' | null>(null)
+  const [labelSheetTarget, setLabelSheetTarget] = useState<LabelSheetTarget>(null)
   const [labelSheetSelection, setLabelSheetSelection] = useState<string[]>([])
   const [labelSheetInput, setLabelSheetInput] = useState('')
   const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false)
+  const [moveSheetTaskId, setMoveSheetTaskId] = useState<string | null>(null)
+  const [editingChecklist, setEditingChecklist] = useState<EditingChecklistItem[]>([])
+  const [isChecklistSheetOpen, setChecklistSheetOpen] = useState(false)
+  const [isPriorityMenuOpen, setPriorityMenuOpen] = useState(false)
+  const [overflowTaskId, setOverflowTaskId] = useState<string | null>(null)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
@@ -487,11 +513,142 @@ export default function TasksPage() {
     })
   }
 
+  const handleOpenTaskLabelSheet = (task: Task) => {
+    setLabelSheetSelection(task.labels?.map(label => label.id) ?? [])
+    setLabelSheetTarget({ kind: 'task', taskId: task.id })
+  }
+
   const handleLabelSheetConfirm = () => {
-    if (labelSheetTarget === 'draft-task' && mobileDraftTask) {
+    if (labelSheetTarget?.kind === 'draft-task' && mobileDraftTask) {
       updateMobileDraft(prev => (prev ? { ...prev, labelIds: labelSheetSelection } : prev))
+    } else if (labelSheetTarget?.kind === 'task') {
+      const targetTask = tasks.find(task => task.id === labelSheetTarget.taskId)
+      if (targetTask) {
+        const currentLabelIds = new Set((targetTask.labels || []).map(label => label.id))
+        const nextLabelIds = new Set(labelSheetSelection)
+        labelSheetSelection.forEach(labelId => {
+          if (!currentLabelIds.has(labelId)) {
+            addTaskLabelMutation.mutate({ taskId: targetTask.id, labelId })
+          }
+        })
+        ;(targetTask.labels || []).forEach(label => {
+          if (!nextLabelIds.has(label.id)) {
+            removeTaskLabelMutation.mutate({ taskId: targetTask.id, labelId: label.id })
+          }
+        })
+      }
     }
     closeLabelSheet()
+  }
+
+  const handleOpenChecklistSheet = (taskId: string) => {
+    if (!editingId || editingId !== taskId) {
+      return
+    }
+    setChecklistSheetOpen(true)
+  }
+
+  const handleChecklistToggle = (itemId: string) => {
+    setEditingChecklist(prev =>
+      prev.map(item => (item.id === itemId ? { ...item, completed: !item.completed } : item))
+    )
+  }
+
+  const handleChecklistUpdate = (itemId: string, text: string) => {
+    setEditingChecklist(prev => prev.map(item => (item.id === itemId ? { ...item, text } : item)))
+  }
+
+  const handleChecklistRemove = (itemId: string) => {
+    setEditingChecklist(prev =>
+      prev
+        .filter(item => item.id !== itemId)
+        .map((item, index) => ({ ...item, sortOrder: index }))
+    )
+  }
+
+  const handleChecklistAdd = (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) {
+      return
+    }
+    setEditingChecklist(prev => [
+      ...prev,
+      {
+        id: generateChecklistId(),
+        text: trimmed,
+        completed: false,
+        sortOrder: prev.length,
+        persisted: false,
+      },
+    ])
+  }
+
+  const handleOpenPriorityMenu = () => {
+    if (!editingId) {
+      return
+    }
+    setPriorityMenuOpen(true)
+  }
+
+  const handleSelectPriority = (value: Priority) => {
+    setEditingPriority(value)
+    setPriorityMenuOpen(false)
+  }
+
+  const handleOpenOverflowMenu = (taskId: string) => {
+    if (!editingId || editingId !== taskId) {
+      return
+    }
+    setOverflowTaskId(taskId)
+  }
+
+  const handleCloseOverflowMenu = () => {
+    setOverflowTaskId(null)
+  }
+
+  const handleDuplicateTask = () => {
+    if (overflowTask) {
+      duplicateTaskMutation.mutate(overflowTask)
+    }
+  }
+
+  const handleCopyTaskLink = () => {
+    if (!overflowTask) {
+      return
+    }
+    const base =
+      typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://azahar.app'
+    const shareText = `${base}/tasks/${overflowTask.id}`
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareText).catch(() => null)
+    }
+    setOverflowTaskId(null)
+  }
+
+  const handleToggleCollapsedChecklist = (_taskId: string, itemId: string, completed: boolean) => {
+    toggleChecklistItemMutation.mutate({ itemId, completed: !completed })
+  }
+
+  const handleTogglePinnedTask = () => {
+    if (!overflowTask) {
+      return
+    }
+    togglePinMutation.mutate({ taskId: overflowTask.id, pinned: !overflowTask.pinned })
+  }
+
+  const handleOpenMoveSheet = (task: Task) => {
+    setMoveSheetTaskId(task.id)
+  }
+
+  const handleCloseMoveSheet = () => {
+    setMoveSheetTaskId(null)
+  }
+
+  const handleConfirmMoveDestination = (destination: { areaId: string | null; projectId: string | null }) => {
+    if (!moveSheetTaskId) {
+      return
+    }
+    moveTaskMutation.mutate({ taskId: moveSheetTaskId, ...destination })
   }
 
   const editingState = {
@@ -522,6 +679,7 @@ export default function TasksPage() {
       showLoadingState?: boolean
       renderDraftCard?: () => ReactNode
       showDraftCard?: boolean
+      autoSaveOnMobileBlur?: boolean
     } = {}
   ) => (
     <TaskList
@@ -534,7 +692,6 @@ export default function TasksPage() {
       projects={projects}
       areas={areas}
       headings={projectHeadings}
-      labels={labels}
       editingState={editingState}
       editingHandlers={editingHandlers}
       onStartEdit={handleEditTask}
@@ -544,14 +701,17 @@ export default function TasksPage() {
       togglePending={toggleTaskMutation.isPending}
       onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
       deletePending={deleteTaskMutation.isPending}
-      selectedTaskForLabel={selectedTaskForLabel}
-      onToggleLabelPicker={handleToggleLabelPicker}
-      onAddLabel={handleAddLabelToTask}
-      onRemoveLabel={handleRemoveLabelFromTask}
       onOpenEditDatePicker={() => openDatePicker('edit')}
+      onOpenLabelSheet={handleOpenTaskLabelSheet}
+      onOpenChecklist={(task) => handleOpenChecklistSheet(task.id)}
+      onOpenPriorityMenu={handleOpenPriorityMenu}
+      onOpenMoveSheet={handleOpenMoveSheet}
+      onOpenOverflowMenu={(task) => handleOpenOverflowMenu(task.id)}
+      onToggleCollapsedChecklist={handleToggleCollapsedChecklist}
       formatDateLabel={formatDateForLabel}
       renderDraftCard={options.renderDraftCard}
       showDraftCard={options.showDraftCard}
+      autoSaveOnMobileBlur={options.autoSaveOnMobileBlur}
     />
   )
 
@@ -565,6 +725,15 @@ export default function TasksPage() {
   ] as const
   const creationViewOptions = quickLists.filter(list => list.id !== 'logbook')
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]
+  const moveSheetTask = moveSheetTaskId ? tasks.find(task => task.id === moveSheetTaskId) ?? null : null
+  const overflowTask = overflowTaskId ? tasks.find(task => task.id === overflowTaskId) ?? null : null
+  const shouldAutoSaveMobileEdit =
+    labelSheetTarget === null &&
+    !scheduleSheetOpen &&
+    moveSheetTaskId === null &&
+    !isChecklistSheetOpen &&
+    !isPriorityMenuOpen &&
+    overflowTaskId === null
 
   const handleSelectQuickView = (view: QuickViewId) => {
     setActiveQuickView(view)
@@ -726,6 +895,30 @@ export default function TasksPage() {
     return filteredTasks
   }, [filteredTasks, selectedProject, activeProjectFilterChip])
 
+  const contextLabel = selectedProject ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'
+  const contextTitle = selectedProject ? selectedProject.name : selectedArea ? selectedArea.name : currentQuickView.label
+  const areaTaskSummary = selectedArea ? areaStats.get(selectedArea.id) : null
+  const contextDescription = selectedProject
+    ? selectedArea
+      ? `Ubicado en ${selectedArea.name}`
+      : ''
+    : selectedArea
+      ? `${selectedAreaProjectCount} proyecto(s) · ${areaTaskSummary?.total || 0} tareas`
+      : quickViewDescriptions[activeQuickView]
+  const pendingCount = selectedProject
+    ? visibleProjectTasks.filter(task => task.status !== 'done').length
+    : filteredTasks.filter(task => task.status !== 'done').length
+  const overdueCount = selectedProject
+    ? visibleProjectTasks.filter(task => isTaskOverdue(task)).length
+    : filteredTasks.filter(task => isTaskOverdue(task)).length
+  const headerChipItems = selectedProject
+    ? [
+        { id: 'all', label: 'All' },
+        { id: 'important', label: 'Important' },
+        ...projectChipOptions.map(label => ({ id: label.id, label: label.name })),
+      ]
+    : []
+
   useEffect(() => {
     if (isMobileDetail) {
       setMobileTaskLimit(6)
@@ -885,110 +1078,8 @@ export default function TasksPage() {
       showLoadingState,
       renderDraftCard: options.renderDraftCard,
       showDraftCard: options.showDraftCard,
+      autoSaveOnMobileBlur: variant === 'mobile' ? shouldAutoSaveMobileEdit : false,
     })
-  }
-
-  const renderDesktopSearch = () => (
-    <DesktopSearch
-      searchQuery={searchQuery}
-      suggestions={suggestionResults}
-      projects={projects}
-      showSuggestions={showSuggestionPanel}
-      onQueryChange={setSearchQuery}
-      onFocus={handleSearchFocus}
-      onBlur={handleSearchBlur}
-      onClear={handleClearSearch}
-      onSelectSuggestion={handleSuggestionSelect}
-    />
-  )
-
-  const renderMobileSearch = () => (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow px-4 py-3">
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-        <input
-          ref={mobileSearchInputRef}
-          type="text"
-          value={searchQuery}
-          onFocus={handleSearchFocus}
-          onBlur={handleSearchBlur}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Buscar tareas..."
-          className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={handleClearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            aria-label="Limpiar búsqueda"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-    </div>
-  )
-
-  const renderDesktopHeader = () => {
-    const contextLabel = selectedProject ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'
-    const contextTitle = selectedProject ? selectedProject.name : selectedArea ? selectedArea.name : currentQuickView.label
-    const areaTaskSummary = selectedArea ? areaStats.get(selectedArea.id) : null
-    const contextDescription = selectedProject
-      ? selectedArea
-        ? `Ubicado en ${selectedArea.name}`
-        : 'Sin área asignada'
-      : selectedArea
-        ? `${selectedAreaProjectCount} proyecto(s) · ${areaTaskSummary?.total || 0} tareas`
-        : quickViewDescriptions[activeQuickView]
-    const pendingCount = selectedProject
-      ? visibleProjectTasks.filter(task => task.status !== 'done').length
-      : filteredTasks.filter(task => task.status !== 'done').length
-    const overdueCount = selectedProject
-      ? visibleProjectTasks.filter(task => isTaskOverdue(task)).length
-      : filteredTasks.filter(task => isTaskOverdue(task)).length
-    const chipItems = [
-      { id: 'all', label: 'All' },
-      { id: 'important', label: 'Important' },
-      ...projectChipOptions.map(label => ({ id: label.id, label: label.name })),
-    ]
-
-    return (
-      <header className="rounded-[32px] border border-slate-100 bg-white shadow px-8 py-6 space-y-4">
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{contextLabel}</p>
-            <h1 className="text-3xl font-semibold text-slate-900">{contextTitle}</h1>
-            <p className="text-sm text-slate-500 mt-1">{contextDescription}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Pendientes</p>
-            <p className="text-2xl font-semibold text-slate-900">{pendingCount}</p>
-            {overdueCount > 0 && <p className="text-xs text-rose-500">{overdueCount} vencida(s)</p>}
-          </div>
-        </div>
-        {selectedProject && (
-          <div className="flex flex-wrap gap-2">
-            {chipItems.map(chip => {
-              const isActive = activeProjectFilterChip === chip.id
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => handleProjectChipSelect(chip.id as 'all' | 'important' | string)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                    isActive ? 'bg-slate-900 text-white border-slate-900 shadow' : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </header>
-    )
   }
 
   const renderQuickViewBoard = () => {
@@ -1036,6 +1127,8 @@ export default function TasksPage() {
       tasksByHeading.get(key)!.push(task)
     })
     const unassignedTasks = tasksByHeading.get('unassigned') || []
+    const projectAreaName =
+      selectedProject.area_id ? areas.find(area => area.id === selectedProject.area_id)?.name || null : null
     return (
       <ProjectBoard
         project={selectedProject}
@@ -1052,6 +1145,7 @@ export default function TasksPage() {
         onCancelHeadingEdit={handleCancelHeadingEdit}
         onDeleteHeading={handleDeleteHeading}
         onSelectArea={(areaId) => handleSelectArea(areaId)}
+        areaName={projectAreaName}
         renderTaskList={(tasks, opts) => renderTaskBody('desktop', tasks, opts?.showEmptyState ?? false)}
         renderHeadingForm={() => (
           <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50 space-y-3">
@@ -1121,20 +1215,6 @@ export default function TasksPage() {
 
 
 
-  const renderMobileHeader = () => (
-    <MobileHeader
-      onBack={handleMobileBack}
-      isProjectView={isMobileProjectView}
-      selectedArea={selectedArea}
-      mobileProject={mobileProject}
-      quickViewLabel={currentQuickView.label}
-      friendlyToday={friendlyToday}
-      filteredTaskCount={filteredTasks.length}
-      completedCount={completedCount}
-      projectsInArea={selectedAreaProjectCount}
-    />
-  )
-
 
 
   const renderMobileCreationSheet = () => (
@@ -1188,6 +1268,52 @@ export default function TasksPage() {
     />
   )
 
+  const renderChecklistSheet = () => (
+    <ChecklistSheet
+      open={isChecklistSheetOpen}
+      items={editingChecklist}
+      onClose={() => setChecklistSheetOpen(false)}
+      onToggle={handleChecklistToggle}
+      onAdd={handleChecklistAdd}
+      onUpdate={handleChecklistUpdate}
+      onRemove={handleChecklistRemove}
+    />
+  )
+
+  const renderPriorityMenu = () => (
+    <PriorityMenu
+      open={isPriorityMenuOpen}
+      selected={editingPriority}
+      onSelect={handleSelectPriority}
+      onClose={() => setPriorityMenuOpen(false)}
+    />
+  )
+
+  const renderOverflowMenu = () => (
+    <TaskOverflowMenu
+      open={overflowTaskId !== null}
+      task={overflowTask}
+      isDuplicating={duplicateTaskMutation.isPending}
+      isPinning={togglePinMutation.isPending}
+      onTogglePin={handleTogglePinnedTask}
+      onDuplicate={handleDuplicateTask}
+      onCopyLink={handleCopyTaskLink}
+      onClose={handleCloseOverflowMenu}
+    />
+  )
+
+  const renderMoveSheet = () => (
+    <MoveTaskSheet
+      open={!!moveSheetTaskId}
+      task={moveSheetTask}
+      areas={areas}
+      projects={projects}
+      isProcessing={moveTaskMutation.isPending}
+      onClose={handleCloseMoveSheet}
+      onSelect={handleConfirmMoveDestination}
+    />
+  )
+
 
   const renderMobileDraftTaskCard = () => (
     mobileDraftTask ? (
@@ -1200,7 +1326,7 @@ export default function TasksPage() {
         onSchedulePress={() => setScheduleSheetOpen(true)}
         onLabelsPress={() => {
           setLabelSheetSelection(mobileDraftTask.labelIds)
-          setLabelSheetTarget('draft-task')
+          setLabelSheetTarget({ kind: 'draft-task' })
         }}
         onDatePress={() => openDatePicker('draft')}
         onCancel={handleCancelMobileDraftTask}
@@ -1226,58 +1352,6 @@ export default function TasksPage() {
           Mostrar más
         </button>
       )}
-    </div>
-  )
-
-  const renderMobileFab = () => {
-    const isHomeFab = isMobile && showMobileHome
-    return (
-    <button
-      type="button"
-      onClick={() => {
-        if (isHomeFab) {
-          setShowMobileCreationSheet(true)
-        } else {
-          startMobileTaskDraft(activeQuickView)
-        }
-      }}
-      className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
-      aria-label="Crear tarea"
-    >
-      +
-    </button>
-    )
-  }
-
-  const renderDesktopDock = () => (
-    <div className="hidden lg:flex fixed inset-x-0 bottom-6 justify-center pointer-events-none">
-      <div className="az-dock px-6 py-3 flex items-center gap-4 pointer-events-auto">
-        <button
-          type="button"
-          onClick={handleOpenTaskModal}
-          className="h-12 w-12 rounded-full bg-[var(--color-primary-600)] text-white text-2xl shadow-xl flex items-center justify-center"
-          aria-label="Crear tarea"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowQuickHeadingForm(true)}
-          disabled={!selectedProjectId}
-          className="h-12 w-12 rounded-full border border-slate-200 text-xl text-slate-600 hover:border-slate-300 disabled:opacity-40"
-          aria-label="Nueva sección"
-        >
-          ≡
-        </button>
-        <button
-          type="button"
-          onClick={() => openDatePicker('new')}
-          className="h-12 w-12 rounded-full border border-slate-200 text-lg text-slate-600 hover:border-slate-300"
-          aria-label="Elegir fecha"
-        >
-          📅
-        </button>
-      </div>
     </div>
   )
 
@@ -1349,6 +1423,49 @@ export default function TasksPage() {
     },
   })
 
+  const duplicateTaskMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const result = await addTask(
+        `${task.title}`,
+        task.notes || '',
+        task.priority ?? 0,
+        task.due_at ?? undefined,
+        task.status,
+        task.project_id,
+        task.area_id,
+        task.heading_id
+      )
+      if (!result.success || !result.task) {
+        throw new Error(result.error || 'Error al duplicar tarea')
+      }
+      const labelIds = (task.labels || []).map(label => label.id)
+      if (labelIds.length > 0) {
+        await Promise.all(labelIds.map(labelId => addTaskLabel(result.task!.id, labelId)))
+      }
+      return result.task
+    },
+    onSuccess: () => {
+      setOverflowTaskId(null)
+      setError('')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Error inesperado al duplicar tarea')
+    },
+  })
+
+  const togglePinMutation = useMutation({
+    mutationFn: ({ taskId, pinned }: { taskId: string; pinned: boolean }) => setTaskPinned(taskId, pinned),
+    onSuccess: () => {
+      setOverflowTaskId(null)
+      setError('')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Error al fijar tarea')
+    },
+  })
+
   const addLabelMutation = useMutation({
     mutationFn: (name: string) => addLabel(name),
     onSuccess: (result) => {
@@ -1386,8 +1503,8 @@ export default function TasksPage() {
 
   // Mutación para actualizar tarea
   const updateTaskMutation = useMutation({
-    mutationFn: (taskId: string) =>
-      updateTask(taskId, {
+    mutationFn: async (taskId: string) => {
+      const updated = await updateTask(taskId, {
         title: editingTitle,
         notes: editingNotes,
         priority: editingPriority,
@@ -1395,7 +1512,22 @@ export default function TasksPage() {
         project_id: editingProjectId || null,
         area_id: editingAreaId || null,
         heading_id: editingHeadingId || null,
-      }),
+      })
+      if (!updated.success) {
+        return updated
+      }
+      const checklistPayload = editingChecklist.map((item, index) => ({
+        id: item.persisted ? item.id : undefined,
+        text: item.text,
+        completed: item.completed,
+        sort_order: item.sortOrder ?? index,
+      }))
+      const synced = await syncTaskChecklist(taskId, checklistPayload)
+      if (!synced.success) {
+        return { success: false, error: synced.error }
+      }
+      return updated
+    },
     onSuccess: (result) => {
       if (result.success) {
         setEditingId(null)
@@ -1403,6 +1535,10 @@ export default function TasksPage() {
         setEditingNotes('')
         setEditingPriority(0)
         setEditingDueAt('')
+        setEditingChecklist([])
+        setChecklistSheetOpen(false)
+        setPriorityMenuOpen(false)
+        setOverflowTaskId(null)
         setError('')
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
       } else {
@@ -1411,6 +1547,32 @@ export default function TasksPage() {
     },
     onError: () => {
       setError('Error inesperado al actualizar tarea')
+    },
+  })
+
+  const moveTaskMutation = useMutation({
+    mutationFn: ({ taskId, areaId, projectId }: { taskId: string; areaId: string | null; projectId: string | null }) =>
+      updateTask(taskId, {
+        area_id: areaId,
+        project_id: projectId,
+        heading_id: null,
+      }),
+    onSuccess: (result, variables) => {
+      if (result.success) {
+        setError('')
+        if (editingId === variables.taskId) {
+          setEditingAreaId(variables.areaId)
+          setEditingProjectId(variables.projectId)
+          setEditingHeadingId(null)
+        }
+        setMoveSheetTaskId(null)
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al mover tarea')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al mover tarea')
     },
   })
 
@@ -1427,6 +1589,21 @@ export default function TasksPage() {
     },
     onError: () => {
       setError('Error inesperado al cambiar estado')
+    },
+  })
+
+  const toggleChecklistItemMutation = useMutation({
+    mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) =>
+      toggleChecklistItemCompletion(itemId, completed),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'No se pudo actualizar checklist')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al actualizar checklist')
     },
   })
 
@@ -1683,16 +1860,36 @@ export default function TasksPage() {
   const handleEditTask = (task: Task) => {
     setEditingId(task.id)
     setEditingTitle(task.title)
-    setEditingNotes(task.notes || '')
+    const legacy = deserializeChecklistNotes(task.notes)
+    const checklistSource =
+      task.checklist_items && task.checklist_items.length > 0
+        ? task.checklist_items.map((item, index) => ({
+            id: item.id,
+            text: item.text,
+            completed: item.completed,
+            sortOrder: item.sort_order ?? index,
+            persisted: true,
+          }))
+        : legacy.items.map((item, index) => ({
+            id: item.id || generateChecklistId(),
+            text: item.text,
+            completed: item.completed,
+            sortOrder: index,
+            persisted: false,
+          }))
+    setEditingNotes(legacy.text || task.notes || '')
+    setEditingChecklist(checklistSource)
     setEditingPriority((task.priority || 0) as 0 | 1 | 2 | 3)
     setEditingDueAt(task.due_at ? task.due_at.split('T')[0] : '')
     setEditingProjectId(task.project_id || null)
-     setEditingAreaId(task.area_id || null)
-     setEditingHeadingId(task.heading_id || null)
+    setEditingAreaId(task.area_id || null)
+    setEditingHeadingId(task.heading_id || null)
   }
 
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSaveEdit = (event?: React.FormEvent) => {
+    if (event) {
+      event.preventDefault()
+    }
     if (!editingTitle.trim()) {
       setError('El título no puede estar vacío')
       return
@@ -1711,6 +1908,11 @@ export default function TasksPage() {
     setEditingProjectId(null)
     setEditingAreaId(null)
     setEditingHeadingId(null)
+    setMoveSheetTaskId(null)
+    setEditingChecklist([])
+    setChecklistSheetOpen(false)
+    setPriorityMenuOpen(false)
+    setOverflowTaskId(null)
   }
 
   const handleSelectProject = (projectId: string) => {
@@ -1847,18 +2049,6 @@ export default function TasksPage() {
     deleteHeadingMutation.mutate(headingId)
   }
 
-  const handleToggleLabelPicker = (taskId: string) => {
-    setSelectedTaskForLabel(prev => (prev === taskId ? null : taskId))
-  }
-
-  const handleAddLabelToTask = (taskId: string, labelId: string) => {
-    addTaskLabelMutation.mutate({ taskId, labelId })
-  }
-
-  const handleRemoveLabelFromTask = (taskId: string, labelId: string) => {
-    removeTaskLabelMutation.mutate({ taskId, labelId })
-  }
-
   const handleShowMoreMobileTasks = () => {
     setMobileTaskLimit(prev => Math.min(prev + 5, filteredTasks.length))
   }
@@ -1938,6 +2128,10 @@ export default function TasksPage() {
         {renderTaskModal()}
         {renderMobileCreationSheet()}
         {renderScheduleSheet()}
+        {renderMoveSheet()}
+        {renderChecklistSheet()}
+        {renderPriorityMenu()}
+        {renderOverflowMenu()}
         {renderLabelSheet()}
         {renderDatePickerOverlay()}
       </main>
@@ -1950,8 +2144,29 @@ export default function TasksPage() {
         <>
           <div className="max-w-2xl mx-auto px-4 py-6">
             <MobileHome
-              renderSearch={renderMobileSearch}
-              renderHeader={renderMobileHeader}
+              renderSearch={() => (
+                <MobileSearchBar
+                  value={searchQuery}
+                  inputRef={mobileSearchInputRef}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
+                  onChange={setSearchQuery}
+                  onClear={handleClearSearch}
+                />
+              )}
+              renderHeader={() => (
+                <MobileHeader
+                  onBack={handleMobileBack}
+                  isProjectView={isMobileProjectView}
+                  selectedArea={selectedArea}
+                  mobileProject={mobileProject}
+                  quickViewLabel={currentQuickView.label}
+                  friendlyToday={friendlyToday}
+                  filteredTaskCount={filteredTasks.length}
+                  completedCount={completedCount}
+                  projectsInArea={selectedAreaProjectCount}
+                />
+              )}
               renderFilters={() => (
                 <ActiveFilterChips
                   filters={activeFilters}
@@ -1965,7 +2180,11 @@ export default function TasksPage() {
               showDraft={showMobileHome && !!mobileDraftTask}
             />
           </div>
-          {renderMobileFab()}
+          <MobileFab
+            isHomeView={showMobileHome}
+            onTapHome={() => setShowMobileCreationSheet(true)}
+            onTapDetail={() => startMobileTaskDraft(activeQuickView)}
+          />
         </>
       ) : (
         <>
@@ -1996,8 +2215,27 @@ export default function TasksPage() {
                 />
               </div>
               <section className="space-y-6">
-                {renderDesktopSearch()}
-                {renderDesktopHeader()}
+                <DesktopSearch
+                  searchQuery={searchQuery}
+                  suggestions={suggestionResults}
+                  projects={projects}
+                  showSuggestions={showSuggestionPanel}
+                  onQueryChange={setSearchQuery}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
+                  onClear={handleClearSearch}
+                  onSelectSuggestion={handleSuggestionSelect}
+                />
+                <DesktopContextHeader
+                  label={contextLabel}
+                  title={contextTitle}
+                  description={contextDescription}
+                  pendingCount={pendingCount}
+                  overdueCount={overdueCount}
+                  chips={headerChipItems}
+                  activeChip={activeProjectFilterChip}
+                  onChipSelect={(chipId) => handleProjectChipSelect(chipId as 'all' | 'important' | string)}
+                />
                 <ActiveFilterChips
                   filters={activeFilters}
                   compact={false}
@@ -2008,7 +2246,12 @@ export default function TasksPage() {
               </section>
             </div>
           </div>
-          {renderDesktopDock()}
+          <DesktopDock
+            onCreateTask={handleOpenTaskModal}
+            onAddHeading={() => setShowQuickHeadingForm(true)}
+            onOpenDatePicker={() => openDatePicker('new')}
+            disableHeading={!selectedProjectId}
+          />
         </>
       )}
       {renderTaskModal()}
@@ -2038,16 +2281,16 @@ export default function TasksPage() {
         isSaving={addHeadingMutation.isPending}
         onClose={() => setShowQuickHeadingForm(false)}
         onSubmit={handleAddHeading}
-        onNameChange={(value) => setNewHeadingName(value)}
-      />
-      {renderMobileCreationSheet()}
-      {renderScheduleSheet()}
-      {renderLabelSheet()}
-      {renderDatePickerOverlay()}
-    </main>
-  )
-
-
+      onNameChange={(value) => setNewHeadingName(value)}
+    />
+    {renderMobileCreationSheet()}
+    {renderScheduleSheet()}
+    {renderMoveSheet()}
+    {renderChecklistSheet()}
+    {renderPriorityMenu()}
+    {renderOverflowMenu()}
+    {renderLabelSheet()}
+    {renderDatePickerOverlay()}
+  </main>
+)
 }
-
-// Componente auxiliar para mostrar etiquetas de una tarea

@@ -32,6 +32,8 @@ const task: Task = {
   created_at: '2025-01-01T00:00:00.000Z',
   completed_at: null,
   labels: [],
+  pinned: false,
+  checklist_items: [],
 }
 
 describe('AreaBoard', () => {
@@ -54,7 +56,7 @@ describe('AreaBoard', () => {
     )
 
     expect(screen.getByText('Área Uno')).toBeDefined()
-    fireEvent.click(screen.getByText('Abrir'))
+    fireEvent.click(screen.getByText('Proyecto Uno'))
     expect(onSelectProject).toHaveBeenCalledWith('project-1')
     expect(screen.getByText('1 tarea(s)')).toBeDefined()
   })

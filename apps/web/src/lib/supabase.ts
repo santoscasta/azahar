@@ -98,6 +98,16 @@ export interface TaskLabelSummary {
   color: string | null
 }
 
+export interface TaskChecklistItem {
+  id: string
+  task_id: string
+  user_id: string
+  text: string
+  completed: boolean
+  sort_order: number
+  created_at: string
+}
+
 export interface Task {
   id: string
   user_id: string
@@ -115,7 +125,9 @@ export interface Task {
   updated_at: string
   created_at: string
   completed_at: string | null
+  pinned: boolean | null
   labels?: TaskLabelSummary[]
+  checklist_items?: TaskChecklistItem[]
 }
 
 export interface Project {
@@ -215,6 +227,28 @@ export async function searchTasks(
       return { success: false, error: tasksError.message }
     }
 
+    const taskIds = (allTasks || [])
+      .map(task => (task as { id?: string }).id)
+      .filter((id): id is string => Boolean(id))
+    let checklistItems: TaskChecklistItem[] = []
+    if (taskIds.length > 0) {
+      const { data: checklistData, error: checklistError } = await supabase
+        .from('task_checklist_items')
+        .select('*')
+        .in('task_id', taskIds)
+      if (checklistError) {
+        return { success: false, error: checklistError.message }
+      }
+      checklistItems = checklistData || []
+    }
+    const checklistByTask = new Map<string, TaskChecklistItem[]>()
+    checklistItems.forEach(item => {
+      if (!checklistByTask.has(item.task_id)) {
+        checklistByTask.set(item.task_id, [])
+      }
+      checklistByTask.get(item.task_id)!.push(item)
+    })
+
     const tasksWithLabels =
       (allTasks || []).map(task => {
         const taskLabels = (task as any).task_labels as Array<{ labels: Label | null }> | undefined
@@ -227,9 +261,12 @@ export async function searchTasks(
               name: label!.name,
               color: label!.color,
             })) || []
-        const { task_labels, ...rest } = task as any
+        const rawTask = task as any
+        const { task_labels, ...rest } = rawTask
+        const taskId = rawTask.id as string
         return {
           ...(rest as Task),
+          checklist_items: checklistByTask.get(taskId) || [],
           labels: summaries,
         }
       }) || []
@@ -910,5 +947,100 @@ export async function removeTaskLabel(taskId: string, labelId: string): Promise<
     return { success: true }
   } catch (err) {
     return { success: false, error: 'Error al remover etiqueta de tarea' }
+  }
+}
+
+export interface ChecklistItemInput {
+  id?: string
+  text: string
+  completed: boolean
+  sort_order?: number
+}
+
+export async function syncTaskChecklist(
+  taskId: string,
+  items: ChecklistItemInput[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const deleteResult = await supabase
+      .from('task_checklist_items')
+      .delete()
+      .eq('task_id', taskId)
+      .eq('user_id', user.id)
+
+    if (deleteResult.error) {
+      return { success: false, error: deleteResult.error.message }
+    }
+
+    if (items.length === 0) {
+      return { success: true }
+    }
+
+    const payload = items.map((item, index) => ({
+      user_id: user.id,
+      task_id: taskId,
+      text: item.text,
+      completed: item.completed,
+      sort_order: item.sort_order ?? index,
+      ...(item.id ? { id: item.id } : {}),
+    }))
+
+    const insertResult = await supabase.from('task_checklist_items').insert(payload)
+    if (insertResult.error) {
+      return { success: false, error: insertResult.error.message }
+    }
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error inesperado al sincronizar checklist' }
+  }
+}
+
+export async function setTaskPinned(taskId: string, pinned: boolean): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+    const { error } = await supabase
+      .from('tasks')
+      .update({ pinned, updated_at: new Date().toISOString() })
+      .eq('id', taskId)
+      .eq('user_id', user.id)
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error inesperado al fijar tarea' }
+  }
+}
+
+export async function toggleChecklistItemCompletion(
+  itemId: string,
+  completed: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    const { error } = await supabase
+      .from('task_checklist_items')
+      .update({ completed, updated_at: new Date().toISOString() })
+      .eq('id', itemId)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar checklist' }
   }
 }

@@ -40,6 +40,8 @@ const tasks = new Map<string, Task[]>([
         created_at: '2025-01-01T00:00:00.000Z',
         completed_at: null,
         labels: [],
+        pinned: false,
+        checklist_items: [],
       },
     ],
   ],
@@ -67,6 +69,7 @@ describe('ProjectBoard', () => {
         onCancelHeadingEdit={vi.fn()}
         onDeleteHeading={onDeleteHeading}
         onSelectArea={onSelectArea}
+        areaName="Área Uno"
         renderTaskList={(tasks) => <div>{tasks.length} tarea(s)</div>}
         renderHeadingForm={() => <div>Formulario Heading</div>}
       />
@@ -78,7 +81,7 @@ describe('ProjectBoard', () => {
     fireEvent.click(screen.getByText('🗑️'))
     expect(onDeleteHeading).toHaveBeenCalledWith('heading-1')
 
-    fireEvent.click(screen.getByText('Ver área vinculada'))
+    fireEvent.click(screen.getByText('Área Uno'))
     expect(onSelectArea).toHaveBeenCalledWith('area-1')
     expect(screen.getByText('Formulario Heading')).toBeDefined()
   })
