@@ -1,6 +1,6 @@
 import type { Task, Area, Project } from '../../../lib/supabase.js'
 
-interface QuickViewGroup {
+export interface QuickViewGroup {
   areaId: string | null
   area: Area | null
   projects: Map<string, { project: Project | null; tasks: Task[] }>

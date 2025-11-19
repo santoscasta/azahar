@@ -48,9 +48,7 @@ import { MobileDraftCard } from '../components/mobile/MobileDraftCard.js'
 import { MobileScheduleSheet } from '../components/mobile/MobileScheduleSheet.js'
 import { buildMobileTaskPayload } from '../lib/mobileDraftUtils.js'
 import DesktopSidebar from '../components/sidebar/DesktopSidebar.js'
-import MobileHome from '../components/mobile/MobileHome.js'
-import MobileHeader from '../components/mobile/MobileHeader.js'
-import MobileSearchBar from '../components/mobile/MobileSearchBar.js'
+import MobileTasksPane from '../components/mobile/MobileTasksPane.js'
 import MobileFab from '../components/mobile/MobileFab.js'
 import NewAreaModal from '../components/tasks/NewAreaModal.js'
 import NewProjectModal from '../components/tasks/NewProjectModal.js'
@@ -58,16 +56,15 @@ import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
 import ActiveFilterChips from '../components/tasks/ActiveFilterChips.js'
 import ErrorBanner from '../components/tasks/ErrorBanner.js'
 import TaskCreationModal from '../components/tasks/TaskCreationModal.js'
-import DatePickerOverlay from '../components/tasks/DatePickerOverlay.js'
+import TaskDatePickerOverlay from '../components/tasks/TaskDatePickerOverlay.js'
 import LabelSheet from '../components/tasks/LabelSheet.js'
 import TaskList from '../components/tasks/TaskList.js'
 import DesktopSearch from '../components/tasks/DesktopSearch.js'
 import DesktopContextHeader from '../components/tasks/DesktopContextHeader.js'
 import DesktopDock from '../components/tasks/DesktopDock.js'
-import QuickViewBoard from '../components/tasks/boards/QuickViewBoard.js'
-import AreaBoard from '../components/tasks/boards/AreaBoard.js'
-import ProjectBoard from '../components/tasks/boards/ProjectBoard.js'
+import DesktopTaskBoardSwitcher from '../components/tasks/boards/DesktopTaskBoardSwitcher.js'
 import MobileOverview from '../components/mobile/MobileOverview.js'
+import MobileTaskBoard from '../components/mobile/MobileTaskBoard.js'
 import MoveTaskSheet from '../components/tasks/MoveTaskSheet.js'
 import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
 import PriorityMenu from '../components/tasks/PriorityMenu.js'
@@ -1082,137 +1079,6 @@ export default function TasksPage() {
     })
   }
 
-  const renderQuickViewBoard = () => {
-    if (isLoading && filteredTasks.length === 0) {
-      return (
-        <div className="az-card overflow-hidden">
-          <div className="p-10 text-center text-slate-500">Cargando tareas...</div>
-        </div>
-      )
-    }
-    if (filteredTasks.length === 0) {
-      return (
-        <div className="az-card overflow-hidden">
-          <div className="p-10 text-center text-slate-500">
-            {filteredViewActive ? 'No hay tareas que coincidan con tu vista actual.' : 'No hay tareas todavía. ¡Crea la primera!'}
-          </div>
-        </div>
-      )
-    }
-    return (
-      <QuickViewBoard
-        quickViewLabel={quickViewLabels[activeQuickView]}
-        quickViewDescription={quickViewDescriptions[activeQuickView]}
-        completedCount={completedCount}
-        totalCount={filteredTasks.length}
-        groups={quickViewGroups}
-        onSelectArea={(areaId) => handleSelectArea(areaId)}
-        onSelectProject={handleSelectProject}
-        renderTaskList={(tasks) => renderTaskBody('desktop', tasks, false)}
-      />
-    )
-  }
-
-  const renderProjectBoard = () => {
-    if (!selectedProject) {
-      return null
-    }
-    const headingsForProject = projectHeadings.filter(heading => heading.project_id === selectedProject.id)
-    const tasksByHeading = new Map<string, Task[]>()
-    visibleProjectTasks.forEach(task => {
-      const key = task.heading_id || 'unassigned'
-      if (!tasksByHeading.has(key)) {
-        tasksByHeading.set(key, [])
-      }
-      tasksByHeading.get(key)!.push(task)
-    })
-    const unassignedTasks = tasksByHeading.get('unassigned') || []
-    const projectAreaName =
-      selectedProject.area_id ? areas.find(area => area.id === selectedProject.area_id)?.name || null : null
-    return (
-      <ProjectBoard
-        project={selectedProject}
-        headings={headingsForProject}
-        tasksByHeading={tasksByHeading}
-        unassignedTasks={unassignedTasks}
-        completedCount={completedCount}
-        totalCount={visibleProjectTasks.length}
-        headingEditingId={headingEditingId}
-        headingEditingName={headingEditingName}
-        onStartEditHeading={handleStartEditHeading}
-        onChangeHeadingName={setHeadingEditingName}
-        onSaveHeadingName={handleSaveHeadingEdit}
-        onCancelHeadingEdit={handleCancelHeadingEdit}
-        onDeleteHeading={handleDeleteHeading}
-        onSelectArea={(areaId) => handleSelectArea(areaId)}
-        areaName={projectAreaName}
-        renderTaskList={(tasks, opts) => renderTaskBody('desktop', tasks, opts?.showEmptyState ?? false)}
-        renderHeadingForm={() => (
-          <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Secciones</p>
-              <form onSubmit={handleAddHeading} className="flex gap-2">
-                <input
-                  type="text"
-                  value={newHeadingName}
-                  onChange={(event) => setNewHeadingName(event.target.value)}
-                  placeholder="Nombre de la sección"
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={addHeadingMutation.isPending}
-                  className="az-btn-primary px-4 py-2 text-sm"
-                >
-                  {addHeadingMutation.isPending ? 'Guardando...' : 'Crear'}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-      />
-    )
-  }
-
-  const renderAreaBoard = () => {
-    if (!selectedArea) {
-      return null
-    }
-    const projectsInArea = projects.filter(project => project.area_id === selectedArea.id)
-    const tasksByProject = new Map<string, Task[]>()
-    filteredTasks.forEach(task => {
-      const key = task.project_id || 'loose'
-      if (!tasksByProject.has(key)) {
-        tasksByProject.set(key, [])
-      }
-      tasksByProject.get(key)!.push(task)
-    })
-    const looseTasks = tasksByProject.get('loose') || []
-    return (
-      <AreaBoard
-        areaName={selectedArea.name}
-        projectCount={projectsInArea.length}
-        completedCount={completedCount}
-        totalCount={filteredTasks.length}
-        projects={projectsInArea}
-        tasksByProject={tasksByProject}
-        looseTasks={looseTasks}
-        onSelectProject={handleSelectProject}
-        renderTaskList={(tasks) => renderTaskBody('desktop', tasks, false)}
-      />
-    )
-  }
-
-  const renderDesktopTaskBoard = () => {
-    if (selectedProject) {
-      return renderProjectBoard()
-    }
-    if (selectedArea) {
-      return renderAreaBoard()
-    }
-    return renderQuickViewBoard()
-  }
-
 
 
 
@@ -1337,45 +1203,14 @@ export default function TasksPage() {
   )
 
   const renderMobileTaskBoard = () => (
-    <div className="space-y-4">
-      {renderTaskBody('mobile', undefined, true, {
+    <MobileTaskBoard
+      taskList={renderTaskBody('mobile', undefined, true, {
         showLoadingState: true,
         renderDraftCard: renderMobileDraftTaskCard,
         showDraftCard: !!mobileDraftTask,
       })}
-      {canShowMoreMobileTasks && (
-        <button
-          type="button"
-          onClick={handleShowMoreMobileTasks}
-          className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600"
-        >
-          Mostrar más
-        </button>
-      )}
-    </div>
-  )
-
-  const currentDatePickerValue =
-    datePickerTarget === 'new'
-      ? taskDraft.due_at
-      : datePickerTarget === 'edit'
-        ? editingDueAt
-        : datePickerTarget === 'draft' && mobileDraftTask?.due_at
-          ? mobileDraftTask.due_at
-          : ''
-
-  const renderDatePickerOverlay = () => (
-    <DatePickerOverlay
-      open={!!datePickerTarget}
-      mode={datePickerTarget || 'new'}
-      month={datePickerMonth}
-      todayISO={todayISO}
-      tomorrowISO={tomorrowISO}
-      selectedDate={currentDatePickerValue}
-      selectedDateLabel={currentDatePickerValue ? formatDateForLabel(currentDatePickerValue) : 'Sin fecha'}
-      onClose={closeDatePicker}
-      onMonthChange={handleDatePickerMonthChange}
-      onSelectDate={applyPickedDate}
+      canShowMore={canShowMoreMobileTasks}
+      onShowMore={handleShowMoreMobileTasks}
     />
   )
 
@@ -2049,6 +1884,78 @@ export default function TasksPage() {
     deleteHeadingMutation.mutate(headingId)
   }
 
+  const renderProjectHeadingForm = () => (
+    <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-wide text-slate-500">Secciones</p>
+        <form onSubmit={handleAddHeading} className="flex gap-2">
+          <input
+            type="text"
+            value={newHeadingName}
+            onChange={(event) => setNewHeadingName(event.target.value)}
+            placeholder="Nombre de la sección"
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+          />
+          <button
+            type="submit"
+            disabled={addHeadingMutation.isPending}
+            className="az-btn-primary px-4 py-2 text-sm"
+          >
+            {addHeadingMutation.isPending ? 'Guardando...' : 'Crear'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+
+  const renderDesktopTaskBoard = () => {
+    const isQuickViewContext = !selectedProject && !selectedArea
+    if (isQuickViewContext && isLoading && filteredTasks.length === 0) {
+      return (
+        <div className="az-card overflow-hidden">
+          <div className="p-10 text-center text-slate-500">Cargando tareas...</div>
+        </div>
+      )
+    }
+    if (isQuickViewContext && filteredTasks.length === 0) {
+      return (
+        <div className="az-card overflow-hidden">
+          <div className="p-10 text-center text-slate-500">
+            {filteredViewActive
+              ? 'No hay tareas que coincidan con tu vista actual.'
+              : 'No hay tareas todavía. ¡Crea la primera!'}
+          </div>
+        </div>
+      )
+    }
+    return (
+      <DesktopTaskBoardSwitcher
+        selectedProject={selectedProject}
+        selectedArea={selectedArea}
+        projects={projects}
+        areas={areas}
+        projectHeadings={projectHeadings}
+        filteredTasks={filteredTasks}
+        visibleProjectTasks={visibleProjectTasks}
+        completedCount={completedCount}
+        quickViewLabel={quickViewLabels[activeQuickView]}
+        quickViewDescription={quickViewDescriptions[activeQuickView]}
+        quickViewGroups={quickViewGroups}
+        headingEditingId={headingEditingId}
+        headingEditingName={headingEditingName}
+        onStartEditHeading={handleStartEditHeading}
+        onChangeHeadingName={(value) => setHeadingEditingName(value)}
+        onSaveHeadingName={handleSaveHeadingEdit}
+        onCancelHeadingEdit={handleCancelHeadingEdit}
+        onDeleteHeading={handleDeleteHeading}
+        onSelectArea={handleSelectArea}
+        onSelectProject={handleSelectProject}
+        renderTaskList={(tasks, options) => renderTaskBody('desktop', tasks, options?.showEmptyState ?? false)}
+        renderHeadingForm={selectedProject ? renderProjectHeadingForm : undefined}
+      />
+    )
+  }
+
   const handleShowMoreMobileTasks = () => {
     setMobileTaskLimit(prev => Math.min(prev + 5, filteredTasks.length))
   }
@@ -2133,7 +2040,19 @@ export default function TasksPage() {
         {renderPriorityMenu()}
         {renderOverflowMenu()}
         {renderLabelSheet()}
-        {renderDatePickerOverlay()}
+        <TaskDatePickerOverlay
+          target={datePickerTarget}
+          month={datePickerMonth}
+          todayISO={todayISO}
+          tomorrowISO={tomorrowISO}
+          draftDueDate={taskDraft.due_at}
+          editingDueDate={editingDueAt}
+          mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
+          formatDateLabel={formatDateForLabel}
+          onClose={closeDatePicker}
+          onMonthChange={handleDatePickerMonthChange}
+          onSelectDate={applyPickedDate}
+        />
       </main>
     )
   }
@@ -2143,38 +2062,26 @@ export default function TasksPage() {
       {isMobile ? (
         <>
           <div className="max-w-2xl mx-auto px-4 py-6">
-            <MobileHome
-              renderSearch={() => (
-                <MobileSearchBar
-                  value={searchQuery}
-                  inputRef={mobileSearchInputRef}
-                  onFocus={handleSearchFocus}
-                  onBlur={handleSearchBlur}
-                  onChange={setSearchQuery}
-                  onClear={handleClearSearch}
-                />
-              )}
-              renderHeader={() => (
-                <MobileHeader
-                  onBack={handleMobileBack}
-                  isProjectView={isMobileProjectView}
-                  selectedArea={selectedArea}
-                  mobileProject={mobileProject}
-                  quickViewLabel={currentQuickView.label}
-                  friendlyToday={friendlyToday}
-                  filteredTaskCount={filteredTasks.length}
-                  completedCount={completedCount}
-                  projectsInArea={selectedAreaProjectCount}
-                />
-              )}
-              renderFilters={() => (
-                <ActiveFilterChips
-                  filters={activeFilters}
-                  compact={isMobileDetail}
-                  onRemove={handleRemoveFilter}
-                />
-              )}
-              renderError={() => <ErrorBanner message={error} />}
+            <MobileTasksPane
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onSearchFocus={handleSearchFocus}
+              onSearchBlur={handleSearchBlur}
+              onSearchClear={handleClearSearch}
+              searchInputRef={mobileSearchInputRef}
+              onBack={handleMobileBack}
+              isProjectView={isMobileProjectView}
+              selectedArea={selectedArea}
+              mobileProject={mobileProject}
+              quickViewLabel={currentQuickView.label}
+              friendlyToday={friendlyToday}
+              filteredTaskCount={filteredTasks.length}
+              completedCount={completedCount}
+              projectsInArea={selectedAreaProjectCount}
+              filters={activeFilters}
+              compactFilters={isMobileDetail}
+              onRemoveFilter={handleRemoveFilter}
+              errorMessage={error}
               renderTaskBoard={renderMobileTaskBoard}
               renderDraftCard={renderMobileDraftTaskCard}
               showDraft={showMobileHome && !!mobileDraftTask}
@@ -2290,7 +2197,19 @@ export default function TasksPage() {
     {renderPriorityMenu()}
     {renderOverflowMenu()}
     {renderLabelSheet()}
-    {renderDatePickerOverlay()}
+    <TaskDatePickerOverlay
+      target={datePickerTarget}
+      month={datePickerMonth}
+      todayISO={todayISO}
+      tomorrowISO={tomorrowISO}
+      draftDueDate={taskDraft.due_at}
+      editingDueDate={editingDueAt}
+      mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
+      formatDateLabel={formatDateForLabel}
+      onClose={closeDatePicker}
+      onMonthChange={handleDatePickerMonthChange}
+      onSelectDate={applyPickedDate}
+    />
   </main>
 )
 }
