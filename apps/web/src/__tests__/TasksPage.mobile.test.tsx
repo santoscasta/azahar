@@ -50,6 +50,9 @@ describe('TasksPage mobile quick-add', () => {
     const quickTaskButton = await screen.findByRole('button', { name: /Nueva tarea/i })
     fireEvent.click(quickTaskButton)
 
+    const titleInput = await screen.findByPlaceholderText('Nueva tarea')
+    fireEvent.change(titleInput, { target: { value: 'Comprar flores' } })
+
     const saveButton = await screen.findByRole('button', { name: 'Guardar' })
     fireEvent.click(saveButton)
 

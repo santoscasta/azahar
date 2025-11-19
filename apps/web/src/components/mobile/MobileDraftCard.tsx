@@ -37,11 +37,7 @@ export function MobileDraftCard({
           type="text"
           value={draft.title}
           onChange={(e) => onTitleChange(e.target.value)}
-          onBlur={(e) => {
-            if (!e.target.value.trim()) {
-              onTitleChange('Nueva tarea')
-            }
-          }}
+          placeholder="Nueva tarea"
           className="w-full bg-transparent text-lg font-semibold text-slate-900 placeholder-slate-400 outline-none"
         />
         <textarea

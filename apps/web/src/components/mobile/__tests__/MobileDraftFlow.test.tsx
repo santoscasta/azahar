@@ -7,7 +7,7 @@ import type { MobileTaskDraft } from '../../../hooks/useTaskCreation.js'
 
 function DraftHarness({ onSubmit }: { onSubmit: (payload: ReturnType<typeof buildMobileTaskPayload>) => void }) {
   const [draft, setDraft] = useState<MobileTaskDraft>({
-    title: 'Nueva tarea',
+    title: '',
     notes: '',
     view: 'today',
     areaId: null,
@@ -39,12 +39,14 @@ function DraftHarness({ onSubmit }: { onSubmit: (payload: ReturnType<typeof buil
 describe('Mobile draft flow', () => {
   it('submits payload derived from draft', () => {
     const submitSpy = vi.fn()
-    const { getByRole } = render(<DraftHarness onSubmit={submitSpy} />)
+    const { getByRole, getByPlaceholderText } = render(<DraftHarness onSubmit={submitSpy} />)
+
+    fireEvent.change(getByPlaceholderText('Nueva tarea'), { target: { value: 'Escribir post' } })
 
     fireEvent.click(getByRole('button', { name: 'Guardar' }))
 
     expect(submitSpy).toHaveBeenCalledWith({
-      title: 'Nueva tarea',
+      title: 'Escribir post',
       notes: '',
       status: 'open',
       due_at: '2025-03-01',

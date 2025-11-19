@@ -1797,7 +1797,7 @@ export default function TasksPage() {
       setShowMobileHome(false)
     }
     updateMobileDraft(() => ({
-      title: 'Nueva tarea',
+      title: '',
       notes: '',
       view,
       areaId: appliedAreaId || null,
