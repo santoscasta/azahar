@@ -7,27 +7,35 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && vitest run"
+    "test": "pnpm test:unit",
+    "test:unit": "tsc -p tsconfig.test.json && vitest run",
+    "test:e2e": "playwright test",
+    "test:all": "pnpm test:unit && pnpm test:e2e",
+    "seed:test": "tsx ./scripts/seedTestData.ts",
+    "reset:test": "tsx ./scripts/resetTestData.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.38.4",
+    "@tanstack/react-query": "^5.28.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
-    "@tanstack/react-query": "^5.28.0",
-    "@supabase/supabase-js": "^2.38.4"
+    "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.37",
-    "@types/react-dom": "^18.2.15",
+    "@playwright/test": "^1.44.0",
     "@testing-library/react": "^14.1.2",
     "@types/jsdom": "^21.1.6",
-    "jsdom": "^23.0.1",
-    "vitest": "^1.2.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.8",
-    "typescript": "^5.2.2",
-    "tailwindcss": "^3.3.6",
+    "autoprefixer": "^10.4.16",
+    "dotenv": "^17.2.3",
+    "jsdom": "^23.0.1",
     "postcss": "^8.4.32",
-    "autoprefixer": "^10.4.16"
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vitest": "^1.2.0",
+    "tsx": "^4.7.1"
   }
 }

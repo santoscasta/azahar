@@ -173,12 +173,17 @@ export default function TasksPage() {
   }
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const normalizedSearch = searchQuery.trim()
+  const sortedLabelIds = useMemo(() => [...selectedLabelIds].sort(), [selectedLabelIds])
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', normalizedSearch, sortedLabelIds],
     queryFn: async () => {
-      const result = await searchTasks()
+      const result = await searchTasks({
+        query: normalizedSearch || null,
+        labelIds: sortedLabelIds.length > 0 ? sortedLabelIds : null,
+      })
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
         return []
@@ -294,29 +299,21 @@ export default function TasksPage() {
     const day = `${now.getDate()}`.padStart(2, '0')
     return `${now.getFullYear()}-${month}-${day}`
   }, [])
-  const tasksFilteredByQueryAndLabels = useMemo(
-    () =>
-      applyTaskFilters(tasks, {
-        query: searchQuery,
-        labelIds: selectedLabelIds.length > 0 ? selectedLabelIds : undefined,
-      }),
-    [tasks, searchQuery, selectedLabelIds]
-  )
   const contextFilteredTasks = useMemo(
     () =>
-      applyTaskFilters(tasksFilteredByQueryAndLabels, {
+      applyTaskFilters(tasks, {
         projectId: selectedProjectId,
         areaId: selectedAreaId,
       }),
-    [tasksFilteredByQueryAndLabels, selectedProjectId, selectedAreaId]
+    [tasks, selectedProjectId, selectedAreaId]
   )
   const quickViewStats = useMemo(
-    () => buildQuickViewStats(tasksFilteredByQueryAndLabels, todayISO),
-    [tasksFilteredByQueryAndLabels, todayISO]
+    () => buildQuickViewStats(tasks, todayISO),
+    [tasks, todayISO]
   )
   const quickViewTasks = useMemo(
-    () => filterTasksByQuickView(tasksFilteredByQueryAndLabels, activeQuickView, todayISO),
-    [tasksFilteredByQueryAndLabels, activeQuickView, todayISO]
+    () => filterTasksByQuickView(tasks, activeQuickView, todayISO),
+    [tasks, activeQuickView, todayISO]
   )
   const filteredTasks = useMemo(() => {
     if (selectedProjectId || selectedAreaId) {
@@ -340,7 +337,7 @@ export default function TasksPage() {
       someday: 0,
       logbook: 0,
     }
-    tasksFilteredByQueryAndLabels.forEach(task => {
+    tasks.forEach(task => {
       if (!isTaskOverdue(task)) {
         return
       }
@@ -348,7 +345,7 @@ export default function TasksPage() {
       base[view] += 1
     })
     return base
-  }, [tasksFilteredByQueryAndLabels, todayISO])
+  }, [tasks, todayISO])
   const projectMap = useMemo(() => {
     const map = new Map<string, Project>()
     projects.forEach(project => map.set(project.id, project))
@@ -356,7 +353,7 @@ export default function TasksPage() {
   }, [projects])
   const projectStats = useMemo(() => {
     const stats = new Map<string, { total: number; overdue: number }>()
-    tasksFilteredByQueryAndLabels.forEach(task => {
+    tasks.forEach(task => {
       if (!task.project_id || task.status === 'done') {
         return
       }
@@ -368,10 +365,10 @@ export default function TasksPage() {
       stats.set(task.project_id, entry)
     })
     return stats
-  }, [tasksFilteredByQueryAndLabels, todayISO])
+  }, [tasks, todayISO])
   const areaStats = useMemo(() => {
     const stats = new Map<string, { total: number; overdue: number }>()
-    tasksFilteredByQueryAndLabels.forEach(task => {
+    tasks.forEach(task => {
       if (task.status === 'done') {
         return
       }
@@ -387,7 +384,7 @@ export default function TasksPage() {
       stats.set(relatedArea, entry)
     })
     return stats
-  }, [tasksFilteredByQueryAndLabels, todayISO, projectMap])
+  }, [tasks, todayISO, projectMap])
 
   const tomorrowISO = useMemo(() => {
     const todayDate = new Date(todayISO)

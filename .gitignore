@@ -9,3 +9,5 @@ build/
 .vscode/settings.json
 pnpm-lock.yaml
 .vercel
+apps/web/playwright-report/
+apps/web/test-results/

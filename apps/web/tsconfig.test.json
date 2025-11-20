@@ -5,7 +5,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ES2020",
-    "types": ["vite/client", "node"],
+    "types": [
+      "vite/client",
+      "node"
+    ],
     "sourceMap": false
   },
   "include": [
@@ -55,7 +58,8 @@
     "src/components/tasks/__tests__/AreaBoard.test.tsx",
     "src/components/tasks/__tests__/ProjectBoard.test.tsx",
     "src/tests/renderWithProviders.tsx",
-    "src/__tests__/TasksPage.mobile.test.tsx"
+    "src/__tests__/TasksPage.mobile.test.tsx",
+    "src/__tests__/TasksPage.desktop.test.tsx"
   ],
   "exclude": []
 }

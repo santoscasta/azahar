@@ -1,6 +1,6 @@
-import type { Task, Project, Label, Area } from '../lib/supabase.js'
+import type { Task, Project, Label, Area, TaskQuickView } from '../lib/supabase.js'
 
-export type QuickViewId = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook'
+export type QuickViewId = TaskQuickView
 
 export interface ActiveFilterDescriptor {
   key: string
@@ -41,6 +41,10 @@ export function filterTasksByQuickView(tasks: Task[], view: QuickViewId, todayIS
 }
 
 export function getTaskView(task: Task, todayISO: string): QuickViewId {
+  const serverQuickView = (task as { quick_view?: TaskQuickView }).quick_view
+  if (serverQuickView) {
+    return serverQuickView
+  }
   if (task.status === 'done') {
     return 'logbook'
   }

@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { applyTaskFilters } from './taskFilters.js'
 
 type RuntimeEnv = Record<string, string | undefined>
 
@@ -108,6 +107,8 @@ export interface TaskChecklistItem {
   created_at: string
 }
 
+export type TaskQuickView = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook'
+
 export interface Task {
   id: string
   user_id: string
@@ -128,6 +129,7 @@ export interface Task {
   pinned: boolean | null
   labels?: TaskLabelSummary[]
   checklist_items?: TaskChecklistItem[]
+  quick_view?: TaskQuickView
 }
 
 export interface Project {
@@ -193,87 +195,47 @@ export async function listTasks(): Promise<{ success: boolean; tasks?: Task[]; e
   }
 }
 
-export async function searchTasks(
-  query?: string,
-  projectId?: string,
-  labelIds?: string[],
-  areaId?: string
-): Promise<{ success: boolean; tasks?: Task[]; error?: string }> {
+export interface SearchTasksArgs {
+  query?: string | null
+  projectId?: string | null
+  labelIds?: string[] | null
+  areaId?: string | null
+  quickView?: TaskQuickView | null
+}
+
+type SearchTasksRow = Task & {
+  quick_view?: TaskQuickView
+  labels?: TaskLabelSummary[]
+  checklist_items?: TaskChecklistItem[]
+}
+
+export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success: boolean; tasks?: Task[]; error?: string }> {
   try {
     const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'Usuario no autenticado' }
     }
 
-    // Obtener todas las tareas del usuario
-    const { data: allTasks, error: tasksError } = await supabase
-      .from('tasks')
-      .select(`
-        *,
-        task_labels:task_labels (
-          label_id,
-          labels (
-            id,
-            name,
-            color
-          )
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('due_at', { ascending: true, nullsFirst: true })
-      .order('created_at', { ascending: false })
-
-    if (tasksError) {
-      return { success: false, error: tasksError.message }
-    }
-
-    const taskIds = (allTasks || [])
-      .map(task => (task as { id?: string }).id)
-      .filter((id): id is string => Boolean(id))
-    let checklistItems: TaskChecklistItem[] = []
-    if (taskIds.length > 0) {
-      const { data: checklistData, error: checklistError } = await supabase
-        .from('task_checklist_items')
-        .select('*')
-        .in('task_id', taskIds)
-      if (checklistError) {
-        return { success: false, error: checklistError.message }
-      }
-      checklistItems = checklistData || []
-    }
-    const checklistByTask = new Map<string, TaskChecklistItem[]>()
-    checklistItems.forEach(item => {
-      if (!checklistByTask.has(item.task_id)) {
-        checklistByTask.set(item.task_id, [])
-      }
-      checklistByTask.get(item.task_id)!.push(item)
+    const { query, projectId, labelIds, areaId, quickView } = args
+    const { data, error } = await supabase.rpc('search_tasks', {
+      p_query: query ?? null,
+      p_project_id: projectId ?? null,
+      p_label_ids: labelIds && labelIds.length > 0 ? labelIds : null,
+      p_area_id: areaId ?? null,
+      p_quick_view: quickView ?? null,
     })
 
-    const tasksWithLabels =
-      (allTasks || []).map(task => {
-        const taskLabels = (task as any).task_labels as Array<{ labels: Label | null }> | undefined
-        const summaries =
-          taskLabels
-            ?.map(item => item.labels)
-            .filter(Boolean)
-            .map(label => ({
-              id: label!.id,
-              name: label!.name,
-              color: label!.color,
-            })) || []
-        const rawTask = task as any
-        const { task_labels, ...rest } = rawTask
-        const taskId = rawTask.id as string
-        return {
-          ...(rest as Task),
-          checklist_items: checklistByTask.get(taskId) || [],
-          labels: summaries,
-        }
-      }) || []
+    if (error) {
+      return { success: false, error: error.message }
+    }
 
-    const filtered = applyTaskFilters(tasksWithLabels, { query, projectId, labelIds, areaId })
+    const tasks = (data as SearchTasksRow[] | null | undefined)?.map((task) => ({
+      ...task,
+      labels: task.labels ?? [],
+      checklist_items: task.checklist_items ?? [],
+    })) as Task[]
 
-    return { success: true, tasks: filtered }
+    return { success: true, tasks }
   } catch (err) {
     return { success: false, error: 'Error al buscar tareas' }
   }

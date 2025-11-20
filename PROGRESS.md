@@ -2,7 +2,7 @@
 
 **Proyecto:** AZAHAR - Gestor de Tareas Minimalista  
 **Versión Actual:** 0.6.0  
-**Última Actualización:** 14 de noviembre de 2025
+**Última Actualización:** 24 de noviembre de 2025
 
 ---
 
@@ -13,9 +13,9 @@
 | Progreso | 97% ✅ |
 | Errores TypeScript | 0 ✅ |
 | Errores en Navegador | 0 ✅ |
-| Tests Pasados | 35/35 (Vitest) ✅ |
-| Commits Totales | 18 |
-| Líneas de Código | ~3,100 |
+| Tests Unitarios | 35/35 (Vitest) ✅ |
+| E2E | Smoke Playwright ✅ (seed determinista) |
+| Líneas de Código | ~3,300 |
 
 ---
 
@@ -144,6 +144,97 @@ Después: [✓] ~~Tarea~~ [Editar] [Eliminar]
 - Los formularios modales se limpian automáticamente al cerrar o tras crear registros.
 - Se añadieron componentes móviles (`MobileCreationSheet`, `MobileDraftCard`, `MobileScheduleSheet`) y tests específicos para el flujo rápido.
 - documentado helper `renderWithProviders` para futuras pruebas con router/query client.
+
+---
+
+## 📅 DÍA 7 - 22 de Noviembre (Modularización de TasksPage + Contexto Actual)
+
+**Objetivo:** Reducir la complejidad de `TasksPage.tsx` extrayendo piezas reutilizables y documentar a detalle el estado actual de frontend, backend y UX.
+
+### 🧱 Arquitectura actual
+
+| Capa | Estado |
+|------|--------|
+| Frontend | React 18 + Vite + TypeScript, layout responsive (desktop + móvil) con componentes modulares. |
+| Backend | Supabase (PostgreSQL + Auth + Storage). SQL versionado en `docs/schema.sql`, RLS activo para todas las tablas. |
+| UX | Inspirada en Todoist/Things: quick views, áreas, proyectos, checklist, placeholders con “ghost text”, acciones móviles con FAB/sheets. |
+
+### 🧩 Cambios Recientes
+
+**Frontend**
+- `DesktopTaskBoardSwitcher` reemplaza los helpers de vista (QuickView, Project, Area) y recibe las props desde `TasksPage`.
+- `TaskDatePickerOverlay` centraliza la lógica de fechas para nuevas tareas, edición y drafts móviles.
+- `MobileTaskBoard` encapsula la lista y el CTA “Mostrar más”.
+- `MobileTasksPane` compone `MobileSearchBar`, `MobileHeader`, filtros y board para la vista móvil detallada.
+- Tests añadidos para todas las piezas anteriores (`*.test.tsx`).
+
+**Backend**
+- No hubo cambios estructurales en Supabase, pero toda la UI modularizada sigue usando las mismas queries/mutaciones (`supabase.ts`). Las migraciones más recientes añadieron `task_checklist_items` con `updated_at`.
+
+**UX / Producto**
+- Vista rápida con contextos (Inbox, Today, Upcoming, etc.) y chips de filtros activos.
+- Modal de creación con presets, selector de etiquetas, prioridad y fecha.
+- En móvil:
+  - Home con overview, quick lists, creación rápida de proyectos/áreas.
+  - Vista detallada con back button, header contextual, filtros compactos, board paginado y FAB para acciones rápidas.
+  - Placeholders funcionan como copia “ghost” y desaparecen al escribir (tanto en desktop como móvil).
+- Checklists soportan creación inline, toggle sin reordenar y sincronización Supabase.
+
+### ✅ Resultado
+- `TasksPage.tsx` se redujo ~200 líneas y ahora importa componentes especializados.
+- La suite de Vitest se mantiene verde (`pnpm -C apps/web test`).
+- Código listo para seguir extrayendo helpers (move sheet, schedule sheet, etc.).
+
+---
+
+## 📅 DÍA 8 - 24 de Noviembre (Seeds + Smoke E2E)
+
+**Objetivo:** Hacer reproducibles los E2E y alinear documentación con el estado real (v0.6.0).
+
+### ✅ Completado
+- [x] Scripts TS `scripts/seedTestData.ts` y `scripts/resetTestData.ts` usando service role + `tsx`.
+- [x] Dataset determinista documentado en `docs/seed.sql` (usuario `test@azahar.app`).
+- [x] Smoke Playwright actualizado: redirección a `/app`, selectores estables de checkbox y toggle de tarea seeded.
+- [x] Métricas de PROGRESS/PROJECT_STATUS actualizadas a 0.6.0.
+
+### 🧪 Notas de QA
+- Comando de seed: `pnpm -C apps/web seed:test` (requiere `SUPABASE_SERVICE_ROLE_KEY`).
+- Limpieza: `pnpm -C apps/web reset:test` elimina el usuario y cascadéa datos.
+- Smoke: `pnpm -C apps/web test:e2e` (usa seeds + baseURL Vite).
+
+### 📎 Archivos tocados
+- `apps/web/e2e/smoke.spec.ts`
+- `apps/web/scripts/seedTestData.ts`
+- `apps/web/scripts/resetTestData.ts`
+- `docs/seed.sql`
+- `apps/web/package.json`
+
+## 🛣️ Roadmap hacia GA
+
+### v0.7.0 — QA Automation (NOW)
+- **Objetivo**: blindar calidad antes de seguir añadiendo features.
+- **Frontend**
+  - Migrar los tests existentes a cubrir flujos clave (auth, creación/edición de tarea, filtros).
+  - Añadir `@testing-library/user-event` para casos de teclado y atajos.
+- **Backend**
+  - Sembrar datos “seed” para entornos de prueba (scripts en `docs/seeds`).
+  - Validar que todas las mutaciones devuelven errores normalizados.
+- **Infra**
+  - Configurar CI (GitHub Actions) con matrix (lint + vitest + build).
+  - E2E con Playwright: smoke suite (login, crear tarea, marcar done).
+  - Reportes de cobertura básico (>70% en dominios críticos).
+
+### v0.8.0 — Offline + Persistencia + Observabilidad
+- Sincronización local (IndexedDB + React Query persist), índices en Supabase, eventos de métricas (PostHog o Tinybird).
+
+### v0.9.0 — UX Delight
+- Dark mode, filtros por prioridad/fecha, Quick Add con lenguaje natural (“mañana a las 9 con prioridad alta”).
+
+### v0.9.1 — Hardening + Marketing
+- Entornos (dev/staging/prod), seguridad (rate limiting, headers), landing con OG, política de privacidad.
+
+### v1.0.0 — Mobile Ready
+- Empaquetado Capacitor (Android primero, iOS después), ajustes de permisos/push/deep links.
 
 ---
 
