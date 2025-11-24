@@ -7,6 +7,7 @@ type TranslationKey =
   | 'settings.themeHint'
   | 'settings.language'
   | 'settings.languageHint'
+  | 'settings.back'
   | 'settings.reset'
   | 'settings.theme.option.system'
   | 'settings.theme.option.light'
@@ -37,6 +38,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'settings.themeHint': 'Afecta sólo a este navegador.',
     'settings.language': 'Idioma UI',
     'settings.languageHint': 'Textos principales en la app.',
+    'settings.back': 'Volver a la app',
     'settings.reset': 'Restaurar valores por defecto',
     'settings.theme.option.system': 'Sistema',
     'settings.theme.option.light': 'Claro',
@@ -66,6 +68,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'settings.themeHint': 'Affects only this browser.',
     'settings.language': 'UI language',
     'settings.languageHint': 'Main texts in the app.',
+    'settings.back': 'Back to app',
     'settings.reset': 'Reset to defaults',
     'settings.theme.option.system': 'System',
     'settings.theme.option.light': 'Light',

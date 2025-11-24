@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Language } from '../lib/i18n.js'
 import { useTranslations } from '../App.js'
 
@@ -18,6 +19,7 @@ const SETTINGS_KEY = 'azahar:settings'
 
 export default function SettingsPage() {
   const { t } = useTranslations()
+  const navigate = useNavigate()
   const [settings, setSettings] = useState<SettingsState>(defaultSettings)
 
   useEffect(() => {
@@ -51,9 +53,20 @@ export default function SettingsPage() {
     <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
         <header className="rounded-[32px] border border-slate-100 bg-white shadow px-8 py-6 space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{t('settings.title')}</p>
-          <h1 className="text-3xl font-semibold text-slate-900">{t('settings.title')}</h1>
-          <p className="text-sm text-slate-500">{t('settings.subtitle')}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{t('settings.title')}</p>
+              <h1 className="text-3xl font-semibold text-slate-900">{t('settings.title')}</h1>
+              <p className="text-sm text-slate-500">{t('settings.subtitle')}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/app')}
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:border-slate-300"
+            >
+              {t('settings.back')}
+            </button>
+          </div>
         </header>
 
         <section className="rounded-3xl border border-slate-100 bg-white shadow px-8 py-6 space-y-6">
