@@ -259,7 +259,8 @@ returns table (
   pinned boolean,
   quick_view text,
   labels jsonb,
-  checklist_items jsonb
+  checklist_items jsonb,
+  client_mutation_id text
 )
 language sql
 stable
@@ -299,7 +300,24 @@ as $$
   ),
   enriched as (
     select
-      b.*,
+      b.id,
+      b.user_id,
+      b.project_id,
+      b.area_id,
+      b.heading_id,
+      b.title,
+      b.notes,
+      b.status,
+      b.priority,
+      b.due_at,
+      b.start_at,
+      b.repeat_rrule,
+      b.reminder_at,
+      b.updated_at,
+      b.created_at,
+      b.completed_at,
+      b.pinned,
+      b.quick_view,
       coalesce(
         (
           select json_agg(
@@ -335,10 +353,32 @@ as $$
           where c.task_id = b.id
         ),
         '[]'
-      ) as checklist_items
+      ) as checklist_items,
+      b.client_mutation_id
     from base b
   )
-  select *
+  select
+    id,
+    user_id,
+    project_id,
+    area_id,
+    heading_id,
+    title,
+    notes,
+    status,
+    priority,
+    due_at,
+    start_at,
+    repeat_rrule,
+    reminder_at,
+    updated_at,
+    created_at,
+    completed_at,
+    pinned,
+    quick_view,
+    labels,
+    checklist_items,
+    client_mutation_id
   from enriched
   where (p_quick_view is null or p_quick_view = '' or quick_view = p_quick_view)
   order by due_at asc nulls first, created_at desc;
