@@ -17,6 +17,21 @@
   --on-surface: #0F172A;
 }
 
+:root[data-theme='dark'] {
+  --color-primary-700: #A5B8F1;
+  --color-primary-600: #8FA2E5;
+  --color-primary-500: #7B8ED3;
+  --color-primary-300: #5A6FAF;
+  --color-primary-100: #1E263B;
+  --color-accent-600: #7CD4AA;
+  --color-accent-500: #68BD95;
+  --color-accent-300: #4B9B75;
+  --color-bg: #0D1424;
+  --color-surface: #111A2F;
+  --on-primary: #0B1020;
+  --on-surface: #E5E7EF;
+}
+
 body {
   @apply text-gray-900;
   background-color: var(--color-bg);

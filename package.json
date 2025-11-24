@@ -15,5 +15,9 @@
     "apps/*",
     "packages/*"
   ],
-  "devDependencies": {}
+  "dependencies": {
+    "@tanstack/query-sync-storage-persister": "^5.90.12",
+    "@tanstack/react-query-persist-client": "^5.90.12",
+    "uuid": "^13.0.0"
+  }
 }

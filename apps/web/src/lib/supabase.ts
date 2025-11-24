@@ -10,6 +10,7 @@ const supabaseUrl = runtimeEnv?.VITE_SUPABASE_URL
 const supabaseKey = runtimeEnv?.VITE_SUPABASE_ANON_KEY
 const appBaseUrl = runtimeEnv?.VITE_APP_BASE_URL
 const bypassE2E = runtimeEnv?.VITE_E2E_BYPASS_AUTH === 'true'
+const enableMutationIds = runtimeEnv?.VITE_ENABLE_MUTATION_IDS === 'true'
 
 const hasSupabaseCreds = Boolean(supabaseUrl && supabaseKey)
 type MaybeNodeProcess = { versions?: { node?: string } }
@@ -140,6 +141,7 @@ export interface Task {
   created_at: string
   completed_at: string | null
   pinned: boolean | null
+  client_mutation_id?: string | null
   labels?: TaskLabelSummary[]
   checklist_items?: TaskChecklistItem[]
   quick_view?: TaskQuickView
@@ -252,6 +254,7 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
           labels: [],
           checklist_items: [],
           quick_view: 'inbox',
+          client_mutation_id: null,
         },
       ]
       return { success: true, tasks: mockTasks }
@@ -290,7 +293,8 @@ export async function addTask(
   status: 'open' | 'done' | 'snoozed' = 'open',
   project_id?: string | null,
   area_id?: string | null,
-  heading_id?: string | null
+  heading_id?: string | null,
+  client_mutation_id?: string
 ): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
     if (bypassE2E) {
@@ -307,6 +311,7 @@ export async function addTask(
           status,
           priority: priority || 0,
           due_at: due_at || null,
+          client_mutation_id: enableMutationIds ? client_mutation_id || null : undefined,
           start_at: null,
           repeat_rrule: null,
           reminder_at: null,
@@ -326,19 +331,25 @@ export async function addTask(
       return { success: false, error: 'El título no puede estar vacío' }
     }
 
+    const insertPayload: Record<string, unknown> = {
+      user_id: user.id,
+      title: title.trim(),
+      notes: notes || null,
+      priority: priority || 0,
+      due_at: due_at || null,
+      status: status || 'open',
+      project_id: project_id || null,
+      area_id: area_id || null,
+      heading_id: heading_id || null,
+    }
+
+    if (enableMutationIds && client_mutation_id) {
+      insertPayload.client_mutation_id = client_mutation_id
+    }
+
     const { data, error } = await supabase
       .from('tasks')
-      .insert({
-        user_id: user.id,
-        title: title.trim(),
-        notes: notes || null,
-        priority: priority || 0,
-        due_at: due_at || null,
-        status: status || 'open',
-        project_id: project_id || null,
-        area_id: area_id || null,
-        heading_id: heading_id || null,
-      })
+      .insert(insertPayload)
       .select()
       .single()
 

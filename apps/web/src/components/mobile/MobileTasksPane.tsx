@@ -30,6 +30,8 @@ interface MobileTasksPaneProps {
   renderTaskBoard: () => ReactNode
   renderDraftCard?: () => ReactNode
   showDraft: boolean
+  onOpenSettings: () => void
+  pendingSync: boolean
 }
 
 export default function MobileTasksPane({
@@ -55,6 +57,8 @@ export default function MobileTasksPane({
   renderTaskBoard,
   renderDraftCard,
   showDraft,
+  onOpenSettings,
+  pendingSync,
 }: MobileTasksPaneProps) {
   return (
     <MobileHome
@@ -79,6 +83,7 @@ export default function MobileTasksPane({
           filteredTaskCount={filteredTaskCount}
           completedCount={completedCount}
           projectsInArea={projectsInArea}
+          onOpenSettings={onOpenSettings}
         />
       )}
       renderFilters={() => (
@@ -88,7 +93,12 @@ export default function MobileTasksPane({
           onRemove={onRemoveFilter}
         />
       )}
-      renderError={() => <ErrorBanner message={errorMessage} />}
+      renderError={() => (
+        <>
+          <ErrorBanner message={errorMessage} />
+          {pendingSync && <ErrorBanner message="Hay cambios pendientes por sincronizar." />}
+        </>
+      )}
       renderTaskBoard={renderTaskBoard}
       renderDraftCard={renderDraftCard}
       showDraft={showDraft}

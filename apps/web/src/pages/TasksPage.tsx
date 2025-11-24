@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query'
+import { v4 as uuid } from 'uuid'
 import { useNavigate } from 'react-router-dom'
 import {
   searchTasks,
@@ -68,6 +69,7 @@ import MoveTaskSheet from '../components/tasks/MoveTaskSheet.js'
 import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
 import PriorityMenu from '../components/tasks/PriorityMenu.js'
 import TaskOverflowMenu from '../components/tasks/TaskOverflowMenu.js'
+import { useConnectivity } from '../hooks/useConnectivity.js'
 
 type LabelSheetTarget = { kind: 'draft-task' } | { kind: 'task'; taskId: string } | null
 type Priority = 0 | 1 | 2 | 3
@@ -118,6 +120,10 @@ export default function TasksPage() {
     openAreaModal,
     closeAreaModal,
   } = useAreaCreation()
+  const navigate = useNavigate()
+  const handleOpenSettings = useCallback(() => {
+    navigate('/settings')
+  }, [navigate])
   const [inlineLabelName, setInlineLabelName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
@@ -170,8 +176,12 @@ export default function TasksPage() {
       setMobileDraftArea(null)
     }
   }
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isOnline = useConnectivity()
+  const pendingMutations = useIsMutating({
+    predicate: (mutation) => mutation.state.status === 'pending',
+  })
+  const hasPendingSync = pendingMutations > 0 && !isOnline
   const normalizedSearch = searchQuery.trim()
   const sortedLabelIds = useMemo(() => [...selectedLabelIds].sort(), [selectedLabelIds])
 
@@ -1198,6 +1208,8 @@ export default function TasksPage() {
 
   // Mutación para agregar tarea
   const addTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'add'],
+    networkMode: 'online',
     mutationFn: async (args: {
       title: string
       notes?: string
@@ -1208,7 +1220,9 @@ export default function TasksPage() {
       area_id?: string | null
       heading_id?: string | null
       labelIds?: string[]
+      clientMutationId?: string
     }) => {
+      const clientMutationId = args.clientMutationId || uuid()
       const result = await addTask(
         args.title,
         args.notes || undefined,
@@ -1229,7 +1243,7 @@ export default function TasksPage() {
           throw new Error(failed.error || 'Algunas etiquetas no se pudieron asignar')
         }
       }
-      return result.task
+      return { ...result.task, clientMutationId }
     },
     onSuccess: () => {
       setError('')
@@ -1241,6 +1255,8 @@ export default function TasksPage() {
   })
 
   const duplicateTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'duplicate'],
+    networkMode: 'online',
     mutationFn: async (task: Task) => {
       const result = await addTask(
         `${task.title}`,
@@ -1284,6 +1300,8 @@ export default function TasksPage() {
   })
 
   const addLabelMutation = useMutation({
+    mutationKey: ['mutations', 'labels', 'add'],
+    networkMode: 'online',
     mutationFn: (name: string) => addLabel(name),
     onSuccess: (result) => {
       if (result.success) {
@@ -1299,6 +1317,8 @@ export default function TasksPage() {
   })
 
   const deleteLabelMutation = useMutation({
+    mutationKey: ['mutations', 'labels', 'delete'],
+    networkMode: 'online',
     mutationFn: (labelId: string) => deleteLabel(labelId),
     onSuccess: (result, labelId) => {
       if (result.success) {
@@ -1320,6 +1340,8 @@ export default function TasksPage() {
 
   // Mutación para actualizar tarea
   const updateTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'update'],
+    networkMode: 'online',
     mutationFn: async (taskId: string) => {
       const updated = await updateTask(taskId, {
         title: editingTitle,
@@ -1368,6 +1390,8 @@ export default function TasksPage() {
   })
 
   const moveTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'move'],
+    networkMode: 'online',
     mutationFn: ({ taskId, areaId, projectId }: { taskId: string; areaId: string | null; projectId: string | null }) =>
       updateTask(taskId, {
         area_id: areaId,
@@ -1395,6 +1419,8 @@ export default function TasksPage() {
 
   // Mutación para cambiar estado de tarea
   const toggleTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'toggleStatus'],
+    networkMode: 'online',
     mutationFn: (taskId: string) => toggleTaskStatus(taskId),
     onSuccess: (result) => {
       if (result.success) {
@@ -1410,6 +1436,8 @@ export default function TasksPage() {
   })
 
   const toggleChecklistItemMutation = useMutation({
+    mutationKey: ['mutations', 'checklist', 'toggle'],
+    networkMode: 'online',
     mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) =>
       toggleChecklistItemCompletion(itemId, completed),
     onSuccess: (result) => {
@@ -1426,6 +1454,8 @@ export default function TasksPage() {
 
   // Mutación para eliminar tarea
   const deleteTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'delete'],
+    networkMode: 'online',
     mutationFn: (taskId: string) => deleteTask(taskId),
     onSuccess: (result) => {
       if (result.success) {
@@ -1442,6 +1472,8 @@ export default function TasksPage() {
 
   // Mutaciones para áreas
   const addAreaMutation = useMutation({
+    mutationKey: ['mutations', 'areas', 'add'],
+    networkMode: 'online',
     mutationFn: (name: string) => addArea(name),
     onSuccess: (result) => {
       if (result.success) {
@@ -1460,6 +1492,8 @@ export default function TasksPage() {
 
   // Mutación para agregar proyecto
   const addProjectMutation = useMutation({
+    mutationKey: ['mutations', 'projects', 'add'],
+    networkMode: 'online',
     mutationFn: ({ name, areaId }: { name: string; areaId: string | null }) => addProject(name, '#3b82f6', areaId),
     onSuccess: (result) => {
       if (result.success) {
@@ -1478,6 +1512,8 @@ export default function TasksPage() {
 
   // Mutaciones para headings
   const addHeadingMutation = useMutation({
+    mutationKey: ['mutations', 'headings', 'add'],
+    networkMode: 'online',
     mutationFn: ({ projectId, name }: { projectId: string; name: string }) => addProjectHeading(projectId, name),
     onSuccess: (result) => {
       if (result.success) {
@@ -1495,6 +1531,8 @@ export default function TasksPage() {
   })
 
   const updateHeadingMutation = useMutation({
+    mutationKey: ['mutations', 'headings', 'update'],
+    networkMode: 'online',
     mutationFn: ({ headingId, name }: { headingId: string; name: string }) =>
       updateProjectHeading(headingId, { name: name.trim() }),
     onSuccess: (result) => {
@@ -1513,6 +1551,8 @@ export default function TasksPage() {
   })
 
   const deleteHeadingMutation = useMutation({
+    mutationKey: ['mutations', 'headings', 'delete'],
+    networkMode: 'online',
     mutationFn: (headingId: string) => deleteProjectHeading(headingId),
     onSuccess: (result) => {
       if (result.success) {
@@ -1528,6 +1568,8 @@ export default function TasksPage() {
   })
 
   const addInlineLabelMutation = useMutation({
+    mutationKey: ['mutations', 'labels', 'inline-add'],
+    networkMode: 'online',
     mutationFn: (name: string) => addLabel(name),
     onSuccess: (result) => {
       if (result.success && result.label) {
@@ -1554,6 +1596,8 @@ export default function TasksPage() {
 
   // Mutación para asignar etiqueta a tarea
   const addTaskLabelMutation = useMutation({
+    mutationKey: ['mutations', 'task-labels', 'add'],
+    networkMode: 'online',
     mutationFn: ({ taskId, labelId }: { taskId: string; labelId: string }) =>
       addTaskLabel(taskId, labelId),
     onSuccess: (result) => {
@@ -1571,6 +1615,8 @@ export default function TasksPage() {
 
   // Mutación para remover etiqueta de tarea
   const removeTaskLabelMutation = useMutation({
+    mutationKey: ['mutations', 'task-labels', 'remove'],
+    networkMode: 'online',
     mutationFn: ({ taskId, labelId }: { taskId: string; labelId: string }) =>
       removeTaskLabel(taskId, labelId),
     onSuccess: (result) => {
@@ -2067,6 +2113,8 @@ export default function TasksPage() {
               renderTaskBoard={renderMobileTaskBoard}
               renderDraftCard={renderMobileDraftTaskCard}
               showDraft={showMobileHome && !!mobileDraftTask}
+              onOpenSettings={handleOpenSettings}
+              pendingSync={hasPendingSync}
             />
           </div>
           <MobileFab
@@ -2101,6 +2149,7 @@ export default function TasksPage() {
                   onCreateProject={handleCreateProjectFromSidebar}
                   onCreateArea={handleCreateAreaFromSidebar}
                   onLogout={handleLogout}
+                  onOpenSettings={handleOpenSettings}
                 />
               </div>
               <section className="space-y-6">
@@ -2131,6 +2180,8 @@ export default function TasksPage() {
                   onRemove={handleRemoveFilter}
                 />
                 <ErrorBanner message={error} />
+                {!isOnline && <ErrorBanner message="Trabajando sin conexión. Los cambios se sincronizarán al volver." />}
+                {hasPendingSync && <ErrorBanner message="Hay cambios pendientes por sincronizar." />}
                 {renderDesktopTaskBoard()}
               </section>
             </div>

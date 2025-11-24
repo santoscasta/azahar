@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { loadDraft, saveDraft, clearDraft } from './draftStorage.js'
 
 export interface ProjectDraft {
   name: string
@@ -11,7 +12,10 @@ const defaultProjectDraft: ProjectDraft = {
 }
 
 export function useProjectCreation() {
-  const [projectDraft, setProjectDraft] = useState<ProjectDraft>(defaultProjectDraft)
+  const [projectDraft, setProjectDraft] = useState<ProjectDraft>(() => {
+    const persisted = loadDraft<ProjectDraft>('azahar:draft:project')
+    return persisted ? { ...defaultProjectDraft, ...persisted } : defaultProjectDraft
+  })
   const [showProjectModal, setShowProjectModal] = useState(false)
 
   const setProjectName = useCallback((name: string) => {
@@ -24,6 +28,7 @@ export function useProjectCreation() {
 
   const resetProjectDraft = useCallback(() => {
     setProjectDraft(defaultProjectDraft)
+    clearDraft('azahar:draft:project')
   }, [])
 
   const openProjectModal = useCallback(() => setShowProjectModal(true), [])
@@ -32,6 +37,10 @@ export function useProjectCreation() {
     setShowProjectModal(false)
     resetProjectDraft()
   }, [resetProjectDraft])
+
+  useEffect(() => {
+    saveDraft('azahar:draft:project', projectDraft)
+  }, [projectDraft])
 
   return {
     projectDraft,

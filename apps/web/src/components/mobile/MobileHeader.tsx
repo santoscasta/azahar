@@ -1,4 +1,6 @@
 import type { Area, Project } from '../../lib/supabase.js'
+import settingsIcon from '../../assets/icons/settings.svg'
+import { useTranslations } from '../../App.js'
 
 interface MobileHeaderProps {
   onBack: () => void
@@ -10,6 +12,7 @@ interface MobileHeaderProps {
   filteredTaskCount: number
   completedCount: number
   projectsInArea: number
+  onOpenSettings: () => void
 }
 
 export default function MobileHeader({
@@ -22,7 +25,9 @@ export default function MobileHeader({
   filteredTaskCount,
   completedCount,
   projectsInArea,
+  onOpenSettings,
 }: MobileHeaderProps) {
+  const { t } = useTranslations()
   return (
     <header className="space-y-5">
       <div className="flex items-center justify-between">
@@ -35,7 +40,7 @@ export default function MobileHeader({
         </button>
         <div className="flex-1 text-center">
           <p className="text-xs uppercase tracking-wide text-slate-400">
-            {isProjectView ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'}
+            {isProjectView ? t('mobile.project') : selectedArea ? t('mobile.area') : t('mobile.view')}
           </p>
           <p className="text-2xl font-semibold text-slate-800">
             {isProjectView
@@ -46,48 +51,50 @@ export default function MobileHeader({
           </p>
           <p className={`text-sm text-slate-500 ${isProjectView ? '' : 'capitalize'}`}>
             {isProjectView
-              ? `${filteredTaskCount} tarea${filteredTaskCount === 1 ? '' : 's'} en este proyecto`
+              ? `${filteredTaskCount} ${t('mobile.projectTasks')}`
               : selectedArea
-                ? `${projectsInArea} proyecto(s)`
-                : friendlyToday}
+                ? `${projectsInArea} ${t('mobile.areaProjects')}`
+                : friendlyToday || t('mobile.today')}
           </p>
         </div>
-        <button className="text-2xl text-slate-400 pr-1" aria-label="Más opciones">
-          ⋯
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="p-2 rounded-full border border-[var(--color-primary-100)] text-sm text-slate-500 hover:bg-[color-mix(in_srgb,var(--color-primary-100)_40%,var(--color-bg)_60%)]"
+          aria-label="Ajustes"
+        >
+          <img src={settingsIcon} alt="" className="h-4 w-4" />
         </button>
       </div>
-      <div className="rounded-3xl bg-white border border-slate-100 shadow px-5 py-4 space-y-2">
+      <div className="rounded-3xl border border-[var(--color-primary-100)] bg-[var(--color-surface)] shadow px-5 py-4 space-y-2">
         {isProjectView ? (
           <>
-            <p className="text-sm text-slate-600">
-              Añade notas o info clave para mantener el proyecto alineado.
-            </p>
             <div className="flex items-center justify-between text-sm text-slate-500">
-              <span>Pendientes: {filteredTaskCount - completedCount}</span>
+              <span>{t('mobile.pending')}: {filteredTaskCount - completedCount}</span>
               <span>
-                {completedCount}/{filteredTaskCount} completadas
+                {completedCount}/{filteredTaskCount} {t('mobile.completed')}
               </span>
             </div>
           </>
         ) : selectedArea ? (
           <>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Área activa</p>
+            <p className="text-xs uppercase tracking-wide text-slate-400">{t('mobile.area')}</p>
             <p className="text-lg font-semibold text-slate-800">
-              {completedCount}/{filteredTaskCount} completadas
+              {completedCount}/{filteredTaskCount} {t('mobile.completed')}
             </p>
             <p className="text-sm text-slate-500">
-              {projectsInArea} proyecto(s) asociados
+              {projectsInArea} {t('mobile.areaProjects')}
             </p>
           </>
         ) : (
           <>
             <p className="text-xs uppercase tracking-wide text-slate-400">En esta vista</p>
             <p className="text-lg font-semibold text-slate-800">
-              {completedCount}/{filteredTaskCount} completadas
+              {completedCount}/{filteredTaskCount} {t('mobile.completed')}
             </p>
-            <p className="text-sm text-slate-500">
-              {mobileProject ? `Proyecto activo: ${mobileProject.name}` : 'Sin proyecto destacado'}
-            </p>
+          <p className="text-sm text-slate-500">
+            {mobileProject ? `${t('mobile.project')}: ${mobileProject.name}` : t('mobile.view')}
+          </p>
           </>
         )}
       </div>

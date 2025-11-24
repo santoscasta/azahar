@@ -1,5 +1,7 @@
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { Project, Area } from '../../lib/supabase.js'
+import { useTranslations } from '../../App.js'
+import settingsIcon from '../../assets/icons/settings.svg'
 
 interface StatsMap extends Map<string, { total: number; overdue: number }> {}
 
@@ -31,6 +33,7 @@ export interface DesktopSidebarProps {
   onCreateProject: () => void
   onCreateArea: () => void
   onLogout: () => void
+  onOpenSettings: () => void
 }
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
@@ -64,30 +67,42 @@ export function DesktopSidebar({
   onCreateProject,
   onCreateArea,
   onLogout,
+  onOpenSettings,
 }: DesktopSidebarProps) {
+  const { t } = useTranslations()
   const standaloneProjects = projects.filter(project => !project.area_id)
 
   return (
-    <aside className="rounded-[32px] border border-slate-100 bg-white shadow-2xl flex flex-col h-full">
+    <aside className="rounded-[32px] border border-[var(--color-primary-100)] bg-[var(--color-surface)] shadow-2xl flex flex-col h-full text-[color:var(--on-surface)]">
       <div className="px-6 pt-6 pb-4 flex items-center justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.4em] text-slate-400">Azahar</p>
-          <p className="text-xl font-semibold text-slate-900">Workspace</p>
+          <p className="text-[11px] uppercase tracking-[0.4em] text-slate-400">{t('sidebar.brand')}</p>
+          <p className="text-xl font-semibold">{t('sidebar.workspace')}</p>
         </div>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300"
-        >
-          Salir
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300 flex items-center gap-2"
+          >
+            <img src={settingsIcon} alt="" className="h-4 w-4" />
+            {t('sidebar.settings')}
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300"
+          >
+            {t('sidebar.logout')}
+          </button>
+        </div>
       </div>
       <div className="px-5">
-        <div className="rounded-2xl border border-slate-100 p-3 flex items-center justify-between bg-slate-50">
+        <div className="rounded-2xl border border-[var(--color-primary-100)] p-3 flex items-center justify-between bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-surface)_30%)]">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">En progreso</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{t('sidebar.inProgress')}</p>
             <p className="text-lg font-semibold text-slate-800">
-              {filteredTaskCount} tareas
+              {filteredTaskCount} {t('sidebar.tasks')}
             </p>
           </div>
           <span className="text-sm text-slate-400">
@@ -97,7 +112,7 @@ export function DesktopSidebar({
       </div>
       <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-5">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Focus</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{t('sidebar.focus')}</p>
           <ul className="space-y-1">
             {quickLists.map(view => {
               const total = quickViewStats[view.id]
@@ -109,7 +124,7 @@ export function DesktopSidebar({
                     type="button"
                     onClick={() => onSelectQuickView(view.id)}
                     className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
-                      isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'
+                      isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-[color-mix(in_srgb,var(--color-primary-100)_35%,var(--color-bg)_65%)]'
                     }`}
                   >
                     <span className="flex items-center gap-3">
@@ -124,7 +139,7 @@ export function DesktopSidebar({
           </ul>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Áreas</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{t('sidebar.areas')}</p>
           <div className="space-y-3">
             {areas.length === 0 && <p className="text-sm text-slate-400">Crea tu primera área para organizarte.</p>}
             {areas.map(area => {
@@ -132,7 +147,7 @@ export function DesktopSidebar({
               const stats = areaStats.get(area.id)
               const isActiveArea = selectedAreaId === area.id && !selectedProjectId
               return (
-                <div key={area.id} className="rounded-2xl border border-slate-100 px-3 py-2 bg-slate-50/60">
+                <div key={area.id} className="rounded-2xl border border-[var(--color-primary-100)] px-3 py-2 bg-[color-mix(in_srgb,var(--color-bg)_80%,var(--color-surface)_20%)]">
                   <button
                     type="button"
                     onClick={() => onSelectArea(area.id)}
@@ -156,7 +171,7 @@ export function DesktopSidebar({
                           type="button"
                           onClick={() => onSelectProject(project.id)}
                           className={`w-full flex items-center justify-between text-xs rounded-xl px-2 py-1 ${
-                            isActiveProject ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'
+                            isActiveProject ? 'bg-[var(--color-surface)] text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'
                           }`}
                         >
                           <span>{project.name}</span>
@@ -175,7 +190,7 @@ export function DesktopSidebar({
         </div>
         {standaloneProjects.length > 0 && (
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">Proyectos</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{t('sidebar.projects')}</p>
             <div className="space-y-1">
               {standaloneProjects.map(project => {
                 const stats = projectStats.get(project.id)
@@ -186,7 +201,7 @@ export function DesktopSidebar({
                     type="button"
                     onClick={() => onSelectProject(project.id)}
                     className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
-                      isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'
+                      isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-[color-mix(in_srgb,var(--color-primary-100)_35%,var(--color-bg)_65%)]'
                     }`}
                   >
                     <span className="flex items-center gap-2">

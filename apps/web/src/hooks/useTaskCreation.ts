@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { QuickViewId } from '../pages/tasksSelectors.js'
+import { loadDraft, saveDraft, clearDraft } from './draftStorage.js'
 
 export interface TaskCreationDraft {
   title: string
@@ -40,9 +41,15 @@ const defaultDraft: TaskCreationDraft = {
 type LabelInput = string[] | ((prev: string[]) => string[])
 
 export function useTaskCreation(initialView: QuickViewId = 'inbox') {
-  const [taskDraft, setTaskDraft] = useState<TaskCreationDraft>({ ...defaultDraft, view: initialView })
+  const [taskDraft, setTaskDraft] = useState<TaskCreationDraft>(() => {
+    const persisted = loadDraft<TaskCreationDraft>('azahar:draft:task')
+    return persisted ? { ...defaultDraft, ...persisted, view: persisted.view ?? initialView } : { ...defaultDraft, view: initialView }
+  })
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
-  const [mobileDraftTask, setMobileDraftTask] = useState<MobileTaskDraft | null>(null)
+  const [mobileDraftTask, setMobileDraftTask] = useState<MobileTaskDraft | null>(() => {
+    const persisted = loadDraft<MobileTaskDraft>('azahar:draft:mobile-task')
+    return persisted ?? null
+  })
 
   const updateTaskDraft = useCallback(<K extends keyof TaskCreationDraft>(key: K, value: TaskCreationDraft[K]) => {
     setTaskDraft(prev => ({ ...prev, [key]: value }))
@@ -57,6 +64,7 @@ export function useTaskCreation(initialView: QuickViewId = 'inbox') {
 
   const resetTaskDraft = useCallback(() => {
     setTaskDraft({ ...defaultDraft, view: initialView })
+    clearDraft('azahar:draft:task')
   }, [initialView])
 
   const openTaskModal = useCallback(() => setIsTaskModalOpen(true), [])
@@ -65,6 +73,18 @@ export function useTaskCreation(initialView: QuickViewId = 'inbox') {
   const updateMobileDraft = useCallback((updater: (draft: MobileTaskDraft | null) => MobileTaskDraft | null) => {
     setMobileDraftTask(updater)
   }, [])
+
+  useEffect(() => {
+    saveDraft('azahar:draft:task', taskDraft)
+  }, [taskDraft])
+
+  useEffect(() => {
+    if (mobileDraftTask) {
+      saveDraft('azahar:draft:mobile-task', mobileDraftTask)
+    } else {
+      clearDraft('azahar:draft:mobile-task')
+    }
+  }, [mobileDraftTask])
 
   return {
     taskDraft,
