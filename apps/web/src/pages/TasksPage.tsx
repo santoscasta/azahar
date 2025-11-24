@@ -39,7 +39,6 @@ import {
 } from './tasksSelectors.js'
 import { defaultDueForView, determineViewFromDate } from '../lib/scheduleUtils.js'
 import { deserializeChecklistNotes, generateChecklistId } from '../lib/checklistNotes.js'
-import { applyTaskFilters } from '../lib/taskFilters.js'
 import { useTaskCreation } from '../hooks/useTaskCreation.js'
 import { useProjectCreation } from '../hooks/useProjectCreation.js'
 import { useAreaCreation } from '../hooks/useAreaCreation.js'
@@ -178,11 +177,14 @@ export default function TasksPage() {
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', normalizedSearch, sortedLabelIds],
+    queryKey: ['tasks', normalizedSearch, sortedLabelIds, selectedProjectId, selectedAreaId, activeQuickView],
     queryFn: async () => {
       const result = await searchTasks({
         query: normalizedSearch || null,
         labelIds: sortedLabelIds.length > 0 ? sortedLabelIds : null,
+        projectId: selectedProjectId,
+        areaId: selectedAreaId,
+        quickView: activeQuickView,
       })
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
@@ -299,28 +301,11 @@ export default function TasksPage() {
     const day = `${now.getDate()}`.padStart(2, '0')
     return `${now.getFullYear()}-${month}-${day}`
   }, [])
-  const contextFilteredTasks = useMemo(
-    () =>
-      applyTaskFilters(tasks, {
-        projectId: selectedProjectId,
-        areaId: selectedAreaId,
-      }),
-    [tasks, selectedProjectId, selectedAreaId]
-  )
   const quickViewStats = useMemo(
     () => buildQuickViewStats(tasks, todayISO),
     [tasks, todayISO]
   )
-  const quickViewTasks = useMemo(
-    () => filterTasksByQuickView(tasks, activeQuickView, todayISO),
-    [tasks, activeQuickView, todayISO]
-  )
-  const filteredTasks = useMemo(() => {
-    if (selectedProjectId || selectedAreaId) {
-      return contextFilteredTasks
-    }
-    return quickViewTasks
-  }, [contextFilteredTasks, quickViewTasks, selectedProjectId, selectedAreaId])
+  const filteredTasks = useMemo(() => filterTasksByQuickView(tasks, activeQuickView, todayISO), [tasks, activeQuickView, todayISO])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false

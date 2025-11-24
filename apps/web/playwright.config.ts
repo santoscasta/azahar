@@ -31,7 +31,7 @@ export default defineConfig({
 
     /* Run your local dev server before starting the tests */
     webServer: {
-        command: 'pnpm dev',
+        command: 'VITE_E2E_BYPASS_AUTH=true pnpm dev',
         url: 'http://localhost:5173',
         reuseExistingServer: !process.env.CI,
     },

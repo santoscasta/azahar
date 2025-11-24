@@ -5,6 +5,7 @@ import { queryClient } from './lib/queryClient'
 import { supabase, getCurrentUser } from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import TasksPage from './pages/TasksPage'
+import SettingsPage from './pages/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
@@ -39,6 +40,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const enableSettings = ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_ENABLE_SETTINGS ?? 'true') !== 'false'
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -52,6 +55,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {enableSettings && (
+            <Route
+              path="/settings"
+              element={(
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              )}
+            />
+          )}
           <Route path="/" element={<Navigate to="/app" replace />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>

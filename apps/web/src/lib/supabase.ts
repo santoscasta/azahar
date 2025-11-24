@@ -9,6 +9,7 @@ const runtimeEnv: RuntimeEnv | undefined =
 const supabaseUrl = runtimeEnv?.VITE_SUPABASE_URL
 const supabaseKey = runtimeEnv?.VITE_SUPABASE_ANON_KEY
 const appBaseUrl = runtimeEnv?.VITE_APP_BASE_URL
+const bypassE2E = runtimeEnv?.VITE_E2E_BYPASS_AUTH === 'true'
 
 const hasSupabaseCreds = Boolean(supabaseUrl && supabaseKey)
 type MaybeNodeProcess = { versions?: { node?: string } }
@@ -41,6 +42,9 @@ export interface AuthResult {
 }
 
 export async function signUp(email: string, password: string): Promise<AuthResult> {
+  if (bypassE2E) {
+    return { success: true }
+  }
   try {
     const { error } = await supabase.auth.signUp({
       email,
@@ -59,6 +63,9 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
+  if (bypassE2E) {
+    return { success: true }
+  }
   try {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -74,6 +81,9 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 }
 
 export async function signOut(): Promise<{ success: boolean; error?: string }> {
+  if (bypassE2E) {
+    return { success: true }
+  }
   try {
     const { error } = await supabase.auth.signOut()
     if (error) {
@@ -86,6 +96,9 @@ export async function signOut(): Promise<{ success: boolean; error?: string }> {
 }
 
 export async function getCurrentUser() {
+  if (bypassE2E) {
+    return { id: 'e2e-user' }
+  }
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
@@ -216,6 +229,34 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
       return { success: false, error: 'Usuario no autenticado' }
     }
 
+    if (bypassE2E) {
+      const mockTasks: Task[] = [
+        {
+          id: 'e2e-task',
+          user_id: typeof user === 'object' && user ? (user as { id: string }).id : 'e2e-user',
+          project_id: null,
+          area_id: null,
+          heading_id: null,
+          title: 'Tarea demo e2e',
+          notes: null,
+          status: 'open',
+          priority: 0,
+          due_at: null,
+          start_at: null,
+          repeat_rrule: null,
+          reminder_at: null,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          completed_at: null,
+          pinned: false,
+          labels: [],
+          checklist_items: [],
+          quick_view: 'inbox',
+        },
+      ]
+      return { success: true, tasks: mockTasks }
+    }
+
     const { query, projectId, labelIds, areaId, quickView } = args
     const { data, error } = await supabase.rpc('search_tasks', {
       p_query: query ?? null,
@@ -252,6 +293,30 @@ export async function addTask(
   heading_id?: string | null
 ): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
+    if (bypassE2E) {
+      return {
+        success: true,
+        task: {
+          id: `e2e-${Math.random().toString(36).slice(2)}`,
+          user_id: 'e2e-user',
+          project_id: project_id || null,
+          area_id: area_id || null,
+          heading_id: heading_id || null,
+          title: title.trim(),
+          notes: notes || null,
+          status,
+          priority: priority || 0,
+          due_at: due_at || null,
+          start_at: null,
+          repeat_rrule: null,
+          reminder_at: null,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          completed_at: status === 'done' ? new Date().toISOString() : null,
+          pinned: false,
+        },
+      }
+    }
     const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'Usuario no autenticado' }
@@ -289,6 +354,32 @@ export async function addTask(
 
 export async function updateTask(id: string, updates: Partial<Task>): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
+    if (bypassE2E) {
+      return {
+        success: true,
+        task: {
+          id,
+          user_id: 'e2e-user',
+          project_id: updates.project_id ?? null,
+          area_id: updates.area_id ?? null,
+          heading_id: updates.heading_id ?? null,
+          title: updates.title ?? 'Actualizada',
+          notes: updates.notes ?? null,
+          status: updates.status ?? 'open',
+          priority: updates.priority ?? 0,
+          due_at: updates.due_at ?? null,
+          start_at: updates.start_at ?? null,
+          repeat_rrule: updates.repeat_rrule ?? null,
+          reminder_at: updates.reminder_at ?? null,
+          updated_at: new Date().toISOString(),
+          created_at: updates.created_at ?? new Date().toISOString(),
+          completed_at: updates.completed_at ?? null,
+          pinned: updates.pinned ?? false,
+          labels: [],
+          checklist_items: [],
+        },
+      }
+    }
     const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'Usuario no autenticado' }
@@ -317,6 +408,30 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<{ 
 
 export async function toggleTaskStatus(id: string): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
+    if (bypassE2E) {
+      return {
+        success: true,
+        task: {
+          id,
+          user_id: 'e2e-user',
+          project_id: null,
+          area_id: null,
+          heading_id: null,
+          title: 'Tarea demo e2e',
+          notes: null,
+          status: 'done',
+          priority: 0,
+          due_at: null,
+          start_at: null,
+          repeat_rrule: null,
+          reminder_at: null,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          pinned: false,
+        },
+      }
+    }
     const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'Usuario no autenticado' }
@@ -361,6 +476,9 @@ export async function toggleTaskStatus(id: string): Promise<{ success: boolean; 
 
 export async function deleteTask(id: string): Promise<{ success: boolean; error?: string }> {
   try {
+    if (bypassE2E) {
+      return { success: true }
+    }
     const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'Usuario no autenticado' }

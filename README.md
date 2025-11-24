@@ -36,6 +36,7 @@ cp apps/web/.env.local.example apps/web/.env.local
 
 # Editar .env.local con tus credenciales de Supabase
 # VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY (encontradas en Settings > API)
+# (Opcional para seeds de e2e) SUPABASE_SERVICE_ROLE_KEY para scripts de pruebas
 ```
 
 ### 4. Levantar desarrollo
@@ -94,6 +95,9 @@ pnpm lint
 
 # Tests de estado (quick views/filtros)
 pnpm -C apps/web test
+
+# Seed de datos de prueba (requiere service_role)
+pnpm -C apps/web seed:test
 ```
 
 ## 🧪 Tests automáticos
@@ -197,6 +201,7 @@ El comando compila únicamente los selectores de `TasksPage` y confirma que cada
 ### Error: "Faltan variables de entorno"
 - Verifica que `.env.local` existe en `apps/web/`
 - Revisa que `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` estén presentes
+- Para scripts de seed/reset e2e añade `SUPABASE_SERVICE_ROLE_KEY` (clave service_role de Supabase)
 
 ### No puedo registrarme
 - Asegúrate que Email Auth está activado en Supabase
