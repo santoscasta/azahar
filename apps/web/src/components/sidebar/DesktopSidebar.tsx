@@ -128,7 +128,9 @@ export function DesktopSidebar({
                     }`}
                   >
                     <span className="flex items-center gap-3">
-                      <span className={`text-base ${view.accent}`}>{view.icon}</span>
+                      <span className="h-6 w-6 rounded-xl bg-[color-mix(in_srgb,var(--color-primary-100)_60%,var(--color-bg)_40%)] flex items-center justify-center">
+                        <img src={view.icon} alt="" className="h-4 w-4" />
+                      </span>
                       {view.label}
                     </span>
                     <CountPill total={total} overdue={overdue} />

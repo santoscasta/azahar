@@ -70,6 +70,12 @@ import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
 import PriorityMenu from '../components/tasks/PriorityMenu.js'
 import TaskOverflowMenu from '../components/tasks/TaskOverflowMenu.js'
 import { useConnectivity } from '../hooks/useConnectivity.js'
+import inboxIcon from '../assets/icons/inbox.svg'
+import todayIcon from '../assets/icons/today.svg'
+import upcomingIcon from '../assets/icons/upcoming.svg'
+import anytimeIcon from '../assets/icons/anytime.svg'
+import somedayIcon from '../assets/icons/someday.svg'
+import logbookIcon from '../assets/icons/logbook.svg'
 
 type LabelSheetTarget = { kind: 'draft-task' } | { kind: 'task'; taskId: string } | null
 type Priority = 0 | 1 | 2 | 3
@@ -705,12 +711,12 @@ export default function TasksPage() {
   )
 
   const quickLists = [
-    { id: 'inbox', label: 'Inbox', icon: '📥', accent: 'text-slate-700' },
-    { id: 'today', label: 'Today', icon: '⭐', accent: 'text-amber-500' },
-    { id: 'upcoming', label: 'Upcoming', icon: '📆', accent: 'text-sky-500' },
-    { id: 'anytime', label: 'Anytime', icon: '🌤️', accent: 'text-emerald-600' },
-    { id: 'someday', label: 'Someday', icon: '📦', accent: 'text-violet-500' },
-    { id: 'logbook', label: 'Logbook', icon: '✅', accent: 'text-slate-400' },
+    { id: 'inbox', label: 'Inbox', icon: inboxIcon, accent: 'text-slate-700' },
+    { id: 'today', label: 'Today', icon: todayIcon, accent: 'text-amber-500' },
+    { id: 'upcoming', label: 'Upcoming', icon: upcomingIcon, accent: 'text-sky-500' },
+    { id: 'anytime', label: 'Anytime', icon: anytimeIcon, accent: 'text-emerald-600' },
+    { id: 'someday', label: 'Someday', icon: somedayIcon, accent: 'text-violet-500' },
+    { id: 'logbook', label: 'Logbook', icon: logbookIcon, accent: 'text-slate-400' },
   ] as const
   const creationViewOptions = quickLists.filter(list => list.id !== 'logbook')
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]

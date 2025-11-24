@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Area, Project } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
+import searchIcon from '../../assets/icons/search.svg'
 
 interface DraftArea {
   name: string
@@ -76,7 +77,9 @@ export function MobileOverview({
     <div className="space-y-6 pb-28">
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <img src={searchIcon} alt="" className="h-4 w-4" />
+        </span>
         <input
           type="text"
           value={searchQuery}
@@ -95,7 +98,9 @@ export function MobileOverview({
             className="w-full flex items-center justify-between px-4 py-4 text-left"
           >
             <span className="flex items-center gap-3">
-              <span className="text-2xl">{view.icon}</span>
+              <span className="h-9 w-9 rounded-2xl bg-[color-mix(in_srgb,var(--color-primary-100)_60%,var(--color-bg)_40%)] flex items-center justify-center">
+                <img src={view.icon} alt="" className="h-5 w-5" />
+              </span>
               <span className="text-base font-medium text-slate-700">{view.label}</span>
             </span>
             <div className="flex items-center gap-2 text-slate-400">

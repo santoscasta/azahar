@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="searchGradient" x1="16" y1="12" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5E7FA3"/>
+      <stop offset="1" stop-color="#2F7D57"/>
+    </linearGradient>
+  </defs>
+  <circle cx="30" cy="30" r="14" stroke="url(#searchGradient)" stroke-width="4" fill="rgba(255,255,255,0.06)"/>
+  <path d="M40 40l10 10" stroke="#2F7D57" stroke-width="4" stroke-linecap="round"/>
+</svg>

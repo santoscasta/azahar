@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="logbookGradient" x1="16" y1="12" x2="46" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B8ED3"/>
+      <stop offset="1" stop-color="#3E6386"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="12" width="28" height="40" rx="6" stroke="url(#logbookGradient)" stroke-width="3" fill="rgba(255,255,255,0.06)"/>
+  <path d="M20 18h20" stroke="#7B8ED3" stroke-width="3" stroke-linecap="round"/>
+  <path d="M20 24h20" stroke="#7B8ED3" stroke-width="3" stroke-linecap="round"/>
+  <path d="M20 32h12l4 4 6-10" stroke="#2F7D57" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
