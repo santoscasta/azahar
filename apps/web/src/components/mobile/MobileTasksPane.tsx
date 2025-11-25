@@ -30,9 +30,7 @@ interface MobileTasksPaneProps {
   renderTaskBoard: () => ReactNode
   renderDraftCard?: () => ReactNode
   showDraft: boolean
-  onOpenSettings: () => void
   pendingSync: boolean
-  showMobileHomeSettings?: boolean
 }
 
 export default function MobileTasksPane({
@@ -58,9 +56,7 @@ export default function MobileTasksPane({
   renderTaskBoard,
   renderDraftCard,
   showDraft,
-  onOpenSettings,
   pendingSync,
-  showMobileHomeSettings = false,
 }: MobileTasksPaneProps) {
   return (
     <MobileHome
@@ -69,7 +65,6 @@ export default function MobileTasksPane({
           value={searchQuery}
           inputRef={searchInputRef}
           onFocus={onSearchFocus}
-          onClick={showMobileHomeSettings ? onOpenSettings : undefined}
           onBlur={onSearchBlur}
           onChange={onSearchChange}
           onClear={onSearchClear}
@@ -104,7 +99,6 @@ export default function MobileTasksPane({
       renderTaskBoard={renderTaskBoard}
       renderDraftCard={renderDraftCard}
       showDraft={showDraft}
-      showSettingsInSearch={showMobileHomeSettings}
     />
   )
 }

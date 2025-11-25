@@ -44,6 +44,7 @@ interface MobileOverviewProps {
   onSaveProjectDraft: () => void
   onSelectProject: (projectId: string) => void
   onOpenCreationSheet: () => void
+  onOpenSettings: () => void
 }
 
 export function MobileOverview({
@@ -72,6 +73,7 @@ export function MobileOverview({
   onSaveProjectDraft,
   onSelectProject,
   onOpenCreationSheet,
+  onOpenSettings,
 }: MobileOverviewProps) {
   return (
     <div className="space-y-6 pb-28">
@@ -204,7 +206,11 @@ export function MobileOverview({
       </div>
 
       <div className="flex items-center justify-between text-slate-400 px-2">
-        <button className="text-sm flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="text-sm flex items-center gap-2 text-[var(--on-surface)]"
+        >
           ⚙ <span>Ajustes</span>
         </button>
         <button className="text-sm flex items-center gap-2">
@@ -212,11 +218,11 @@ export function MobileOverview({
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onOpenCreationSheet}
-        className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
-        aria-label="Abrir creación rápida"
+        <button
+          type="button"
+          onClick={onOpenCreationSheet}
+          className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
+          aria-label="Abrir creación rápida"
       >
         +
       </button>
