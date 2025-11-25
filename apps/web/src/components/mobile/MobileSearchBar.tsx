@@ -7,6 +7,7 @@ interface MobileSearchBarProps {
   onBlur: () => void
   onChange: (value: string) => void
   onClear: () => void
+  onClick?: () => void
 }
 
 export default function MobileSearchBar({
@@ -16,27 +17,29 @@ export default function MobileSearchBar({
   onBlur,
   onChange,
   onClear,
+  onClick,
 }: MobileSearchBarProps) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow px-4 py-3">
+    <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow px-4 py-3">
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C4BDB5]">🔍</span>
         <input
           ref={inputRef}
           type="text"
           value={value}
           onFocus={onFocus}
+          onClick={onClick}
           onBlur={onBlur}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Buscar tareas..."
-          className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+          className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
         {value && (
           <button
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={onClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C4BDB5] hover:text-[var(--color-primary-700)]"
             aria-label="Limpiar búsqueda"
           >
             ✕

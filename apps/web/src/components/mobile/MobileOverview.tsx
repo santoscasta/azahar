@@ -46,6 +46,7 @@ interface MobileOverviewProps {
   onSelectProject: (projectId: string) => void
   onOpenCreationSheet: () => void
   onOpenSettings: () => void
+  onFocusSearch?: () => void
 }
 
 export function MobileOverview({
@@ -75,6 +76,7 @@ export function MobileOverview({
   onSelectProject,
   onOpenCreationSheet,
   onOpenSettings,
+  onFocusSearch,
 }: MobileOverviewProps) {
   return (
     <div className="space-y-6 pb-28">
@@ -95,6 +97,7 @@ export function MobileOverview({
           type="text"
           value={searchQuery}
           onFocus={onSearchFocus}
+          onClick={onFocusSearch}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
           className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"

@@ -69,6 +69,7 @@ export default function MobileTasksPane({
           value={searchQuery}
           inputRef={searchInputRef}
           onFocus={onSearchFocus}
+          onClick={showMobileHomeSettings ? onOpenSettings : undefined}
           onBlur={onSearchBlur}
           onChange={onSearchChange}
           onClear={onSearchClear}
