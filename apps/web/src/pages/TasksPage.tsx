@@ -2054,7 +2054,6 @@ export default function TasksPage() {
             onSaveProjectDraft={handleSaveMobileDraftProject}
             onSelectProject={handleOpenMobileProject}
             onOpenCreationSheet={() => setShowMobileCreationSheet(true)}
-            onOpenSettings={handleOpenSettings}
           />
         </div>
         {renderTaskModal()}
@@ -2110,9 +2109,7 @@ export default function TasksPage() {
             renderTaskBoard={renderMobileTaskBoard}
             renderDraftCard={renderMobileDraftTaskCard}
             showDraft={showMobileHome && !!mobileDraftTask}
-            onOpenSettings={handleOpenSettings}
             pendingSync={hasPendingSync}
-            showMobileHomeSettings
           />
         </div>
           <MobileFab

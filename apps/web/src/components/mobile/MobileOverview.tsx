@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import type { Area, Project } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import searchIcon from '../../assets/icons/search.svg'
-import settingsIcon from '../../assets/icons/settings.svg'
 
 interface DraftArea {
   name: string
@@ -45,8 +44,6 @@ interface MobileOverviewProps {
   onSaveProjectDraft: () => void
   onSelectProject: (projectId: string) => void
   onOpenCreationSheet: () => void
-  onOpenSettings: () => void
-  onFocusSearch?: () => void
 }
 
 export function MobileOverview({
@@ -75,8 +72,6 @@ export function MobileOverview({
   onSaveProjectDraft,
   onSelectProject,
   onOpenCreationSheet,
-  onOpenSettings,
-  onFocusSearch,
 }: MobileOverviewProps) {
   return (
     <div className="space-y-6 pb-28">
@@ -85,19 +80,10 @@ export function MobileOverview({
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
           <img src={searchIcon} alt="" className="h-4 w-4" />
         </span>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--on-surface)] flex items-center justify-center shadow-sm hover:border-[var(--color-primary-600)] z-10"
-          aria-label="Ajustes"
-        >
-          <img src={settingsIcon} alt="" className="h-4.5 w-4.5" />
-        </button>
         <input
           type="text"
           value={searchQuery}
           onFocus={onSearchFocus}
-          onClick={onFocusSearch}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
           className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
