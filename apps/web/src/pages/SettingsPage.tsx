@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Language } from '../lib/i18n.js'
 import { useTranslations } from '../App.js'
+import { signOut } from '../lib/supabase.js'
 
 type ThemeOption = 'system' | 'light' | 'dark'
 
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const { t } = useTranslations()
   const navigate = useNavigate()
   const [settings, setSettings] = useState<SettingsState>(defaultSettings)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
     try {
@@ -48,6 +50,16 @@ export default function SettingsPage() {
       default: return 'Sistema'
     }
   }, [settings.theme])
+
+  const handleLogout = async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
+    const result = await signOut()
+    setLoggingOut(false)
+    if (result.success) {
+      navigate('/login')
+    }
+  }
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -110,6 +122,35 @@ export default function SettingsPage() {
               {t('settings.reset')}
             </button>
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-100 bg-white shadow px-8 py-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Cuenta</p>
+            <p className="text-xs text-slate-500">Cerrar sesión y volver a la pantalla de inicio</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[#736B63] hover:bg-[var(--color-primary-100)] disabled:opacity-60"
+            aria-label="Cerrar sesión"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M15 17H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h8" />
+              <path d="M12 12h9" />
+              <path d="M18 15l3-3-3-3" />
+            </svg>
+          </button>
         </section>
       </div>
     </main>

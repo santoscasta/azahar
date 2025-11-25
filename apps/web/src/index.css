@@ -3,37 +3,38 @@
 @tailwind utilities;
 
 :root {
-  --color-primary-700: #3E6386;
-  --color-primary-600: #5E7FA3;
-  --color-primary-500: #6D88A8;
-  --color-primary-300: #9EB4CC;
-  --color-primary-100: #E6EEF5;
-  --color-accent-600: #256648;
-  --color-accent-500: #2F7D57;
-  --color-accent-300: #62A482;
-  --color-bg: #F7F9FC;
+  --color-primary-700: #FF7A33;
+  --color-primary-600: #FF9D66;
+  --color-primary-500: #FFB181;
+  --color-primary-300: #FFE4CC;
+  --color-primary-100: #FFF8ED;
+  --color-accent-600: #6B8A6B;
+  --color-accent-500: #8FAA8F;
+  --color-accent-300: #C7D8C7;
+  --color-bg: #FFFCF7;
   --color-surface: #FFFFFF;
   --on-primary: #FFFFFF;
-  --on-surface: #0F172A;
+  --on-surface: #2D2520;
+  --color-border: #E8DED0;
 }
 
 :root[data-theme='dark'] {
-  --color-primary-700: #A5B8F1;
-  --color-primary-600: #8FA2E5;
-  --color-primary-500: #7B8ED3;
-  --color-primary-300: #5A6FAF;
-  --color-primary-100: #1E263B;
-  --color-accent-600: #7CD4AA;
-  --color-accent-500: #68BD95;
-  --color-accent-300: #4B9B75;
-  --color-bg: #0D1424;
-  --color-surface: #111A2F;
-  --on-primary: #0B1020;
-  --on-surface: #E5E7EF;
+  --color-primary-700: #FF9D66;
+  --color-primary-600: #FFB181;
+  --color-primary-500: #FFC8A8;
+  --color-primary-300: #FF9D66;
+  --color-primary-100: #4A4340;
+  --color-accent-600: #A6C1A6;
+  --color-accent-500: #8FAA8F;
+  --color-accent-300: #736B63;
+  --color-bg: #2D2520;
+  --color-surface: #3A3330;
+  --on-primary: #2D2520;
+  --on-surface: #FFFCF7;
+  --color-border: #4A4340;
 }
 
 body {
-  @apply text-gray-900;
   background-color: var(--color-bg);
   color: var(--on-surface);
   font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -42,17 +43,6 @@ body {
 main {
   @apply min-h-screen;
   background-color: var(--color-bg);
-}
-
-.az-card {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-primary-100);
-  border-radius: 1.5rem;
-  box-shadow: 0 25px 60px rgba(62, 99, 134, 0.08);
-}
-
-.az-card--flat {
-  box-shadow: none;
 }
 
 .az-pill {
@@ -83,8 +73,8 @@ main {
 
 .az-btn-secondary {
   border-radius: 9999px;
-  border: 1px solid var(--color-primary-100);
-  color: var(--color-primary-600);
+  border: 1px solid var(--color-border);
+  color: #4A413A;
   background-color: transparent;
   font-weight: 500;
   transition: border 0.15s ease, color 0.15s ease;
@@ -109,9 +99,20 @@ main {
   box-shadow: 0 22px 34px rgba(47, 125, 87, 0.4);
 }
 
+.az-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.5rem;
+  box-shadow: 0 18px 40px rgba(45, 37, 32, 0.06);
+}
+
+.az-card--flat {
+  box-shadow: none;
+}
+
 .az-dock {
   background-color: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--color-primary-100);
+  border: 1px solid var(--color-border);
   border-radius: 9999px;
   box-shadow: 0 30px 70px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(12px);

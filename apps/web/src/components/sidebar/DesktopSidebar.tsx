@@ -2,6 +2,7 @@ import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { Project, Area } from '../../lib/supabase.js'
 import { useTranslations } from '../../App.js'
 import settingsIcon from '../../assets/icons/settings.svg'
+import AzaharLogo from './AzaharLogo.js'
 
 interface StatsMap extends Map<string, { total: number; overdue: number }> {}
 
@@ -32,7 +33,6 @@ export interface DesktopSidebarProps {
   onToggleNewListMenu: () => void
   onCreateProject: () => void
   onCreateArea: () => void
-  onLogout: () => void
   onOpenSettings: () => void
 }
 
@@ -40,8 +40,8 @@ function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
   if (!total && !overdue) return null
   return (
     <div className="flex items-center gap-1 text-[11px] font-semibold">
-      {total ? <span className="text-slate-400">{total}</span> : null}
-      {overdue ? <span className="text-rose-500">{overdue}</span> : null}
+      {overdue ? <span className="text-[#FF7A33]">{overdue}</span> : null}
+      {total ? <span className="text-[#736B63]">{total}</span> : null}
     </div>
   )
 }
@@ -66,53 +66,38 @@ export function DesktopSidebar({
   onToggleNewListMenu,
   onCreateProject,
   onCreateArea,
-  onLogout,
   onOpenSettings,
 }: DesktopSidebarProps) {
   const { t } = useTranslations()
   const standaloneProjects = projects.filter(project => !project.area_id)
 
   return (
-    <aside className="rounded-[32px] border border-[var(--color-primary-100)] bg-[var(--color-surface)] shadow-2xl flex flex-col h-full text-[color:var(--on-surface)]">
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.4em] text-slate-400">{t('sidebar.brand')}</p>
-          <p className="text-xl font-semibold">{t('sidebar.workspace')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300 flex items-center gap-2"
-          >
-            <img src={settingsIcon} alt="" className="h-4 w-4" />
-            {t('sidebar.settings')}
-          </button>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-500 hover:border-slate-300"
-          >
-            {t('sidebar.logout')}
-          </button>
+    <aside className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_50px_rgba(45,37,32,0.06)] flex flex-col h-full text-[#2D2520]">
+      <div className="px-5 pt-6 pb-4 border-b border-[var(--color-border)] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <AzaharLogo />
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-[#736B63]">{t('sidebar.brand')}</p>
+            <p className="text-lg font-semibold">{t('sidebar.workspace')}</p>
+          </div>
         </div>
       </div>
-      <div className="px-5">
-        <div className="rounded-2xl border border-[var(--color-primary-100)] p-3 flex items-center justify-between bg-[color-mix(in_srgb,var(--color-bg)_70%,var(--color-surface)_30%)]">
+      <div className="px-5 py-4 border-b border-[var(--color-border)]">
+        <div className="rounded-2xl border border-[var(--color-border)] px-4 py-3 flex items-center justify-between bg-[#FFF8ED]">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{t('sidebar.inProgress')}</p>
-            <p className="text-lg font-semibold text-slate-800">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">{t('sidebar.inProgress')}</p>
+            <p className="text-lg font-semibold">
               {filteredTaskCount} {t('sidebar.tasks')}
             </p>
           </div>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-[#736B63]">
             {completedCount}/{filteredTaskCount}
           </span>
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-5">
+      <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{t('sidebar.focus')}</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.focus')}</p>
           <ul className="space-y-1">
             {quickLists.map(view => {
               const total = quickViewStats[view.id]
@@ -124,12 +109,14 @@ export function DesktopSidebar({
                     type="button"
                     onClick={() => onSelectQuickView(view.id)}
                     className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
-                      isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-[color-mix(in_srgb,var(--color-primary-100)_35%,var(--color-bg)_65%)]'
+                      isActive
+                        ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                        : 'text-[#2D2520] hover:bg-[var(--color-primary-100)]'
                     }`}
                   >
                     <span className="flex items-center gap-3">
-                      <span className="h-6 w-6 rounded-xl bg-[color-mix(in_srgb,var(--color-primary-100)_60%,var(--color-bg)_40%)] flex items-center justify-center">
-                        <img src={view.icon} alt="" className="h-4 w-4" />
+                      <span className="h-8 w-8 rounded-xl bg-[var(--color-primary-100)] flex items-center justify-center">
+                        <img src={view.icon} alt="" className="h-5 w-5" />
                       </span>
                       {view.label}
                     </span>
@@ -141,24 +128,24 @@ export function DesktopSidebar({
           </ul>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{t('sidebar.areas')}</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.areas')}</p>
           <div className="space-y-3">
-            {areas.length === 0 && <p className="text-sm text-slate-400">Crea tu primera área para organizarte.</p>}
+            {areas.length === 0 && <p className="text-sm text-[#736B63]">Crea tu primera área para organizarte.</p>}
             {areas.map(area => {
               const areaProjects = projects.filter(project => project.area_id === area.id)
               const stats = areaStats.get(area.id)
               const isActiveArea = selectedAreaId === area.id && !selectedProjectId
               return (
-                <div key={area.id} className="rounded-2xl border border-[var(--color-primary-100)] px-3 py-2 bg-[color-mix(in_srgb,var(--color-bg)_80%,var(--color-surface)_20%)]">
+                <div key={area.id} className="rounded-2xl border border-[var(--color-border)] px-3 py-2 bg-[color-mix(in_srgb,var(--color-bg)_80%,var(--color-surface)_20%)]">
                   <button
                     type="button"
                     onClick={() => onSelectArea(area.id)}
-                    className={`w-full flex items-center justify-between text-sm font-semibold ${
-                      isActiveArea ? 'text-slate-900' : 'text-slate-600'
+                    className={`w-full flex items-center justify-between text-sm font-semibold rounded-xl px-2 py-1 ${
+                      isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[#2D2520] hover:bg-[var(--color-primary-100)]'
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-slate-400" />
+                      <span className="h-2 w-2 rounded-full bg-[#8FAA8F]" />
                       {area.name}
                     </span>
                     <CountPill total={stats?.total} overdue={stats?.overdue} />
@@ -173,7 +160,9 @@ export function DesktopSidebar({
                           type="button"
                           onClick={() => onSelectProject(project.id)}
                           className={`w-full flex items-center justify-between text-xs rounded-xl px-2 py-1 ${
-                            isActiveProject ? 'bg-[var(--color-surface)] text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'
+                            isActiveProject
+                              ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] shadow-inner'
+                              : 'text-[#736B63] hover:text-[#2D2520]'
                           }`}
                         >
                           <span>{project.name}</span>
@@ -182,7 +171,7 @@ export function DesktopSidebar({
                       )
                     })}
                     {areaProjects.length === 0 && (
-                      <p className="text-xs text-slate-400">Sin proyectos todavía</p>
+                      <p className="text-xs text-[#736B63]">Sin proyectos todavía</p>
                     )}
                   </div>
                 </div>
@@ -192,7 +181,7 @@ export function DesktopSidebar({
         </div>
         {standaloneProjects.length > 0 && (
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">{t('sidebar.projects')}</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.projects')}</p>
             <div className="space-y-1">
               {standaloneProjects.map(project => {
                 const stats = projectStats.get(project.id)
@@ -203,11 +192,13 @@ export function DesktopSidebar({
                     type="button"
                     onClick={() => onSelectProject(project.id)}
                     className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
-                      isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-[color-mix(in_srgb,var(--color-primary-100)_35%,var(--color-bg)_65%)]'
+                      isActive
+                        ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                        : 'text-[#2D2520] hover:bg-[var(--color-primary-100)]'
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#C4BDB5]" />
                       {project.name}
                     </span>
                     <CountPill total={stats?.total} overdue={stats?.overdue} />
@@ -218,17 +209,25 @@ export function DesktopSidebar({
           </div>
         )}
       </nav>
-      <div className="relative px-6 py-4 border-t border-slate-100">
+      <div className="relative px-6 py-4 border-t border-[var(--color-border)] flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleNewListMenu}
-          className="w-full flex items-center justify-center gap-2 rounded-full bg-slate-900 text-white py-2 text-sm font-semibold shadow-lg"
+          className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary-600)] text-white py-2 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
         >
           +
           <span>Nueva lista</span>
         </button>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[#736B63] hover:bg-[var(--color-primary-100)]"
+          aria-label={t('sidebar.settings')}
+        >
+          <img src={settingsIcon} alt="" className="h-5 w-5" />
+        </button>
         {showNewListMenu && (
-          <div className="absolute left-6 right-6 bottom-20 bg-slate-900 text-slate-100 rounded-3xl p-4 space-y-4 shadow-2xl">
+          <div className="absolute left-6 right-6 bottom-20 bg-[#2D2520] text-[#FFFCF7] rounded-3xl p-4 space-y-4 shadow-[0_20px_50px_rgba(45,37,32,0.24)] border border-[var(--color-border)]">
             <button
               type="button"
               onClick={onCreateProject}
@@ -237,9 +236,9 @@ export function DesktopSidebar({
               <span className="text-sm font-semibold flex items-center gap-2">
                 <span className="text-blue-300">🌀</span> Nuevo proyecto
               </span>
-              <span className="text-xs text-slate-300">Define un objetivo y avanza tarea a tarea.</span>
+              <span className="text-xs text-[#C4BDB5]">Define un objetivo y avanza tarea a tarea.</span>
             </button>
-            <div className="h-px bg-slate-700" />
+            <div className="h-px bg-[#4A4340]" />
             <button
               type="button"
               onClick={onCreateArea}
@@ -248,7 +247,7 @@ export function DesktopSidebar({
               <span className="text-sm font-semibold flex items-center gap-2">
                 <span className="text-emerald-300">🧩</span> Nueva área
               </span>
-              <span className="text-xs text-slate-300">Agrupa proyectos por responsabilidades.</span>
+              <span className="text-xs text-[#C4BDB5]">Agrupa proyectos por responsabilidades.</span>
             </button>
           </div>
         )}

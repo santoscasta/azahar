@@ -13,8 +13,6 @@ interface DesktopTaskBoardSwitcherProps {
   filteredTasks: Task[]
   visibleProjectTasks: Task[]
   completedCount: number
-  quickViewLabel: string
-  quickViewDescription: string
   quickViewGroups: QuickViewGroup[]
   headingEditingId: string | null
   headingEditingName: string
@@ -146,8 +144,6 @@ export default function DesktopTaskBoardSwitcher({
   filteredTasks,
   visibleProjectTasks,
   completedCount,
-  quickViewLabel,
-  quickViewDescription,
   quickViewGroups,
   headingEditingId,
   headingEditingName,
@@ -194,10 +190,6 @@ export default function DesktopTaskBoardSwitcher({
 
   return (
     <QuickViewBoard
-      quickViewLabel={quickViewLabel}
-      quickViewDescription={quickViewDescription}
-      completedCount={completedCount}
-      totalCount={filteredTasks.length}
       groups={quickViewGroups}
       onSelectArea={onSelectArea}
       onSelectProject={onSelectProject}

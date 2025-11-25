@@ -25,9 +25,9 @@ export default function DesktopSearch({
 }: DesktopSearchProps) {
   return (
     <div className="relative">
-      <div className="az-card az-card--flat p-4">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-sm p-4">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#736B63]">🔍</span>
           <input
             type="text"
             value={searchQuery}
@@ -35,14 +35,14 @@ export default function DesktopSearch({
             onBlur={onBlur}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Buscar por título, notas o proyecto..."
-            className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+            className="w-full pl-11 pr-10 py-3 rounded-xl bg-[var(--color-primary-100)] border border-[var(--color-border)] text-sm text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none transition"
           />
           {searchQuery && (
             <button
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={onClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C4BDB5] hover:text-[#736B63]"
               aria-label="Limpiar búsqueda"
             >
               ✕
@@ -51,13 +51,13 @@ export default function DesktopSearch({
         </div>
       </div>
       {showSuggestions && (
-        <div className="absolute left-0 right-0 mt-3 z-30 drop-shadow-2xl">
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-400 border-b border-slate-100">
+        <div className="absolute left-0 right-0 mt-3 z-30">
+          <div className="bg-white rounded-3xl border border-[var(--color-border)] overflow-hidden shadow-[0_16px_30px_rgba(45,37,32,0.12)]">
+            <div className="px-4 py-2 text-xs uppercase tracking-wide text-[#736B63] border-b border-[var(--color-border)] bg-[#FFFCF7]">
               Coincidencias ({suggestions.length})
             </div>
             {suggestions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-slate-500">
+              <div className="px-4 py-3 text-sm text-[#736B63]">
                 Sigue escribiendo para encontrar tareas que coincidan con "{searchQuery}"
               </div>
             ) : (
@@ -70,10 +70,10 @@ export default function DesktopSearch({
                         type="button"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => onSelectSuggestion(task)}
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50"
+                        className="w-full px-4 py-3 text-left hover:bg-[var(--color-primary-100)]"
                       >
-                        <p className="text-sm font-medium text-slate-800">{task.title}</p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-sm font-medium text-[#2D2520]">{task.title}</p>
+                        <p className="text-xs text-[#736B63]">
                           {project ? `Proyecto: ${project.name}` : 'Sin proyecto'}
                         </p>
                       </button>

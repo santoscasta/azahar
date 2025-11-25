@@ -1,41 +1,41 @@
 {
   "brand": {
     "primary": {
-      "100": "#E6EEF5",
-      "300": "#9EB4CC",
-      "500": "#6D88A8",
-      "600": "#5E7FA3",
-      "700": "#3E6386"
+      "100": "#FFF8ED",
+      "300": "#FFE4CC",
+      "500": "#FFB181",
+      "600": "#FF9D66",
+      "700": "#FF7A33"
     },
     "accent": {
-      "300": "#62A482",
-      "500": "#2F7D57",
-      "600": "#256648"
+      "300": "#C7D8C7",
+      "500": "#8FAA8F",
+      "600": "#6B8A6B"
     },
-    "blossom": "#FFFFFF",
-    "pistil": "#E9B949"
+    "blossom": "#FFFCF7",
+    "pistil": "#FF9D66"
   },
   "neutrals": {
-    "50": "#F8FAFC",
-    "200": "#E2E8F0",
-    "500": "#64748B",
-    "700": "#334155",
-    "900": "#0F172A"
+    "50": "#FFFCF7",
+    "200": "#E8DED0",
+    "500": "#736B63",
+    "700": "#4A413A",
+    "900": "#2D2520"
   },
   "semantic": {
-    "success": "#2E7D32",
-    "warning": "#B7791F",
+    "success": "#6B8A6B",
+    "warning": "#FF9D66",
     "danger": "#D64545",
-    "info": "#2563EB"
+    "info": "#8FAA8F"
   },
   "surfaces": {
-    "background": "#F7F9FC",
+    "background": "#FFFCF7",
     "surface": "#FFFFFF",
     "elevated": "#FFFFFF"
   },
   "on": {
     "onPrimary": "#FFFFFF",
-    "onSurface": "#0F172A",
-    "onAccent": "#FFFFFF"
+    "onSurface": "#2D2520",
+    "onAccent": "#2D2520"
   }
 }

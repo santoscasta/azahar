@@ -1,4 +1,5 @@
 import type { MobileTaskDraft } from '../../hooks/useTaskCreation.js'
+import CalendarIcon from '../icons/CalendarIcon.js'
 
 interface MobileDraftCardProps {
   draft: MobileTaskDraft
@@ -30,7 +31,7 @@ export function MobileDraftCard({
   return (
     <div
       className="rounded-3xl border p-4 space-y-3"
-      style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-primary-100)' }}
+      style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
     >
       <div>
         <input
@@ -61,8 +62,8 @@ export function MobileDraftCard({
           <button type="button" onClick={onLabelsPress} aria-label="Etiquetas">
             🏷
           </button>
-          <button type="button" onClick={onDatePress} aria-label="Plazo">
-            📅
+          <button type="button" onClick={onDatePress} aria-label="Plazo" className="flex items-center justify-center">
+            <CalendarIcon className="h-5 w-5" />
           </button>
           <button type="button" disabled className="opacity-50" aria-label="Checklist (pronto)">
             ☑
@@ -96,7 +97,7 @@ export function MobileDraftCard({
           type="button"
           onClick={onCancel}
           className="px-4 py-2 rounded-full border text-sm"
-          style={{ borderColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-primary-700)' }}
         >
           Cancelar
         </button>

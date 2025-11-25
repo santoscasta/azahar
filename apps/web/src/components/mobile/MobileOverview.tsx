@@ -98,8 +98,8 @@ export function MobileOverview({
             className="w-full flex items-center justify-between px-4 py-4 text-left"
           >
             <span className="flex items-center gap-3">
-              <span className="h-9 w-9 rounded-2xl bg-[color-mix(in_srgb,var(--color-primary-100)_60%,var(--color-bg)_40%)] flex items-center justify-center">
-                <img src={view.icon} alt="" className="h-5 w-5" />
+              <span className="h-10 w-10 rounded-2xl bg-[color-mix(in_srgb,var(--color-primary-100)_60%,var(--color-bg)_40%)] flex items-center justify-center">
+                <img src={view.icon} alt="" className="h-6 w-6" />
               </span>
               <span className="text-base font-medium text-slate-700">{view.label}</span>
             </span>

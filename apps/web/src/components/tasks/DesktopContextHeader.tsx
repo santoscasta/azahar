@@ -25,17 +25,17 @@ export default function DesktopContextHeader({
   onChipSelect,
 }: DesktopContextHeaderProps) {
   return (
-    <header className="rounded-[32px] border border-slate-100 bg-white shadow px-8 py-6 space-y-4">
+    <header className="rounded-[28px] bg-[var(--color-primary-100)] px-8 py-6 space-y-4">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{label}</p>
-          <h1 className="text-3xl font-semibold text-slate-900">{title}</h1>
-          <p className="text-sm text-slate-500 mt-1">{description}</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">{label}</p>
+          <h1 className="text-3xl font-semibold text-[#2D2520]">{title}</h1>
+          <p className="text-sm text-[#736B63] mt-1">{description}</p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Pendientes</p>
-          <p className="text-2xl font-semibold text-slate-900">{pendingCount}</p>
-          {overdueCount > 0 && <p className="text-xs text-rose-500">{overdueCount} vencida(s)</p>}
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">Pendientes</p>
+          <p className="text-2xl font-semibold text-[var(--color-primary-700)]">{pendingCount}</p>
+          {overdueCount > 0 && <p className="text-xs text-[#FF7A33]">{overdueCount} vencida(s)</p>}
         </div>
       </div>
       {chips.length > 0 && (
@@ -48,7 +48,9 @@ export default function DesktopContextHeader({
                 type="button"
                 onClick={() => onChipSelect(chip.id)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                  isActive ? 'bg-slate-900 text-white border-slate-900 shadow' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  isActive
+                    ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow'
+                    : 'border-[var(--color-border)] text-[#2D2520] hover:bg-[var(--color-primary-100)]'
                 }`}
               >
                 {chip.label}

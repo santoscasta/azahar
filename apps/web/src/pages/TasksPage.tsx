@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   searchTasks,
   addTask,
-  signOut,
   updateTask,
   toggleTaskStatus,
   deleteTask,
@@ -1972,8 +1971,6 @@ export default function TasksPage() {
         filteredTasks={filteredTasks}
         visibleProjectTasks={visibleProjectTasks}
         completedCount={completedCount}
-        quickViewLabel={quickViewLabels[activeQuickView]}
-        quickViewDescription={quickViewDescriptions[activeQuickView]}
         quickViewGroups={quickViewGroups}
         headingEditingId={headingEditingId}
         headingEditingName={headingEditingName}
@@ -2024,13 +2021,6 @@ export default function TasksPage() {
   const handleCloseTaskModal = () => {
     closeTaskModal()
     resetTaskDraft()
-  }
-
-  const handleLogout = async () => {
-    const result = await signOut()
-    if (result.success) {
-      navigate('/login')
-    }
   }
 
 
@@ -2154,7 +2144,6 @@ export default function TasksPage() {
                   onToggleNewListMenu={toggleNewListMenu}
                   onCreateProject={handleCreateProjectFromSidebar}
                   onCreateArea={handleCreateAreaFromSidebar}
-                  onLogout={handleLogout}
                   onOpenSettings={handleOpenSettings}
                 />
               </div>

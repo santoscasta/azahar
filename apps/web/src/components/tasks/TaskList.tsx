@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
+import CalendarIcon from '../icons/CalendarIcon.js'
 
 type Priority = 0 | 1 | 2 | 3
 
@@ -96,7 +97,7 @@ export default function TaskList({
   autoSaveOnMobileBlur = false,
 }: TaskListProps) {
   if (isLoading && showEmptyState && showLoadingState) {
-    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-slate-500' : 'p-10 text-center text-slate-500'
+    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[#736B63]' : 'p-10 text-center text-[#736B63]'
     return <div className={loadingClass}>Cargando tareas...</div>
   }
 
@@ -104,7 +105,7 @@ export default function TaskList({
     if (!showEmptyState) {
       return null
     }
-    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-slate-500' : 'p-10 text-center text-slate-500'
+    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[#736B63]' : 'p-10 text-center text-[#736B63]'
     return (
       <div className={emptyClass}>
         {filteredViewActive ? 'No hay tareas que coincidan con tu vista actual.' : 'No hay tareas todavía. ¡Crea la primera!'}
@@ -167,7 +168,7 @@ export default function TaskList({
   return (
     <>
       {variant === 'mobile' && showDraftCard && renderDraftCard ? renderDraftCard() : null}
-      <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'divide-y divide-slate-100'}>
+      <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col gap-3'}>
         {tasks.map(task => {
           const legacyContent = deserializeChecklistNotes(task.notes)
           const plainNotes = legacyContent.text
@@ -197,24 +198,24 @@ export default function TaskList({
           const isEditing = editingId === task.id
           const baseLiClass =
             variant === 'mobile'
-              ? 'p-4 rounded-3xl border border-slate-100 bg-white shadow-sm transition-colors'
-              : 'px-6 py-5 transition-colors'
+              ? 'p-4 rounded-3xl border border-[var(--color-border)] bg-white shadow-sm transition-colors'
+              : 'group px-6 py-5 rounded-2xl border border-[var(--color-border)] bg-white shadow-sm hover:border-[var(--color-primary-600)] hover:shadow-[0_10px_28px_rgba(45,37,32,0.08)] transition-all'
           const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
           const metaClass =
             variant === 'mobile'
-              ? 'flex flex-wrap items-center gap-2 text-sm'
-              : 'flex flex-wrap items-center gap-3 text-xs text-slate-500'
+              ? 'flex flex-wrap items-center gap-2 text-sm text-[#736B63]'
+              : 'flex flex-wrap items-center gap-3 text-xs text-[#736B63]'
           const checkboxClass =
             variant === 'mobile'
               ? `mt-1 h-7 w-7 rounded-2xl border-2 flex items-center justify-center transition ${
                   task.status === 'done'
-                    ? 'bg-emerald-500 border-emerald-500 text-white'
-                    : 'border-slate-300 text-transparent'
+                    ? 'bg-[var(--color-accent-500)] border-[var(--color-accent-500)] text-white'
+                    : 'border-[var(--color-border)] text-transparent'
                 }`
               : `mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${
                   task.status === 'done'
-                    ? 'bg-emerald-500 border-emerald-500 text-white'
-                    : 'border-slate-300 hover:border-emerald-500 text-transparent'
+                    ? 'bg-[var(--color-accent-500)] border-[var(--color-accent-500)] text-white'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-primary-600)] text-transparent'
                 }`
           const compactActivationProps =
             !isEditing && variant === 'mobile'
@@ -233,7 +234,7 @@ export default function TaskList({
                 <div ref={(node) => (isEditing ? (editingContainerRef.current = node) : undefined)}>
                   <form
                     onSubmit={(event) => onSaveEdit(event)}
-                    className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200"
+                    className="space-y-3 p-4 bg-[var(--color-primary-100)] rounded-2xl border border-[var(--color-border)]"
                   >
                     <input
                       type="text"
@@ -241,28 +242,28 @@ export default function TaskList({
                       onChange={(event) => setEditingTitle(event.target.value)}
                       placeholder="Título"
                       autoFocus
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                     />
                     <textarea
                       value={editingNotes}
                       onChange={(event) => setEditingNotes(event.target.value)}
                       placeholder="Notas..."
                       rows={variant === 'mobile' ? 3 : 2}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none resize-none"
+                      className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#736B63] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none"
                     />
-                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-slate-600">
+                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-[#736B63]">
                       <button
                         type="button"
                         onClick={onOpenEditDatePicker}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
-                        <span>📅</span>
+                        <CalendarIcon className="h-4 w-4" />
                         <span>{formatDateLabel(editingDueAt)}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => onOpenLabelSheet(task)}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>🏷</span>
                         <span>Etiquetas</span>
@@ -270,7 +271,7 @@ export default function TaskList({
                       <button
                         type="button"
                         onClick={() => onOpenChecklist(task)}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>☑</span>
                         <span>Checklist</span>
@@ -278,25 +279,25 @@ export default function TaskList({
                       <button
                         type="button"
                         onClick={onOpenPriorityMenu}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 font-semibold hover:border-slate-400"
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>⚑</span>
                         <span>{priorityLabels[editingPriority]}</span>
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                    <div className="flex flex-wrap gap-2 text-xs text-[#736B63]">
                       {editingArea && (
-                        <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                        <span className="px-3 py-1 rounded-full bg-[var(--color-primary-100)] text-[var(--color-primary-700)] border border-[var(--color-border)]">
                           Área: {editingArea.name}
                         </span>
                       )}
                       {editingProject && (
-                        <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                        <span className="px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-accent-300)_60%,var(--color-bg)_40%)] text-[#2D2520] border border-[var(--color-border)]">
                           Proyecto: {editingProject.name}
                         </span>
                       )}
                       {editingHeading && (
-                        <span className="px-3 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
+                        <span className="px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-primary-300)_40%,white_60%)] text-[var(--color-primary-700)] border border-[var(--color-border)]">
                           Sección: {editingHeading.name}
                         </span>
                       )}
@@ -304,14 +305,14 @@ export default function TaskList({
                     <div className="flex gap-2">
                       <button
                         type="submit"
-                        className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-sm font-semibold hover:bg-[var(--color-primary-700)] transition disabled:opacity-50"
                       >
                         Guardar
                       </button>
                       <button
                         type="button"
                         onClick={onCancelEdit}
-                        className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:border-slate-400"
+                        className="px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[#736B63] hover:border-[var(--color-primary-600)]"
                       >
                         Cancelar
                       </button>
@@ -327,7 +328,7 @@ export default function TaskList({
                     <button
                       type="button"
                       onClick={() => onOpenMoveSheet(task)}
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                      className="flex items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[#2D2520] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
                     >
                       <span className="text-lg">→</span>
                       <span>Mover</span>
@@ -344,7 +345,7 @@ export default function TaskList({
                     <button
                       type="button"
                       onClick={() => onOpenOverflowMenu(task)}
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 hover:border-slate-400"
+                      className="flex items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[#736B63] hover:border-[var(--color-primary-600)]"
                     >
                       <span>…</span>
                     </button>
@@ -367,31 +368,32 @@ export default function TaskList({
                     <div
                       className={`flex justify-between ${variant === 'mobile' ? 'flex-col gap-2' : 'flex-row items-start'}`}
                     >
-                      <p className={`${titleClass} ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                      <p className={`${titleClass} ${task.status === 'done' ? 'text-[#C4BDB5] line-through' : 'text-[#2D2520]'}`}>
                         {task.title}
                       </p>
                       {task.pinned ? <span className="text-lg" aria-label="Tarea fijada">📌</span> : null}
                     </div>
-                    {plainNotes && <p className="text-sm text-slate-500">{plainNotes}</p>}
+                    {plainNotes && <p className="text-sm text-[#736B63]">{plainNotes}</p>}
                     <div className={metaClass}>
                       {taskProject && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--color-primary-700)]">
                           {taskProject.name}
                         </span>
                       )}
                       {!taskProject && taskArea && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-accent-300)_70%,var(--color-bg)_30%)] text-[#2D2520]">
                           {taskArea.name}
                         </span>
                       )}
                       {taskHeading && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-100">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-primary-300)_50%,white_50%)] text-[var(--color-primary-700)]">
                           {taskHeading.name}
                         </span>
                       )}
                       {task.due_at && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                          📅 {new Date(task.due_at).toLocaleDateString('es-ES')}
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-300)] text-[var(--color-primary-700)] inline-flex items-center gap-1.5">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          {new Date(task.due_at).toLocaleDateString('es-ES')}
                         </span>
                       )}
                     </div>
@@ -407,7 +409,7 @@ export default function TaskList({
                     {!isEditing && checklistItems.length > 0 && (
                       <ul className="space-y-1">
                         {checklistItems.map(item => (
-                          <li key={item.id} className="flex items-center gap-2 text-sm text-slate-600">
+                          <li key={item.id} className="flex items-center gap-2 text-sm text-[#736B63]">
                             {item.persisted ? (
                               <button
                                 type="button"
@@ -416,7 +418,9 @@ export default function TaskList({
                                   onToggleCollapsedChecklist(task.id, item.id, item.completed)
                                 }}
                                 className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                                  item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'
+                                  item.completed
+                                    ? 'bg-[var(--color-accent-500)] border-[var(--color-accent-500)] text-white'
+                                    : 'border-[var(--color-border)] text-transparent'
                                 }`}
                                 aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completada'}
                               >
@@ -425,18 +429,20 @@ export default function TaskList({
                             ) : (
                               <span
                                 className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                                  item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'
+                                  item.completed
+                                    ? 'bg-[var(--color-accent-500)] border-[var(--color-accent-500)] text-white'
+                                    : 'border-[var(--color-border)] text-transparent'
                                 }`}
                               >
                                 ✓
                               </span>
                             )}
-                            <span className={item.completed ? 'line-through text-slate-400' : ''}>{item.text}</span>
+                            <span className={item.completed ? 'line-through text-[#C4BDB5]' : ''}>{item.text}</span>
                           </li>
                         ))}
                       </ul>
                     )}
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-[#C4BDB5]">
                       Creada el{' '}
                       {new Date(task.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
