@@ -86,7 +86,7 @@ export function MobileOverview({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--on-surface)] flex items-center justify-center shadow-sm hover:border-[var(--color-primary-600)]"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--on-surface)] flex items-center justify-center shadow-sm hover:border-[var(--color-primary-600)] z-10"
           aria-label="Ajustes"
         >
           <img src={settingsIcon} alt="" className="h-4.5 w-4.5" />
