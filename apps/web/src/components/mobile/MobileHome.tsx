@@ -8,6 +8,7 @@ interface MobileHomeProps {
   renderTaskBoard(): ReactNode
   renderDraftCard?: () => ReactNode
   showDraft: boolean
+  showSettingsInSearch?: boolean
 }
 
 export function MobileHome({
@@ -18,9 +19,10 @@ export function MobileHome({
   renderTaskBoard,
   renderDraftCard,
   showDraft,
+  showSettingsInSearch = false,
 }: MobileHomeProps) {
   return (
-    <div className="space-y-6 pb-28">
+    <div className={`space-y-6 pb-28 ${showSettingsInSearch ? 'pt-2' : ''}`}>
       {showDraft && renderDraftCard ? renderDraftCard() : null}
       <div className="relative">
         {renderSearch()}

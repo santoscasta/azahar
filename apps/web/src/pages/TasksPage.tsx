@@ -2103,17 +2103,18 @@ export default function TasksPage() {
               filteredTaskCount={filteredTasks.length}
               completedCount={completedCount}
               projectsInArea={selectedAreaProjectCount}
-              filters={activeFilters}
-              compactFilters={isMobileDetail}
-              onRemoveFilter={handleRemoveFilter}
-              errorMessage={error}
-              renderTaskBoard={renderMobileTaskBoard}
-              renderDraftCard={renderMobileDraftTaskCard}
-              showDraft={showMobileHome && !!mobileDraftTask}
-              onOpenSettings={handleOpenSettings}
-              pendingSync={hasPendingSync}
-            />
-          </div>
+            filters={activeFilters}
+            compactFilters={isMobileDetail}
+            onRemoveFilter={handleRemoveFilter}
+            errorMessage={error}
+            renderTaskBoard={renderMobileTaskBoard}
+            renderDraftCard={renderMobileDraftTaskCard}
+            showDraft={showMobileHome && !!mobileDraftTask}
+            onOpenSettings={handleOpenSettings}
+            pendingSync={hasPendingSync}
+            showMobileHomeSettings
+          />
+        </div>
           <MobileFab
             isHomeView={showMobileHome}
             onTapHome={() => setShowMobileCreationSheet(true)}

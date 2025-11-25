@@ -33,23 +33,23 @@ export default function MobileHeader({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="text-2xl text-slate-500 pl-1"
+          className="text-2xl text-[var(--on-surface)] pl-1"
           aria-label="Volver"
         >
           ←
         </button>
         <div className="flex-1 text-center">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
+          <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">
             {isProjectView ? t('mobile.project') : selectedArea ? t('mobile.area') : t('mobile.view')}
           </p>
-          <p className="text-2xl font-semibold text-slate-800">
+          <p className="text-2xl font-semibold text-[var(--on-surface)]">
             {isProjectView
               ? mobileProject?.name || 'Proyecto'
               : selectedArea
                 ? selectedArea.name
                 : quickViewLabel}
           </p>
-          <p className={`text-sm text-slate-500 ${isProjectView ? '' : 'capitalize'}`}>
+          <p className={`text-sm text-[#736B63] dark:text-[#E5E7EF] ${isProjectView ? '' : 'capitalize'}`}>
             {isProjectView
               ? `${filteredTaskCount} ${t('mobile.projectTasks')}`
               : selectedArea
@@ -60,7 +60,7 @@ export default function MobileHeader({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="p-2 rounded-full border border-[var(--color-border)] text-sm text-slate-500 hover:bg-[color-mix(in_srgb,var(--color-border)_40%,var(--color-bg)_60%)]"
+          className="p-2 rounded-full border border-[var(--color-border)] text-sm text-[var(--on-surface)] hover:bg-[color-mix(in_srgb,var(--color-border)_40%,var(--color-bg)_60%)]"
           aria-label="Ajustes"
         >
           <img src={settingsIcon} alt="" className="h-4 w-4" />
@@ -69,7 +69,7 @@ export default function MobileHeader({
       <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-5 py-4 space-y-2">
         {isProjectView ? (
           <>
-            <div className="flex items-center justify-between text-sm text-slate-500">
+            <div className="flex items-center justify-between text-sm text-[#736B63] dark:text-[#E5E7EF]">
               <span>{t('mobile.pending')}: {filteredTaskCount - completedCount}</span>
               <span>
                 {completedCount}/{filteredTaskCount} {t('mobile.completed')}
@@ -78,21 +78,21 @@ export default function MobileHeader({
           </>
         ) : selectedArea ? (
           <>
-            <p className="text-xs uppercase tracking-wide text-slate-400">{t('mobile.area')}</p>
-            <p className="text-lg font-semibold text-slate-800">
+            <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">{t('mobile.area')}</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">
               {completedCount}/{filteredTaskCount} {t('mobile.completed')}
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#736B63] dark:text-[#E5E7EF]">
               {projectsInArea} {t('mobile.areaProjects')}
             </p>
           </>
         ) : (
           <>
-            <p className="text-xs uppercase tracking-wide text-slate-400">En esta vista</p>
-            <p className="text-lg font-semibold text-slate-800">
+            <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">En esta vista</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">
               {completedCount}/{filteredTaskCount} {t('mobile.completed')}
             </p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#736B63] dark:text-[#E5E7EF]">
             {mobileProject ? `${t('mobile.project')}: ${mobileProject.name}` : t('mobile.view')}
           </p>
           </>

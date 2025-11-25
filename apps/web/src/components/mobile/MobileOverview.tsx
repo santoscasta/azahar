@@ -86,7 +86,7 @@ export function MobileOverview({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[#736B63] flex items-center justify-center shadow-sm hover:border-[var(--color-primary-600)]"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--on-surface)] flex items-center justify-center shadow-sm hover:border-[var(--color-primary-600)]"
           aria-label="Ajustes"
         >
           <img src={settingsIcon} alt="" className="h-4.5 w-4.5" />
@@ -97,11 +97,11 @@ export function MobileOverview({
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
-          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none bg-white"
+          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 divide-y">
+      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
         {quickLists.map(view => (
           <button
             key={`mobile-${view.id}`}
@@ -109,38 +109,38 @@ export function MobileOverview({
             className="w-full flex items-center justify-between px-4 py-4 text-left"
           >
             <span className="flex items-center gap-3">
-              <span className="h-10 w-10 rounded-2xl bg-[color-mix(in_srgb,var(--color-primary-100)_60%,var(--color-bg)_40%)] flex items-center justify-center">
+              <span className="h-10 w-10 rounded-2xl bg-[var(--color-primary-100)] flex items-center justify-center">
                 <img src={view.icon} alt="" className="h-6 w-6" />
               </span>
-              <span className="text-base font-medium text-slate-700">{view.label}</span>
+              <span className="text-base font-medium text-[var(--on-surface)]">{view.label}</span>
             </span>
-            <div className="flex items-center gap-2 text-slate-400">
-              {quickViewStats[view.id] > 0 && <span className="text-sm">{quickViewStats[view.id]}</span>}
-              <span>›</span>
+            <div className="flex items-center gap-2 text-[#736B63] dark:text-[#E5E7EF]">
+              {quickViewStats[view.id] > 0 && <span className="text-sm text-[var(--on-surface)]">{quickViewStats[view.id]}</span>}
+              <span className="text-[var(--on-surface)]">›</span>
             </div>
           </button>
         ))}
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] p-4 space-y-3">
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">
           <span>Áreas</span>
         </div>
         {areaDraft && (
-          <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+          <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
             <input
               ref={areaInputRef}
               type="text"
               value={areaDraft.name}
               onChange={(event) => onAreaDraftChange(event.target.value)}
               onBlur={(event) => onAreaDraftBlur(event.target.value)}
-              className="w-full px-3 py-2 rounded-2xl border border-slate-200 text-sm outline-none"
+              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] outline-none bg-[var(--color-surface)]"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onCancelAreaDraft}
-                className="px-3 py-1 rounded-full border border-slate-200 text-xs"
+                className="px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
                 Cancelar
               </button>
@@ -158,35 +158,35 @@ export function MobileOverview({
           {areas.slice(0, 4).map(area => (
             <button
               key={`mobile-area-${area.id}`}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-slate-200"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectArea(area.id)}
             >
-              <span className="text-sm text-slate-700">{area.name}</span>
-              <span className="text-slate-400">›</span>
+              <span className="text-sm text-[var(--on-surface)]">{area.name}</span>
+              <span className="text-[#736B63] dark:text-[#E5E7EF]">›</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] p-4 space-y-3">
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">
           <span>Proyectos</span>
         </div>
         {projectDraft && (
-          <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+          <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
             <input
               ref={projectInputRef}
               type="text"
               value={projectDraft.name}
               onChange={(event) => onProjectDraftChange(event.target.value)}
               onBlur={(event) => onProjectDraftBlur(event.target.value)}
-              className="w-full px-3 py-2 rounded-2xl border border-slate-200 text-sm outline-none"
+              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] outline-none bg-[var(--color-surface)]"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onCancelProjectDraft}
-                className="px-3 py-1 rounded-full border border-slate-200 text-xs"
+                className="px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
                 Cancelar
               </button>
@@ -204,11 +204,11 @@ export function MobileOverview({
           {projects.slice(0, 4).map(project => (
             <button
               key={`mobile-project-${project.id}`}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-slate-200"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectProject(project.id)}
             >
-              <span className="text-sm text-slate-700">{project.name}</span>
-              <span className="text-slate-400">›</span>
+              <span className="text-sm text-[var(--on-surface)]">{project.name}</span>
+              <span className="text-[#736B63] dark:text-[#E5E7EF]">›</span>
             </button>
           ))}
         </div>

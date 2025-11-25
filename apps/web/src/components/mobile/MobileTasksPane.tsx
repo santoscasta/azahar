@@ -104,6 +104,7 @@ export default function MobileTasksPane({
       renderTaskBoard={renderTaskBoard}
       renderDraftCard={renderDraftCard}
       showDraft={showDraft}
+      showSettingsInSearch={showMobileHomeSettings}
     />
   )
 }
