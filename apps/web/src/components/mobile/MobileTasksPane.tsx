@@ -86,7 +86,6 @@ export default function MobileTasksPane({
           filteredTaskCount={filteredTaskCount}
           completedCount={completedCount}
           projectsInArea={projectsInArea}
-          onOpenSettings={showMobileHomeSettings ? () => {} : onOpenSettings}
         />
       )}
       renderFilters={() => (

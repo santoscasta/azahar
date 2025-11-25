@@ -1,5 +1,4 @@
 import type { Area, Project } from '../../lib/supabase.js'
-import settingsIcon from '../../assets/icons/settings.svg'
 import { useTranslations } from '../../App.js'
 
 interface MobileHeaderProps {
@@ -12,7 +11,6 @@ interface MobileHeaderProps {
   filteredTaskCount: number
   completedCount: number
   projectsInArea: number
-  onOpenSettings: () => void
 }
 
 export default function MobileHeader({
@@ -25,7 +23,6 @@ export default function MobileHeader({
   filteredTaskCount,
   completedCount,
   projectsInArea,
-  onOpenSettings,
 }: MobileHeaderProps) {
   const { t } = useTranslations()
   return (
@@ -57,14 +54,6 @@ export default function MobileHeader({
                 : friendlyToday || t('mobile.today')}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="p-2 rounded-full border border-[var(--color-border)] text-sm text-[var(--on-surface)] hover:bg-[color-mix(in_srgb,var(--color-border)_40%,var(--color-bg)_60%)]"
-          aria-label="Ajustes"
-        >
-          <img src={settingsIcon} alt="" className="h-4 w-4" />
-        </button>
       </div>
       <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-5 py-4 space-y-2">
         {isProjectView ? (
