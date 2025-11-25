@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { Area, Project } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import searchIcon from '../../assets/icons/search.svg'
+import settingsIcon from '../../assets/icons/settings.svg'
 
 interface DraftArea {
   name: string
@@ -44,6 +45,7 @@ interface MobileOverviewProps {
   onSaveProjectDraft: () => void
   onSelectProject: (projectId: string) => void
   onOpenCreationSheet: () => void
+  onOpenSettings: () => void
 }
 
 export function MobileOverview({
@@ -72,6 +74,7 @@ export function MobileOverview({
   onSaveProjectDraft,
   onSelectProject,
   onOpenCreationSheet,
+  onOpenSettings,
 }: MobileOverviewProps) {
   return (
     <div className="space-y-6 pb-28">
@@ -80,13 +83,21 @@ export function MobileOverview({
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
           <img src={searchIcon} alt="" className="h-4 w-4" />
         </span>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[#736B63] flex items-center justify-center shadow-sm hover:border-[var(--color-primary-600)]"
+          aria-label="Ajustes"
+        >
+          <img src={settingsIcon} alt="" className="h-4.5 w-4.5" />
+        </button>
         <input
           type="text"
           value={searchQuery}
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
-          className="w-full pl-10 pr-3 py-3 rounded-3xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none bg-white"
+          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none bg-white"
         />
       </div>
 

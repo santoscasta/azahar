@@ -32,6 +32,7 @@ interface MobileTasksPaneProps {
   showDraft: boolean
   onOpenSettings: () => void
   pendingSync: boolean
+  showMobileHomeSettings?: boolean
 }
 
 export default function MobileTasksPane({
@@ -59,6 +60,7 @@ export default function MobileTasksPane({
   showDraft,
   onOpenSettings,
   pendingSync,
+  showMobileHomeSettings = false,
 }: MobileTasksPaneProps) {
   return (
     <MobileHome
@@ -83,7 +85,7 @@ export default function MobileTasksPane({
           filteredTaskCount={filteredTaskCount}
           completedCount={completedCount}
           projectsInArea={projectsInArea}
-          onOpenSettings={onOpenSettings}
+          onOpenSettings={showMobileHomeSettings ? () => {} : onOpenSettings}
         />
       )}
       renderFilters={() => (
