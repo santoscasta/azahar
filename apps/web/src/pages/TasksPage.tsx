@@ -192,14 +192,14 @@ export default function TasksPage() {
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', normalizedSearch, sortedLabelIds, selectedProjectId, selectedAreaId, activeQuickView],
+    queryKey: ['tasks', normalizedSearch, sortedLabelIds, selectedProjectId, selectedAreaId],
     queryFn: async () => {
       const result = await searchTasks({
         query: normalizedSearch || null,
         labelIds: sortedLabelIds.length > 0 ? sortedLabelIds : null,
         projectId: selectedProjectId,
         areaId: selectedAreaId,
-        quickView: activeQuickView,
+        quickView: null,
       })
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
