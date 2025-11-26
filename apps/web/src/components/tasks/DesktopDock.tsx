@@ -1,4 +1,5 @@
 import CalendarIcon from '../icons/CalendarIcon.js'
+import SectionIcon from '../icons/SectionIcon.js'
 
 interface DesktopDockProps {
   onCreateTask: () => void
@@ -28,10 +29,10 @@ export default function DesktopDock({
           type="button"
           onClick={onAddHeading}
           disabled={disableHeading}
-          className="h-12 w-12 rounded-full border border-[var(--color-border)] text-xl text-[#736B63] hover:bg-[var(--color-primary-100)] disabled:opacity-40"
+          className="h-12 w-12 rounded-full border border-[var(--color-border)] text-xl text-[#736B63] hover:bg-[var(--color-primary-100)] disabled:opacity-40 flex items-center justify-center"
           aria-label="Nueva sección"
         >
-          ≡
+          <SectionIcon className="h-5 w-5" />
         </button>
         <button
           type="button"
