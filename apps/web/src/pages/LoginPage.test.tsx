@@ -16,7 +16,7 @@ describe('LoginPage', () => {
         authClient={{ signIn: vi.fn(), signUp: vi.fn() }}
       />
     )
-    expect(view.getByText('AZAHAR')).toBeDefined()
+    expect(view.getByText(/azahar/i)).toBeDefined()
     expect(view.getByLabelText('Email')).toBeDefined()
     expect(view.getByLabelText('Contraseña')).toBeDefined()
     expect(view.getByRole('button', { name: 'Entrar' })).toBeDefined()

@@ -40,6 +40,22 @@ export function filterTasksByQuickView(tasks: Task[], view: QuickViewId, todayIS
   return tasks.filter(task => getTaskView(task, todayISO) === view)
 }
 
+export function filterTasksForContext(
+  tasks: Task[],
+  view: QuickViewId,
+  todayISO: string,
+  selectedProjectId: string | null,
+  selectedAreaId: string | null
+) {
+  if (selectedProjectId) {
+    return tasks.filter(task => task.project_id === selectedProjectId)
+  }
+  if (selectedAreaId) {
+    return tasks.filter(task => task.area_id === selectedAreaId)
+  }
+  return filterTasksByQuickView(tasks, view, todayISO)
+}
+
 export function getTaskView(task: Task, todayISO: string): QuickViewId {
   const serverQuickView = (task as { quick_view?: TaskQuickView }).quick_view
   if (serverQuickView) {

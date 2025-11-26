@@ -29,7 +29,7 @@ import {
 import type { Task, TaskLabelSummary, Label, Area, Project, ProjectHeading } from '../lib/supabase.js'
 import {
   buildQuickViewStats,
-  filterTasksByQuickView,
+  filterTasksForContext,
   buildActiveFilters,
   isFilteredView,
   normalizeDate,
@@ -320,19 +320,9 @@ export default function TasksPage() {
     () => buildQuickViewStats(tasks, todayISO),
     [tasks, todayISO]
   )
-  const filteredTasks = useMemo(() => {
-    let result = tasks
-
-    if (selectedProjectId) {
-      result = result.filter(task => task.project_id === selectedProjectId)
-    } else if (selectedAreaId) {
-      result = result.filter(task => task.area_id === selectedAreaId)
-    } else {
-      result = filterTasksByQuickView(result, activeQuickView, todayISO)
-    }
-
-    return result
-  }, [tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId])
+  const filteredTasks = useMemo(() => (
+    filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId)
+  ), [tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false

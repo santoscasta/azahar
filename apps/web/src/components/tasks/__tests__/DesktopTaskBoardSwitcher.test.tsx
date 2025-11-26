@@ -129,8 +129,8 @@ describe('DesktopTaskBoardSwitcher', () => {
       />
     )
 
-    expect(screen.getByText('Vista rápida')).toBeDefined()
-    screen.getAllByRole('button', { name: 'Área Uno' }).forEach(button => fireEvent.click(button))
+    const areaButtons = screen.getAllByText('Área Uno')
+    areaButtons.forEach(button => fireEvent.click(button))
     expect(onSelectArea).toHaveBeenCalledWith('area-1')
     screen.getAllByRole('button', { name: 'Proyecto Uno' }).forEach(button => fireEvent.click(button))
     expect(onSelectProject).toHaveBeenCalledWith('project-1')

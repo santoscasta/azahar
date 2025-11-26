@@ -39,7 +39,6 @@ describe('MobileTasksPane', () => {
         renderTaskBoard={renderTaskBoard}
         renderDraftCard={renderDraftCard}
         showDraft
-        onOpenSettings={vi.fn()}
         pendingSync={false}
       />
     )
