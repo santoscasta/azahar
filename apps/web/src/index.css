@@ -38,6 +38,10 @@ body {
   background-color: var(--color-bg);
   color: var(--on-surface);
   font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  max-width: 100vw;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
 }
 
 main {
