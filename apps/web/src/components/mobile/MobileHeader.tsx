@@ -55,38 +55,28 @@ export default function MobileHeader({
           </p>
         </div>
       </div>
-      <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-5 py-4 space-y-2">
-        {isProjectView ? (
-          <>
+      {(isProjectView || selectedArea) && (
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-5 py-4 space-y-2">
+          {isProjectView ? (
             <div className="flex items-center justify-between text-sm text-[#736B63] dark:text-[#E5E7EF]">
               <span>{t('mobile.pending')}: {filteredTaskCount - completedCount}</span>
               <span>
                 {completedCount}/{filteredTaskCount} {t('mobile.completed')}
               </span>
             </div>
-          </>
-        ) : selectedArea ? (
-          <>
-            <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">{t('mobile.area')}</p>
-            <p className="text-lg font-semibold text-[var(--on-surface)]">
-              {completedCount}/{filteredTaskCount} {t('mobile.completed')}
-            </p>
-            <p className="text-sm text-[#736B63] dark:text-[#E5E7EF]">
-              {projectsInArea} {t('mobile.areaProjects')}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">En esta vista</p>
-            <p className="text-lg font-semibold text-[var(--on-surface)]">
-              {completedCount}/{filteredTaskCount} {t('mobile.completed')}
-            </p>
-          <p className="text-sm text-[#736B63] dark:text-[#E5E7EF]">
-            {mobileProject ? `${t('mobile.project')}: ${mobileProject.name}` : t('mobile.view')}
-          </p>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">{t('mobile.area')}</p>
+              <p className="text-lg font-semibold text-[var(--on-surface)]">
+                {completedCount}/{filteredTaskCount} {t('mobile.completed')}
+              </p>
+              <p className="text-sm text-[#736B63] dark:text-[#E5E7EF]">
+                {projectsInArea} {t('mobile.areaProjects')}
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </header>
   )
 }
