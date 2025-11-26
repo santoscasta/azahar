@@ -359,9 +359,13 @@ export default function TasksPage() {
     () => buildQuickViewStats(tasks, todayISO),
     [tasks, todayISO]
   )
-  const filteredTasks = useMemo(() => (
-    filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId)
-  ), [tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId])
+  const isSearchMode = isSearchFocused || normalizedSearch.length > 0
+  const filteredTasks = useMemo(() => {
+    if (isSearchMode) {
+      return showCompletedInContext ? tasks : tasks.filter(task => task.status !== 'done')
+    }
+    return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId)
+  }, [isSearchMode, showCompletedInContext, tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false
@@ -769,6 +773,8 @@ export default function TasksPage() {
     someday: translate(language, 'view.desc.someday'),
     logbook: translate(language, 'view.desc.logbook'),
   }), [language])
+  const searchViewLabel = translate(language, 'view.search')
+  const searchViewDescription = translate(language, 'view.desc.search')
 
   const quickLists = useMemo(() => ([
     { id: 'inbox', label: quickViewLabels.inbox, icon: inboxIcon, accent: 'text-slate-700' },
@@ -850,13 +856,15 @@ export default function TasksPage() {
     () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas),
     [selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas]
   )
-  const filteredViewActive = isFilteredView(
-    activeQuickView,
-    searchQuery,
-    selectedProjectId,
-    selectedLabelIds,
-    selectedAreaId
-  )
+  const filteredViewActive = isSearchMode
+    ? true
+    : isFilteredView(
+      activeQuickView,
+      searchQuery,
+      selectedProjectId,
+      selectedLabelIds,
+      selectedAreaId
+    )
 
   const friendlyToday = useMemo(() => {
     const locale = language === 'en' ? 'en-US' : 'es-ES'
@@ -867,14 +875,14 @@ export default function TasksPage() {
     })
   }, [language])
 
-  const isMobileDetail = isMobile && !showMobileHome
+  const isMobileDetail = isMobile && !showMobileHome && !isSearchMode
   const mobileProject = mobileProjectFocusId ? projects.find(project => project.id === mobileProjectFocusId) ?? null : null
   const selectedAreaProjectCount = selectedArea ? projects.filter(project => project.area_id === selectedArea.id).length : 0
   const isMobileProjectView = isMobileDetail && !!mobileProject
   const visibleMobileTasks = isMobileDetail ? filteredTasks.slice(0, mobileTaskLimit) : filteredTasks
   const canShowMoreMobileTasks = isMobileDetail && mobileTaskLimit < filteredTasks.length
   const quickViewGroups = useMemo(() => {
-    if (selectedProjectId || selectedAreaId) {
+    if (selectedProjectId || selectedAreaId || isSearchMode) {
       return []
     }
     const groups = new Map<
@@ -939,8 +947,16 @@ export default function TasksPage() {
     ? translate(language, 'context.label.project')
     : selectedArea
       ? translate(language, 'context.label.area')
-      : translate(language, 'context.label.view')
-  const contextTitle = selectedProject ? selectedProject.name : selectedArea ? selectedArea.name : currentQuickView.label
+      : isSearchMode
+        ? searchViewLabel
+        : translate(language, 'context.label.view')
+  const contextTitle = selectedProject
+    ? selectedProject.name
+    : selectedArea
+      ? selectedArea.name
+      : isSearchMode
+        ? searchViewLabel
+        : currentQuickView.label
   const areaTaskSummary = selectedArea ? areaStats.get(selectedArea.id) : null
   const contextDescription = selectedProject
     ? selectedArea
@@ -948,7 +964,9 @@ export default function TasksPage() {
       : ''
     : selectedArea
       ? `${selectedAreaProjectCount} ${translate(language, 'sidebar.projects').toLowerCase()} · ${areaTaskSummary?.total || 0} ${translate(language, 'sidebar.tasks')}`
-      : quickViewDescriptions[activeQuickView]
+      : isSearchMode
+        ? searchViewDescription
+        : quickViewDescriptions[activeQuickView]
   const pendingCount = selectedProject
     ? visibleProjectTasks.filter(task => task.status !== 'done').length
     : filteredTasks.filter(task => task.status !== 'done').length
@@ -2124,7 +2142,7 @@ export default function TasksPage() {
               isProjectView={isMobileProjectView}
               selectedArea={selectedArea}
               mobileProject={mobileProject}
-              quickViewLabel={currentQuickView.label}
+              quickViewLabel={isSearchMode ? searchViewLabel : currentQuickView.label}
               friendlyToday={friendlyToday}
               filteredTaskCount={filteredTasks.length}
               completedCount={completedCount}

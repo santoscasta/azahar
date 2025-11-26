@@ -59,12 +59,14 @@ type TranslationKey =
   | 'view.anytime'
   | 'view.someday'
   | 'view.logbook'
+  | 'view.search'
   | 'view.desc.inbox'
   | 'view.desc.today'
   | 'view.desc.upcoming'
   | 'view.desc.anytime'
   | 'view.desc.someday'
   | 'view.desc.logbook'
+  | 'view.desc.search'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   es: {
@@ -126,12 +128,14 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.anytime': 'Cualquier momento',
     'view.someday': 'Algún día',
     'view.logbook': 'Registro',
+    'view.search': 'Búsqueda',
     'view.desc.inbox': 'Captura ideas y tareas que aún no tienen hogar.',
     'view.desc.today': 'Todo lo que vence hoy y lo que se quedó atrás.',
     'view.desc.upcoming': 'Lo que está planificado para los próximos días y semanas.',
     'view.desc.anytime': 'Tareas sin fecha que podrás programar después.',
     'view.desc.someday': 'Ideas para más adelante, sin presión.',
     'view.desc.logbook': 'Un registro de todo lo que has terminado.',
+    'view.desc.search': 'Resultados en todas las vistas (completadas sólo si lo tienes activado).',
   },
   en: {
     'settings.title': 'Settings',
@@ -192,12 +196,14 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.anytime': 'Anytime',
     'view.someday': 'Someday',
     'view.logbook': 'Logbook',
+    'view.search': 'Search',
     'view.desc.inbox': 'Capture ideas and tasks that still need a home.',
     'view.desc.today': 'Everything due today plus anything that slipped through.',
     'view.desc.upcoming': 'What is planned for the next days and weeks.',
     'view.desc.anytime': 'Tasks without a date live here until you schedule them.',
     'view.desc.someday': 'A parking lot for ideas you want to revisit later.',
     'view.desc.logbook': 'A record of everything you have finished.',
+    'view.desc.search': 'Results across all lists (done items only if enabled).',
   },
 }
 
