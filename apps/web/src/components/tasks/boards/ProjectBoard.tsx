@@ -150,12 +150,7 @@ export default function ProjectBoard({
               {renderTaskList(openTasksByHeading.get(heading.id) || [], { showEmptyState: false })}
             </section>
           ))}
-          {unassignedOpen.length > 0 && (
-            <section className="space-y-3">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin sección</p>
-              {renderTaskList(unassignedOpen, { showEmptyState: false })}
-            </section>
-          )}
+          {unassignedOpen.length > 0 && renderTaskList(unassignedOpen, { showEmptyState: false })}
           {showCompletedTasks && completedTasks.length > 0 && (
             <section className="space-y-3">
               <p className="text-xs uppercase tracking-wide text-slate-400">Completadas</p>

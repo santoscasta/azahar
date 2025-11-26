@@ -47,7 +47,6 @@ const mockTask: Task = {
 describe('QuickViewBoard', () => {
   it('renders groups and triggers callbacks', () => {
     const onSelectArea = vi.fn()
-    const onSelectProject = vi.fn()
 
     renderWithProviders(
       <QuickViewBoard
@@ -60,7 +59,6 @@ describe('QuickViewBoard', () => {
           },
         ]}
         onSelectArea={onSelectArea}
-        onSelectProject={onSelectProject}
         renderTaskList={(tasks) => <div>{tasks.length} tarea(s)</div>}
       />
     )
@@ -68,8 +66,6 @@ describe('QuickViewBoard', () => {
     fireEvent.click(screen.getByText('Área Uno'))
     expect(onSelectArea).toHaveBeenCalledWith('area-1')
 
-    fireEvent.click(screen.getByText('Proyecto Uno'))
-    expect(onSelectProject).toHaveBeenCalledWith('project-1')
     expect(screen.getByText('1 tarea(s)')).toBeDefined()
   })
 })

@@ -10,7 +10,6 @@ export interface QuickViewGroup {
 interface QuickViewBoardProps {
   groups: QuickViewGroup[]
   onSelectArea: (areaId: string) => void
-  onSelectProject: (projectId: string) => void
   renderTaskList: (
     tasks: Task[]
   ) => React.ReactNode
@@ -19,7 +18,6 @@ interface QuickViewBoardProps {
 export default function QuickViewBoard({
   groups,
   onSelectArea,
-  onSelectProject,
   renderTaskList,
 }: QuickViewBoardProps) {
   return (
@@ -45,27 +43,10 @@ export default function QuickViewBoard({
             </div>
           )}
           <div className="space-y-5">
-            {Array.from(group.projects.values()).map(({ project, tasks }) => (
-              <article key={project?.id || 'unknown'} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-[#736B63]">Proyecto</p>
-                    {project?.id ? (
-                      <button
-                        type="button"
-                        onClick={() => onSelectProject(project.id)}
-                        className="text-base font-semibold text-[#2D2520] hover:underline text-left"
-                      >
-                        {project.name}
-                      </button>
-                    ) : (
-                      <p className="text-base font-semibold text-[#2D2520]">{project?.name ?? 'Proyecto'}</p>
-                    )}
-                    <p className="text-xs text-[#736B63]">{tasks.length} tarea{tasks.length === 1 ? '' : 's'}</p>
-                  </div>
-                </div>
+            {Array.from(group.projects.entries()).map(([projectId, { tasks }], index) => (
+              <div key={projectId || `project-${index}`} className="space-y-3">
                 {renderTaskList(tasks)}
-              </article>
+              </div>
             ))}
             {group.standalone.length > 0 && (
               <article className="space-y-3">

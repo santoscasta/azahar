@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query'
 import { v4 as uuid } from 'uuid'
 import { useNavigate } from 'react-router-dom'
+import { useTranslations } from '../App.js'
+import { translate } from '../lib/i18n.js'
 import {
   searchTasks,
   addTask,
@@ -98,6 +100,7 @@ export default function TasksPage() {
     mobileDraftTask,
     updateMobileDraft,
   } = useTaskCreation()
+  const { language } = useTranslations()
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -159,6 +162,7 @@ export default function TasksPage() {
   const [isPriorityMenuOpen, setPriorityMenuOpen] = useState(false)
   const [overflowTaskId, setOverflowTaskId] = useState<string | null>(null)
   const [showCompletedInContext, setShowCompletedInContext] = useState(true)
+  const [customViewNames, setCustomViewNames] = useState<Partial<Record<QuickViewId, string>>>({})
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
@@ -323,18 +327,22 @@ export default function TasksPage() {
       try {
         const raw = localStorage.getItem('azahar:settings')
         if (!raw) return
-        const parsed = JSON.parse(raw) as { showCompletedInContexts?: boolean }
+        const parsed = JSON.parse(raw) as { showCompletedInContexts?: boolean; customViewNames?: Partial<Record<QuickViewId, string>> }
         if (typeof parsed.showCompletedInContexts === 'boolean') {
           setShowCompletedInContext(parsed.showCompletedInContexts)
         }
+        setCustomViewNames(parsed.customViewNames ?? {})
       } catch {
         // ignore
       }
     }
     const handleSettingsUpdate = (event: Event) => {
-      const detail = (event as CustomEvent<{ showCompletedInContexts?: boolean }>).detail
+      const detail = (event as CustomEvent<{ showCompletedInContexts?: boolean; customViewNames?: Partial<Record<QuickViewId, string>> }>).detail
       if (typeof detail?.showCompletedInContexts === 'boolean') {
         setShowCompletedInContext(detail.showCompletedInContexts)
+      }
+      if ('customViewNames' in detail) {
+        setCustomViewNames(detail.customViewNames ?? {})
       } else {
         readSetting()
       }
@@ -719,6 +727,8 @@ export default function TasksPage() {
       projects={projects}
       areas={areas}
       headings={projectHeadings}
+      contextProjectId={selectedProjectId}
+      contextAreaId={selectedAreaId}
       editingState={editingState}
       editingHandlers={editingHandlers}
       onStartEdit={handleEditTask}
@@ -742,14 +752,32 @@ export default function TasksPage() {
     />
   )
 
-  const quickLists = [
-    { id: 'inbox', label: 'Inbox', icon: inboxIcon, accent: 'text-slate-700' },
-    { id: 'today', label: 'Today', icon: todayIcon, accent: 'text-amber-500' },
-    { id: 'upcoming', label: 'Upcoming', icon: upcomingIcon, accent: 'text-sky-500' },
-    { id: 'anytime', label: 'Anytime', icon: anytimeIcon, accent: 'text-emerald-600' },
-    { id: 'someday', label: 'Someday', icon: somedayIcon, accent: 'text-violet-500' },
-    { id: 'logbook', label: 'Logbook', icon: logbookIcon, accent: 'text-slate-400' },
-  ] as const
+  const quickViewLabels: Record<QuickViewId, string> = useMemo(() => ({
+    inbox: customViewNames.inbox?.trim() || translate(language, 'view.inbox'),
+    today: customViewNames.today?.trim() || translate(language, 'view.today'),
+    upcoming: customViewNames.upcoming?.trim() || translate(language, 'view.upcoming'),
+    anytime: customViewNames.anytime?.trim() || translate(language, 'view.anytime'),
+    someday: customViewNames.someday?.trim() || translate(language, 'view.someday'),
+    logbook: customViewNames.logbook?.trim() || translate(language, 'view.logbook'),
+  }), [customViewNames, language])
+
+  const quickViewDescriptions: Record<QuickViewId, string> = useMemo(() => ({
+    inbox: translate(language, 'view.desc.inbox'),
+    today: translate(language, 'view.desc.today'),
+    upcoming: translate(language, 'view.desc.upcoming'),
+    anytime: translate(language, 'view.desc.anytime'),
+    someday: translate(language, 'view.desc.someday'),
+    logbook: translate(language, 'view.desc.logbook'),
+  }), [language])
+
+  const quickLists = useMemo(() => ([
+    { id: 'inbox', label: quickViewLabels.inbox, icon: inboxIcon, accent: 'text-slate-700' },
+    { id: 'today', label: quickViewLabels.today, icon: todayIcon, accent: 'text-amber-500' },
+    { id: 'upcoming', label: quickViewLabels.upcoming, icon: upcomingIcon, accent: 'text-sky-500' },
+    { id: 'anytime', label: quickViewLabels.anytime, icon: anytimeIcon, accent: 'text-emerald-600' },
+    { id: 'someday', label: quickViewLabels.someday, icon: somedayIcon, accent: 'text-violet-500' },
+    { id: 'logbook', label: quickViewLabels.logbook, icon: logbookIcon, accent: 'text-slate-400' },
+  ] as const), [quickViewLabels])
   const creationViewOptions = quickLists.filter(list => list.id !== 'logbook')
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]
   const moveSheetTask = moveSheetTaskId ? tasks.find(task => task.id === moveSheetTaskId) ?? null : null
@@ -813,22 +841,6 @@ export default function TasksPage() {
       onCreateInlineLabel={handleInlineLabelCreate}
     />
   )
-  const quickViewLabels: Record<typeof quickLists[number]['id'], string> = {
-    inbox: 'Inbox',
-    today: 'Today',
-    upcoming: 'Upcoming',
-    anytime: 'Anytime',
-    someday: 'Someday',
-    logbook: 'Logbook',
-  }
-  const quickViewDescriptions: Record<QuickViewId, string> = {
-    inbox: 'Capture loose ideas and tasks that still need a home.',
-    today: 'Focus on everything due today plus anything that slipped through.',
-    upcoming: 'See what is planned for the next days and weeks.',
-    anytime: 'Tasks without a date live here until you schedule them.',
-    someday: 'A parking lot for ideas you want to revisit later.',
-    logbook: 'A record of everything you have finished.',
-  }
 
   const selectedProject = selectedProjectId ? projects.find(project => project.id === selectedProjectId) ?? null : null
   const selectedArea = selectedAreaId ? areas.find(area => area.id === selectedAreaId) ?? null : null
@@ -847,12 +859,13 @@ export default function TasksPage() {
   )
 
   const friendlyToday = useMemo(() => {
-    return new Date().toLocaleDateString('es-ES', {
+    const locale = language === 'en' ? 'en-US' : 'es-ES'
+    return new Date().toLocaleDateString(locale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
     })
-  }, [])
+  }, [language])
 
   const isMobileDetail = isMobile && !showMobileHome
   const mobileProject = mobileProjectFocusId ? projects.find(project => project.id === mobileProjectFocusId) ?? null : null
@@ -922,15 +935,19 @@ export default function TasksPage() {
     return filteredTasks
   }, [filteredTasks, selectedProject, activeProjectFilterChip])
 
-  const contextLabel = selectedProject ? 'Proyecto' : selectedArea ? 'Área' : 'Vista'
+  const contextLabel = selectedProject
+    ? translate(language, 'context.label.project')
+    : selectedArea
+      ? translate(language, 'context.label.area')
+      : translate(language, 'context.label.view')
   const contextTitle = selectedProject ? selectedProject.name : selectedArea ? selectedArea.name : currentQuickView.label
   const areaTaskSummary = selectedArea ? areaStats.get(selectedArea.id) : null
   const contextDescription = selectedProject
     ? selectedArea
-      ? `Ubicado en ${selectedArea.name}`
+      ? `${translate(language, 'context.label.area')}: ${selectedArea.name}`
       : ''
     : selectedArea
-      ? `${selectedAreaProjectCount} proyecto(s) · ${areaTaskSummary?.total || 0} tareas`
+      ? `${selectedAreaProjectCount} ${translate(language, 'sidebar.projects').toLowerCase()} · ${areaTaskSummary?.total || 0} ${translate(language, 'sidebar.tasks')}`
       : quickViewDescriptions[activeQuickView]
   const pendingCount = selectedProject
     ? visibleProjectTasks.filter(task => task.status !== 'done').length
@@ -940,8 +957,8 @@ export default function TasksPage() {
     : filteredTasks.filter(task => isTaskOverdue(task)).length
   const headerChipItems = selectedProject
     ? [
-        { id: 'all', label: 'All' },
-        { id: 'important', label: 'Important' },
+        { id: 'all', label: translate(language, 'filters.all') },
+        { id: 'important', label: translate(language, 'filters.important') },
         ...projectChipOptions.map(label => ({ id: label.id, label: label.name })),
       ]
     : []
@@ -1950,30 +1967,6 @@ export default function TasksPage() {
     deleteHeadingMutation.mutate(headingId)
   }
 
-  const renderProjectHeadingForm = () => (
-    <div className="rounded-2xl border border-slate-100 p-4 bg-slate-50 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-slate-500">Secciones</p>
-        <form onSubmit={handleAddHeading} className="flex gap-2">
-          <input
-            type="text"
-            value={newHeadingName}
-            onChange={(event) => setNewHeadingName(event.target.value)}
-            placeholder="Nombre de la sección"
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-          />
-          <button
-            type="submit"
-            disabled={addHeadingMutation.isPending}
-            className="az-btn-primary px-4 py-2 text-sm"
-          >
-            {addHeadingMutation.isPending ? 'Guardando...' : 'Crear'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-
   const renderDesktopTaskBoard = () => {
     const isQuickViewContext = !selectedProject && !selectedArea
     if (isQuickViewContext && isLoading && filteredTasks.length === 0) {
@@ -2016,7 +2009,6 @@ export default function TasksPage() {
         onSelectArea={handleSelectArea}
         onSelectProject={handleSelectProject}
         renderTaskList={(tasks, options) => renderTaskBody('desktop', tasks, options?.showEmptyState ?? false)}
-        renderHeadingForm={selectedProject ? renderProjectHeadingForm : undefined}
       />
     )
   }
@@ -2199,6 +2191,8 @@ export default function TasksPage() {
                   description={contextDescription}
                   pendingCount={pendingCount}
                   overdueCount={overdueCount}
+                  pendingLabel={translate(language, 'context.pending')}
+                  overdueLabel={translate(language, 'context.overdue')}
                   chips={headerChipItems}
                   activeChip={activeProjectFilterChip}
                   onChipSelect={(chipId) => handleProjectChipSelect(chipId as 'all' | 'important' | string)}

@@ -200,7 +200,6 @@ export default function DesktopTaskBoardSwitcher({
     <QuickViewBoard
       groups={quickViewGroups}
       onSelectArea={onSelectArea}
-      onSelectProject={onSelectProject}
       renderTaskList={(tasks) => renderTaskList(tasks, { showEmptyState: false })}
     />
   )

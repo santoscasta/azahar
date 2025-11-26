@@ -9,6 +9,8 @@ interface DesktopContextHeaderProps {
   description: string
   pendingCount: number
   overdueCount: number
+  pendingLabel: string
+  overdueLabel: string
   chips: ChipOption[]
   activeChip: string
   onChipSelect: (chipId: string) => void
@@ -20,6 +22,8 @@ export default function DesktopContextHeader({
   description,
   pendingCount,
   overdueCount,
+  pendingLabel,
+  overdueLabel,
   chips,
   activeChip,
   onChipSelect,
@@ -33,9 +37,9 @@ export default function DesktopContextHeader({
           <p className="text-sm text-[#736B63] mt-1">{description}</p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">Pendientes</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">{pendingLabel}</p>
           <p className="text-2xl font-semibold text-[var(--color-primary-700)]">{pendingCount}</p>
-          {overdueCount > 0 && <p className="text-xs text-[#FF7A33]">{overdueCount} vencida(s)</p>}
+          {overdueCount > 0 && <p className="text-xs text-[#FF7A33]">{overdueCount} {overdueLabel}</p>}
         </div>
       </div>
       {chips.length > 0 && (

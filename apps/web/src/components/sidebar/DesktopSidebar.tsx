@@ -47,8 +47,8 @@ function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
 }
 
 export function DesktopSidebar({
-  filteredTaskCount,
-  completedCount,
+  filteredTaskCount: _filteredTaskCount,
+  completedCount: _completedCount,
   quickLists,
   quickViewStats,
   quickViewOverdueStats,
@@ -80,19 +80,6 @@ export function DesktopSidebar({
             <p className="text-[11px] uppercase tracking-[0.35em] text-[#736B63]">{t('sidebar.brand')}</p>
             <p className="text-lg font-semibold">{t('sidebar.workspace')}</p>
           </div>
-        </div>
-      </div>
-      <div className="px-5 py-4 border-b border-[var(--color-border)]">
-        <div className="rounded-2xl border border-[var(--color-border)] px-4 py-3 flex items-center justify-between bg-[#FFF8ED]">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">{t('sidebar.inProgress')}</p>
-            <p className="text-lg font-semibold">
-              {filteredTaskCount} {t('sidebar.tasks')}
-            </p>
-          </div>
-          <span className="text-sm text-[#736B63]">
-            {completedCount}/{filteredTaskCount}
-          </span>
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-4">
@@ -130,7 +117,7 @@ export function DesktopSidebar({
         <div>
           <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.areas')}</p>
           <div className="space-y-3">
-            {areas.length === 0 && <p className="text-sm text-[#736B63]">Crea tu primera área para organizarte.</p>}
+            {areas.length === 0 && <p className="text-sm text-[#736B63]">{t('sidebar.emptyAreas')}</p>}
             {areas.map(area => {
               const areaProjects = projects.filter(project => project.area_id === area.id)
               const stats = areaStats.get(area.id)
@@ -171,7 +158,7 @@ export function DesktopSidebar({
                       )
                     })}
                     {areaProjects.length === 0 && (
-                      <p className="text-xs text-[#736B63]">Sin proyectos todavía</p>
+                      <p className="text-xs text-[#736B63]">{t('sidebar.noProjects')}</p>
                     )}
                   </div>
                 </div>

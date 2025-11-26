@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Language } from '../lib/i18n.js'
+import { translate } from '../lib/i18n.js'
 import { useTranslations } from '../App.js'
 import { signOut } from '../lib/supabase.js'
 
@@ -10,6 +11,7 @@ interface SettingsState {
   theme: ThemeOption
   language: Language
   showCompletedInContexts: boolean
+  customViewNames?: Partial<Record<'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook', string>>
 }
 
 const defaultSettings: SettingsState = {
@@ -57,13 +59,24 @@ export default function SettingsPage() {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
+  const defaultViewNames = useMemo(() => ({
+    inbox: translate(settings.language, 'view.inbox'),
+    today: translate(settings.language, 'view.today'),
+    upcoming: translate(settings.language, 'view.upcoming'),
+    anytime: translate(settings.language, 'view.anytime'),
+    someday: translate(settings.language, 'view.someday'),
+    logbook: translate(settings.language, 'view.logbook'),
+  }), [settings.language])
+
+  const viewName = (id: keyof typeof defaultViewNames) => settings.customViewNames?.[id] || defaultViewNames[id]
+
   const themeLabel = useMemo(() => {
     switch (settings.theme) {
-      case 'light': return 'Claro'
-      case 'dark': return 'Oscuro'
-      default: return 'Sistema'
+      case 'light': return translate(settings.language, 'settings.theme.option.light')
+      case 'dark': return translate(settings.language, 'settings.theme.option.dark')
+      default: return translate(settings.language, 'settings.theme.option.system')
     }
-  }, [settings.theme])
+  }, [settings.language, settings.theme])
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -121,16 +134,90 @@ export default function SettingsPage() {
               value={settings.language}
               onChange={(event) => setSettings(prev => ({ ...prev, language: event.target.value as Language }))}
               className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-            >
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+          <div className="pt-4 border-t border-slate-100 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">{t('settings.views.title')}</p>
+                <p className="text-xs text-slate-500">{t('settings.views.subtitle')}</p>
+              </div>
+              {settings.customViewNames ? (
+                <button
+                  type="button"
+                  onClick={() => setSettings(prev => ({ ...prev, customViewNames: undefined }))}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 border border-slate-200 hover:border-slate-300"
+                >
+                  {t('settings.reset')}
+                </button>
+              ) : null}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {([
+                { id: 'inbox', hint: t('settings.views.inbox') },
+                { id: 'today', hint: t('settings.views.today') },
+                { id: 'upcoming', hint: t('settings.views.upcoming') },
+                { id: 'anytime', hint: t('settings.views.anytime') },
+                { id: 'someday', hint: t('settings.views.someday') },
+                { id: 'logbook', hint: t('settings.views.logbook') },
+              ] as const).map(view => (
+                <label key={view.id} className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_92%,#fff_8%)] px-4 py-3 space-y-2 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{defaultViewNames[view.id]}</p>
+                      <p className="text-xs text-slate-500">{view.hint}</p>
+                    </div>
+                    {settings.customViewNames?.[view.id] ? (
+                      <button
+                        type="button"
+                        onClick={() => setSettings(prev => {
+                          const next = { ...(prev.customViewNames ?? {}) }
+                          delete next[view.id]
+                          return { ...prev, customViewNames: Object.keys(next).length ? next : undefined }
+                        })}
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                        aria-label="Reset nombre de vista"
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                  </div>
+                  <input
+                    type="text"
+                    value={settings.customViewNames?.[view.id] ?? ''}
+                    placeholder={viewName(view.id)}
+                    onChange={(event) => setSettings(prev => ({
+                      ...prev,
+                      customViewNames: {
+                        ...(prev.customViewNames ?? {}),
+                        [view.id]: event.target.value,
+                      },
+                    }))}
+                    onBlur={(event) => setSettings(prev => {
+                      const next = { ...(prev.customViewNames ?? {}) }
+                      const value = event.target.value.trim()
+                      if (value) {
+                        next[view.id] = value
+                      } else {
+                        delete next[view.id]
+                      }
+                      return { ...prev, customViewNames: Object.keys(next).length ? next : undefined }
+                    })}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                  />
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-800">Mostrar completadas en proyectos/áreas</p>
-              <p className="text-xs text-slate-500">Incluye una sección “Completadas” en vistas de proyecto y área.</p>
+              <p className="text-sm font-semibold text-slate-800">{t('settings.completedContexts.title')}</p>
+              <p className="text-xs text-slate-500">{t('settings.completedContexts.description')}</p>
             </div>
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               <input
@@ -138,7 +225,7 @@ export default function SettingsPage() {
                 checked={settings.showCompletedInContexts}
                 onChange={(event) => setSettings(prev => ({ ...prev, showCompletedInContexts: event.target.checked }))}
               />
-              {settings.showCompletedInContexts ? 'Visible' : 'Ocultas'}
+              {settings.showCompletedInContexts ? t('settings.completedContexts.visible') : t('settings.completedContexts.hidden')}
             </label>
           </div>
 
@@ -155,15 +242,15 @@ export default function SettingsPage() {
 
         <section className="rounded-3xl border border-slate-100 bg-white shadow px-8 py-6 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-800">Cuenta</p>
-            <p className="text-xs text-slate-500">Cerrar sesión y volver a la pantalla de inicio</p>
+            <p className="text-sm font-semibold text-slate-800">{t('settings.account')}</p>
+            <p className="text-xs text-slate-500">{t('settings.accountHint')}</p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
             className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[#736B63] hover:bg-[var(--color-primary-100)] disabled:opacity-60"
-            aria-label="Cerrar sesión"
+            aria-label={t('settings.logout.aria')}
           >
             <svg
               viewBox="0 0 24 24"

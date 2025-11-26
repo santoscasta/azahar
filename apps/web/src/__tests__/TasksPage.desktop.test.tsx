@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import TasksPage from '../pages/TasksPage'
 import { renderWithProviders } from '../tests/renderWithProviders'
+import { translate } from '../lib/i18n'
 
 
 // Mock Supabase API
@@ -56,9 +57,12 @@ describe('TasksPage desktop', () => {
     it('renders sidebar and task list on desktop', async () => {
         renderWithProviders(<TasksPage />)
 
+        const inboxLabel = translate('es', 'view.inbox')
+        const todayLabel = translate('es', 'view.today')
+
         // Sidebar items should be visible
-        expect(screen.getAllByText('Inbox')[0]).toBeDefined()
-        expect(screen.getAllByText('Today')[0]).toBeDefined()
+        expect(screen.getAllByText(inboxLabel)[0]).toBeDefined()
+        expect(screen.getAllByText(todayLabel)[0]).toBeDefined()
 
         // Projects should be loaded and visible in sidebar
         await waitFor(() => {

@@ -36,6 +36,8 @@ interface TaskListProps {
   projects: Project[]
   areas: Area[]
   headings: ProjectHeading[]
+  contextProjectId?: string | null
+  contextAreaId?: string | null
   editingState: EditingState
   editingHandlers: EditingHandlers
   onStartEdit: (task: Task) => void
@@ -75,6 +77,8 @@ export default function TaskList({
   projects,
   areas,
   headings,
+  contextProjectId = null,
+  contextAreaId = null,
   editingState,
   editingHandlers,
   onStartEdit,
@@ -196,6 +200,7 @@ export default function TaskList({
           const editingProject = editingProjectId ? projects.find(project => project.id === editingProjectId) || null : null
           const editingHeading = editingHeadingId ? headings.find(heading => heading.id === editingHeadingId) || null : null
           const isEditing = editingId === task.id
+          const isContextView = !!contextProjectId || !!contextAreaId
           const baseLiClass =
             variant === 'mobile'
               ? 'p-4 rounded-3xl border border-[var(--color-border)] bg-white shadow-sm transition-colors'
@@ -373,14 +378,19 @@ export default function TaskList({
                       </p>
                       {task.pinned ? <span className="text-lg" aria-label="Tarea fijada">📌</span> : null}
                     </div>
+                    {!isContextView && (taskProject || taskArea) ? (
+                      <p className="text-sm text-[#9B928A]">
+                        {taskProject?.name || taskArea?.name}
+                      </p>
+                    ) : null}
                     {plainNotes && <p className="text-sm text-[#736B63]">{plainNotes}</p>}
                     <div className={metaClass}>
-                      {taskProject && (
+                      {isContextView && taskProject && (
                         <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--color-primary-700)]">
                           {taskProject.name}
                         </span>
                       )}
-                      {!taskProject && taskArea && (
+                      {isContextView && !taskProject && taskArea && (
                         <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-accent-300)_70%,var(--color-bg)_30%)] text-[#2D2520]">
                           {taskArea.name}
                         </span>

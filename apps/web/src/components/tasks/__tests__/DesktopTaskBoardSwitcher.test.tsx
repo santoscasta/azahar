@@ -111,7 +111,6 @@ describe('DesktopTaskBoardSwitcher', () => {
 
   it('renders the quick view board when nothing is selected', () => {
     const onSelectArea = vi.fn()
-    const onSelectProject = vi.fn()
     renderWithProviders(
       <DesktopTaskBoardSwitcher
         {...baseProps}
@@ -126,14 +125,12 @@ describe('DesktopTaskBoardSwitcher', () => {
           },
         ]}
         onSelectArea={onSelectArea}
-        onSelectProject={onSelectProject}
       />
     )
 
     const areaButtons = screen.getAllByText('Área Uno')
     areaButtons.forEach(button => fireEvent.click(button))
     expect(onSelectArea).toHaveBeenCalledWith('area-1')
-    screen.getAllByRole('button', { name: 'Proyecto Uno' }).forEach(button => fireEvent.click(button))
-    expect(onSelectProject).toHaveBeenCalledWith('project-1')
+    expect(screen.getAllByText('1 tarea(s)').length).toBeGreaterThan(0)
   })
 })
