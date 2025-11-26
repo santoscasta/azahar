@@ -23,20 +23,17 @@ const SETTINGS_KEY = 'azahar:settings'
 export default function SettingsPage() {
   const { t } = useTranslations()
   const navigate = useNavigate()
-  const [settings, setSettings] = useState<SettingsState>(defaultSettings)
-  const [loggingOut, setLoggingOut] = useState(false)
-
-  useEffect(() => {
+  const [settings, setSettings] = useState<SettingsState>(() => {
     try {
-      const raw = localStorage.getItem(SETTINGS_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SettingsState>
-        setSettings({ ...defaultSettings, ...parsed })
-      }
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
+      if (!raw) return defaultSettings
+      const parsed = JSON.parse(raw) as Partial<SettingsState>
+      return { ...defaultSettings, ...parsed }
     } catch {
-      setSettings(defaultSettings)
+      return defaultSettings
     }
-  }, [])
+  })
+  const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
@@ -44,6 +41,21 @@ export default function SettingsPage() {
       window.dispatchEvent(new CustomEvent('azahar:settings-updated', { detail: settings }))
     }
   }, [settings])
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === SETTINGS_KEY && event.newValue) {
+        try {
+          const parsed = JSON.parse(event.newValue) as Partial<SettingsState>
+          setSettings(prev => ({ ...prev, ...parsed }))
+        } catch {
+          // ignore
+        }
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   const themeLabel = useMemo(() => {
     switch (settings.theme) {
