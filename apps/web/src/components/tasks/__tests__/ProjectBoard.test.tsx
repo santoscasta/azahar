@@ -58,9 +58,9 @@ describe('ProjectBoard', () => {
         project={project}
         headings={headings}
         tasksByHeading={tasks}
-        unassignedTasks={[]}
         completedCount={0}
         totalCount={1}
+        showCompletedTasks
         headingEditingId={null}
         headingEditingName=""
         onStartEditHeading={onEditHeading}

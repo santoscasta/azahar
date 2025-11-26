@@ -9,11 +9,13 @@ type ThemeOption = 'system' | 'light' | 'dark'
 interface SettingsState {
   theme: ThemeOption
   language: Language
+  showCompletedInContexts: boolean
 }
 
 const defaultSettings: SettingsState = {
   theme: 'system',
   language: 'es',
+  showCompletedInContexts: true,
 }
 
 const SETTINGS_KEY = 'azahar:settings'
@@ -111,6 +113,21 @@ export default function SettingsPage() {
               <option value="es">Español</option>
               <option value="en">English</option>
             </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Mostrar completadas en proyectos/áreas</p>
+              <p className="text-xs text-slate-500">Incluye una sección “Completadas” en vistas de proyecto y área.</p>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <input
+                type="checkbox"
+                checked={settings.showCompletedInContexts}
+                onChange={(event) => setSettings(prev => ({ ...prev, showCompletedInContexts: event.target.checked }))}
+              />
+              {settings.showCompletedInContexts ? 'Visible' : 'Ocultas'}
+            </label>
           </div>
 
           <div className="flex justify-end">

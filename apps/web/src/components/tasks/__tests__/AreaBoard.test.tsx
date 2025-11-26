@@ -52,6 +52,7 @@ describe('AreaBoard', () => {
         looseTasks={[]}
         onSelectProject={onSelectProject}
         renderTaskList={(tasks) => <div>{tasks.length} tarea(s)</div>}
+        showCompletedTasks
       />
     )
 

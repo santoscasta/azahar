@@ -51,10 +51,6 @@ describe('QuickViewBoard', () => {
 
     renderWithProviders(
       <QuickViewBoard
-        quickViewLabel="Hoy"
-        quickViewDescription="Tareas para hoy"
-        completedCount={1}
-        totalCount={3}
         groups={[
           {
             areaId: mockArea.id,

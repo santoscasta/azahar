@@ -14,6 +14,7 @@ type ThemeOption = 'system' | 'light' | 'dark'
 interface StoredSettings {
   theme: ThemeOption
   language: Language
+  showCompletedInContexts: boolean
 }
 
 const SETTINGS_STORAGE_KEY = 'azahar:settings'

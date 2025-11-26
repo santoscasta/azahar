@@ -13,6 +13,7 @@ interface DesktopTaskBoardSwitcherProps {
   filteredTasks: Task[]
   visibleProjectTasks: Task[]
   completedCount: number
+  showCompletedTasks: boolean
   quickViewGroups: QuickViewGroup[]
   headingEditingId: string | null
   headingEditingName: string
@@ -33,6 +34,7 @@ function renderProjectBoard({
   headings,
   tasks,
   completedCount,
+  showCompletedTasks,
   onStartEditHeading,
   onChangeHeadingName,
   onSaveHeadingName,
@@ -49,6 +51,7 @@ function renderProjectBoard({
   headings: ProjectHeading[]
   tasks: Task[]
   completedCount: number
+  showCompletedTasks: boolean
   headingEditingId: string | null
   headingEditingName: string
   onStartEditHeading: (headingId: string, name: string) => void
@@ -69,7 +72,6 @@ function renderProjectBoard({
     }
     tasksByHeading.get(key)!.push(task)
   })
-  const unassignedTasks = tasksByHeading.get('unassigned') || []
   const projectAreaName = project.area_id ? areas.find(area => area.id === project.area_id)?.name || null : null
 
   return (
@@ -77,9 +79,9 @@ function renderProjectBoard({
       project={project}
       headings={headingsForProject}
       tasksByHeading={tasksByHeading}
-      unassignedTasks={unassignedTasks}
       completedCount={completedCount}
       totalCount={tasks.length}
+      showCompletedTasks={showCompletedTasks}
       headingEditingId={headingEditingId}
       headingEditingName={headingEditingName}
       onStartEditHeading={onStartEditHeading}
@@ -100,6 +102,7 @@ function renderAreaBoard({
   projects,
   tasks,
   completedCount,
+  showCompletedTasks,
   onSelectProject,
   renderTaskList,
 }: {
@@ -107,6 +110,7 @@ function renderAreaBoard({
   projects: Project[]
   tasks: Task[]
   completedCount: number
+  showCompletedTasks: boolean
   onSelectProject: (projectId: string) => void
   renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean }) => ReactNode
 }) {
@@ -131,6 +135,7 @@ function renderAreaBoard({
       looseTasks={looseTasks}
       onSelectProject={onSelectProject}
       renderTaskList={(list) => renderTaskList(list, { showEmptyState: false })}
+      showCompletedTasks={showCompletedTasks}
     />
   )
 }
@@ -144,6 +149,7 @@ export default function DesktopTaskBoardSwitcher({
   filteredTasks,
   visibleProjectTasks,
   completedCount,
+  showCompletedTasks,
   quickViewGroups,
   headingEditingId,
   headingEditingName,
@@ -164,6 +170,7 @@ export default function DesktopTaskBoardSwitcher({
       headings: projectHeadings,
       tasks: visibleProjectTasks,
       completedCount,
+      showCompletedTasks,
       headingEditingId,
       headingEditingName,
       onStartEditHeading,
@@ -183,6 +190,7 @@ export default function DesktopTaskBoardSwitcher({
       projects,
       tasks: filteredTasks,
       completedCount,
+      showCompletedTasks,
       onSelectProject,
       renderTaskList: (tasks, options) => renderTaskList(tasks, options),
     })

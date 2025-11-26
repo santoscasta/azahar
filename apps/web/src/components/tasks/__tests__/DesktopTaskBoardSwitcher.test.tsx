@@ -61,6 +61,7 @@ describe('DesktopTaskBoardSwitcher', () => {
     filteredTasks: [mockTask],
     visibleProjectTasks: [mockTask],
     completedCount: 0,
+    showCompletedTasks: true,
     quickViewLabel: 'Inbox',
     quickViewDescription: 'Descripción',
     quickViewGroups: [],

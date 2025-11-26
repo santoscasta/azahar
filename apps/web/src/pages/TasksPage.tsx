@@ -158,6 +158,7 @@ export default function TasksPage() {
   const [isChecklistSheetOpen, setChecklistSheetOpen] = useState(false)
   const [isPriorityMenuOpen, setPriorityMenuOpen] = useState(false)
   const [overflowTaskId, setOverflowTaskId] = useState<string | null>(null)
+  const [showCompletedInContext, setShowCompletedInContext] = useState(true)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
@@ -192,13 +193,13 @@ export default function TasksPage() {
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', normalizedSearch, sortedLabelIds, selectedProjectId, selectedAreaId],
+    queryKey: ['tasks', normalizedSearch, sortedLabelIds],
     queryFn: async () => {
       const result = await searchTasks({
         query: normalizedSearch || null,
         labelIds: sortedLabelIds.length > 0 ? sortedLabelIds : null,
-        projectId: selectedProjectId,
-        areaId: selectedAreaId,
+        projectId: null,
+        areaId: null,
         quickView: null,
       })
       if (!result.success) {
@@ -315,6 +316,36 @@ export default function TasksPage() {
     const month = `${now.getMonth() + 1}`.padStart(2, '0')
     const day = `${now.getDate()}`.padStart(2, '0')
     return `${now.getFullYear()}-${month}-${day}`
+  }, [])
+
+  useEffect(() => {
+    const readSetting = () => {
+      try {
+        const raw = localStorage.getItem('azahar:settings')
+        if (!raw) return
+        const parsed = JSON.parse(raw) as { showCompletedInContexts?: boolean }
+        if (typeof parsed.showCompletedInContexts === 'boolean') {
+          setShowCompletedInContext(parsed.showCompletedInContexts)
+        }
+      } catch {
+        // ignore
+      }
+    }
+    const handleSettingsUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ showCompletedInContexts?: boolean }>).detail
+      if (typeof detail?.showCompletedInContexts === 'boolean') {
+        setShowCompletedInContext(detail.showCompletedInContexts)
+      } else {
+        readSetting()
+      }
+    }
+    readSetting()
+    window.addEventListener('storage', readSetting)
+    window.addEventListener('azahar:settings-updated', handleSettingsUpdate as EventListener)
+    return () => {
+      window.removeEventListener('storage', readSetting)
+      window.removeEventListener('azahar:settings-updated', handleSettingsUpdate as EventListener)
+    }
   }, [])
   const quickViewStats = useMemo(
     () => buildQuickViewStats(tasks, todayISO),
@@ -1973,6 +2004,7 @@ export default function TasksPage() {
         filteredTasks={filteredTasks}
         visibleProjectTasks={visibleProjectTasks}
         completedCount={completedCount}
+        showCompletedTasks={showCompletedInContext}
         quickViewGroups={quickViewGroups}
         headingEditingId={headingEditingId}
         headingEditingName={headingEditingName}

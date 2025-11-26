@@ -4,9 +4,9 @@ interface ProjectBoardProps {
   project: Project
   headings: ProjectHeading[]
   tasksByHeading: Map<string, Task[]>
-  unassignedTasks: Task[]
   completedCount: number
   totalCount: number
+  showCompletedTasks: boolean
   headingEditingId: string | null
   headingEditingName: string
   onStartEditHeading: (headingId: string, name: string) => void
@@ -24,9 +24,9 @@ export default function ProjectBoard({
   project,
   headings,
   tasksByHeading,
-  unassignedTasks,
   completedCount,
   totalCount,
+  showCompletedTasks,
   headingEditingId,
   headingEditingName,
   onStartEditHeading,
@@ -39,6 +39,21 @@ export default function ProjectBoard({
   renderTaskList,
   renderHeadingForm,
 }: ProjectBoardProps) {
+  const openTasksByHeading = new Map<string, Task[]>()
+  const completedTasks: Task[] = []
+
+  tasksByHeading.forEach((list, headingId) => {
+    const open = list.filter(task => task.status !== 'done')
+    const done = list.filter(task => task.status === 'done')
+    if (open.length > 0) {
+      openTasksByHeading.set(headingId, open)
+    }
+    if (done.length > 0) {
+      completedTasks.push(...done)
+    }
+  })
+  const unassignedOpen = openTasksByHeading.get('unassigned') || []
+
   return (
     <div className="space-y-6">
       <div className="az-card overflow-hidden">
@@ -93,8 +108,8 @@ export default function ProjectBoard({
                     <div>
                       <p className="text-sm font-medium text-slate-800">{heading.name}</p>
                       <p className="text-xs text-slate-400">
-                        {(tasksByHeading.get(heading.id)?.length || 0)} tarea
-                        {tasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
+                        {(openTasksByHeading.get(heading.id)?.length || 0)} tarea
+                        {openTasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -127,18 +142,24 @@ export default function ProjectBoard({
                   <p className="text-xs uppercase tracking-wide text-slate-400">Sección</p>
                   <p className="text-base font-semibold text-slate-800">{heading.name}</p>
                   <p className="text-xs text-slate-400">
-                    {(tasksByHeading.get(heading.id)?.length || 0)} tarea
-                    {tasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
+                    {(openTasksByHeading.get(heading.id)?.length || 0)} tarea
+                    {openTasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
                   </p>
                 </div>
               </div>
-              {renderTaskList(tasksByHeading.get(heading.id) || [], { showEmptyState: false })}
+              {renderTaskList(openTasksByHeading.get(heading.id) || [], { showEmptyState: false })}
             </section>
           ))}
-          {unassignedTasks.length > 0 && (
+          {unassignedOpen.length > 0 && (
             <section className="space-y-3">
               <p className="text-xs uppercase tracking-wide text-slate-400">Tareas sin sección</p>
-              {renderTaskList(unassignedTasks, { showEmptyState: false })}
+              {renderTaskList(unassignedOpen, { showEmptyState: false })}
+            </section>
+          )}
+          {showCompletedTasks && completedTasks.length > 0 && (
+            <section className="space-y-3">
+              <p className="text-xs uppercase tracking-wide text-slate-400">Completadas</p>
+              {renderTaskList(completedTasks, { showEmptyState: false })}
             </section>
           )}
         </div>

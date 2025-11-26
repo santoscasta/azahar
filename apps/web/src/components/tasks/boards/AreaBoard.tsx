@@ -10,6 +10,7 @@ interface AreaBoardProps {
   looseTasks: Task[]
   onSelectProject: (projectId: string) => void
   renderTaskList: (tasks: Task[]) => React.ReactNode
+  showCompletedTasks: boolean
 }
 
 export default function AreaBoard({
@@ -22,7 +23,22 @@ export default function AreaBoard({
   looseTasks,
   onSelectProject,
   renderTaskList,
+  showCompletedTasks,
 }: AreaBoardProps) {
+  const openTasksByProject = new Map<string, Task[]>()
+  const completedTasks: Task[] = []
+
+  tasksByProject.forEach((list, key) => {
+    const open = list.filter(task => task.status !== 'done')
+    const done = list.filter(task => task.status === 'done')
+    openTasksByProject.set(key, open)
+    if (done.length > 0) {
+      completedTasks.push(...done)
+    }
+  })
+
+  const openLoose = openTasksByProject.get('loose') || looseTasks.filter(task => task.status !== 'done')
+
   return (
     <div className="az-card overflow-hidden">
       <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
@@ -50,12 +66,18 @@ export default function AreaBoard({
                 {project.name}
               </button>
             </div>
-            {renderTaskList(tasksByProject.get(project.id) || [])}
+            {renderTaskList(openTasksByProject.get(project.id) || [])}
           </section>
         ))}
-        {looseTasks.length > 0 && (
+        {openLoose.length > 0 && (
           <section className="px-6 py-5">
-            {renderTaskList(looseTasks)}
+            {renderTaskList(openLoose)}
+          </section>
+        )}
+        {showCompletedTasks && completedTasks.length > 0 && (
+          <section className="px-6 py-5 space-y-3">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Completadas</p>
+            {renderTaskList(completedTasks)}
           </section>
         )}
       </div>
