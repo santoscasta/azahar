@@ -25,6 +25,7 @@ describe('MobileTasksPane', () => {
         searchInputRef={{ current: null }}
         onBack={vi.fn()}
         isProjectView={false}
+        isSearchView={false}
         selectedArea={null}
         mobileProject={null}
         quickViewLabel="Inbox"

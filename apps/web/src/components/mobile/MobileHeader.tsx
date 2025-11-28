@@ -4,6 +4,7 @@ import { useTranslations } from '../../App.js'
 interface MobileHeaderProps {
   onBack: () => void
   isProjectView: boolean
+  isSearchView: boolean
   selectedArea: Area | null
   mobileProject: Project | null
   quickViewLabel: string
@@ -16,6 +17,7 @@ interface MobileHeaderProps {
 export default function MobileHeader({
   onBack,
   isProjectView,
+  isSearchView,
   selectedArea,
   mobileProject,
   quickViewLabel,
@@ -37,7 +39,7 @@ export default function MobileHeader({
         </button>
         <div className="flex-1 text-center">
           <p className="text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">
-            {isProjectView ? t('mobile.project') : selectedArea ? t('mobile.area') : t('mobile.view')}
+            {isProjectView ? t('mobile.project') : selectedArea ? t('mobile.area') : isSearchView ? t('view.search') : t('mobile.view')}
           </p>
           <p className="text-2xl font-semibold text-[var(--on-surface)]">
             {isProjectView
@@ -51,7 +53,9 @@ export default function MobileHeader({
               ? `${filteredTaskCount} ${t('mobile.projectTasks')}`
               : selectedArea
                 ? `${projectsInArea} ${t('mobile.areaProjects')}`
-                : friendlyToday || t('mobile.today')}
+                : isSearchView
+                  ? t('view.desc.search')
+                  : friendlyToday || t('mobile.today')}
           </p>
         </div>
       </div>

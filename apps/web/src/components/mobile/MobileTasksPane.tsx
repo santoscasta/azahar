@@ -16,6 +16,7 @@ interface MobileTasksPaneProps {
   searchInputRef: RefObject<HTMLInputElement>
   onBack: () => void
   isProjectView: boolean
+  isSearchView: boolean
   selectedArea: Area | null
   mobileProject: Project | null
   quickViewLabel: string
@@ -42,6 +43,7 @@ export default function MobileTasksPane({
   searchInputRef,
   onBack,
   isProjectView,
+  isSearchView,
   selectedArea,
   mobileProject,
   quickViewLabel,
@@ -74,6 +76,7 @@ export default function MobileTasksPane({
         <MobileHeader
           onBack={onBack}
           isProjectView={isProjectView}
+          isSearchView={isSearchView}
           selectedArea={selectedArea}
           mobileProject={mobileProject}
           quickViewLabel={quickViewLabel}
