@@ -71,6 +71,7 @@ import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
 import PriorityMenu from '../components/tasks/PriorityMenu.js'
 import TaskOverflowMenu from '../components/tasks/TaskOverflowMenu.js'
 import { useConnectivity } from '../hooks/useConnectivity.js'
+import AssistantChat from '../components/assistant/AssistantChat.js'
 import inboxIcon from '../assets/icons/inbox.svg'
 import todayIcon from '../assets/icons/today.svg'
 import upcomingIcon from '../assets/icons/upcoming.svg'
@@ -163,6 +164,7 @@ export default function TasksPage() {
   const [overflowTaskId, setOverflowTaskId] = useState<string | null>(null)
   const [showCompletedInContext, setShowCompletedInContext] = useState(true)
   const [customViewNames, setCustomViewNames] = useState<Partial<Record<QuickViewId, string>>>({})
+  const [showAssistantChat, setShowAssistantChat] = useState(false)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
@@ -2204,6 +2206,15 @@ export default function TasksPage() {
                   onClear={handleClearSearch}
                   onSelectSuggestion={handleSuggestionSelect}
                 />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowAssistantChat(true)}
+                    className="px-4 py-2 text-sm font-semibold rounded-xl border border-[var(--color-border)] text-[#2D2520] hover:border-[var(--color-primary-600)]"
+                  >
+                    Chat IA (crear tareas)
+                  </button>
+                </div>
                 <DesktopContextHeader
                   label={contextLabel}
                   title={contextTitle}
@@ -2272,6 +2283,10 @@ export default function TasksPage() {
     {renderPriorityMenu()}
     {renderOverflowMenu()}
     {renderLabelSheet()}
+    <AssistantChat
+      open={showAssistantChat}
+      onClose={() => setShowAssistantChat(false)}
+    />
     <TaskDatePickerOverlay
       target={datePickerTarget}
       month={datePickerMonth}

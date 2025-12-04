@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
@@ -100,6 +100,27 @@ export default function TaskList({
   showDraftCard,
   autoSaveOnMobileBlur = false,
 }: TaskListProps) {
+  const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
+  const celebrationTimeoutRef = useRef<number | null>(null)
+
+  const triggerCompletionCelebration = (taskId: string) => {
+    if (celebrationTimeoutRef.current) {
+      window.clearTimeout(celebrationTimeoutRef.current)
+    }
+    setCelebratingTaskId(taskId)
+    celebrationTimeoutRef.current = window.setTimeout(() => {
+      setCelebratingTaskId((current) => (current === taskId ? null : current))
+    }, 700)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimeoutRef.current) {
+        window.clearTimeout(celebrationTimeoutRef.current)
+      }
+    }
+  }, [])
+
   if (isLoading && showEmptyState && showLoadingState) {
     const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[#736B63]' : 'p-10 text-center text-[#736B63]'
     return <div className={loadingClass}>Cargando tareas...</div>
@@ -212,12 +233,12 @@ export default function TaskList({
               : 'flex flex-wrap items-center gap-3 text-xs text-[#736B63]'
           const checkboxClass =
             variant === 'mobile'
-              ? `mt-1 h-7 w-7 rounded-2xl border-2 flex items-center justify-center transition ${
+              ? `relative mt-1 h-7 w-7 rounded-2xl border-2 flex items-center justify-center overflow-visible transition ${
                   task.status === 'done'
                     ? 'bg-[var(--color-accent-500)] border-[var(--color-accent-500)] text-white'
                     : 'border-[var(--color-border)] text-transparent'
                 }`
-              : `mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${
+              : `relative mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center overflow-visible transition ${
                   task.status === 'done'
                     ? 'bg-[var(--color-accent-500)] border-[var(--color-accent-500)] text-white'
                     : 'border-[var(--color-border)] hover:border-[var(--color-primary-600)] text-transparent'
@@ -361,12 +382,21 @@ export default function TaskList({
                   <button
                     onClick={(event) => {
                       event.stopPropagation()
+                      if (task.status !== 'done') {
+                        triggerCompletionCelebration(task.id)
+                      }
                       onToggleTask(task.id)
                     }}
                     disabled={togglePending}
                     className={`${checkboxClass} disabled:opacity-50`}
                     aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
                   >
+                    {celebratingTaskId === task.id ? (
+                      <>
+                        <span className="az-complete-ring" aria-hidden />
+                        <span className="az-complete-spark" aria-hidden />
+                      </>
+                    ) : null}
                     {task.status === 'done' ? checkboxIcon : null}
                   </button>
                   <div className="flex-1 min-w-0 space-y-2">
