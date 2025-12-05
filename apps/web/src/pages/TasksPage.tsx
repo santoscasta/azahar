@@ -50,7 +50,7 @@ import { MobileScheduleSheet } from '../components/mobile/MobileScheduleSheet.js
 import { buildMobileTaskPayload } from '../lib/mobileDraftUtils.js'
 import DesktopSidebar from '../components/sidebar/DesktopSidebar.js'
 import MobileTasksPane from '../components/mobile/MobileTasksPane.js'
-import MobileFab from '../components/mobile/MobileFab.js'
+import MobileBottomBar from '../components/mobile/MobileBottomBar.js'
 import NewAreaModal from '../components/tasks/NewAreaModal.js'
 import NewProjectModal from '../components/tasks/NewProjectModal.js'
 import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
@@ -1745,6 +1745,14 @@ export default function TasksPage() {
     }))
   }
 
+  const handleMobileNewTask = () => {
+    if (showMobileHome) {
+      setShowMobileCreationSheet(true)
+      return
+    }
+    startMobileTaskDraft(activeQuickView)
+  }
+
   const handleCancelMobileDraftTask = () => {
     updateMobileDraft(() => null)
     setShowMobileCreationSheet(false)
@@ -2047,6 +2055,19 @@ export default function TasksPage() {
     setIsSearchFocused(false)
   }
 
+  const handleMobileNavHome = () => {
+    handleMobileBack()
+    setSearchQuery('')
+  }
+
+  const handleOpenMobileSearch = () => {
+    setShowMobileHome(false)
+    handleSearchFocus()
+    setTimeout(() => {
+      mobileSearchInputRef.current?.focus()
+    }, 120)
+  }
+
   const handleOpenTaskModal = () => {
     const defaultView = activeQuickView === 'logbook' ? 'inbox' : activeQuickView
     updateTaskDraft('projectId', selectedProjectId || null)
@@ -2072,7 +2093,7 @@ export default function TasksPage() {
 
   if (isMobile && showMobileHome) {
     return (
-      <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <main className="min-h-screen pb-28" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="max-w-md mx-auto px-4 py-6">
           <MobileOverview
             showDraftCard={!!mobileDraftTask}
@@ -2103,6 +2124,15 @@ export default function TasksPage() {
             onOpenSettings={handleOpenSettings}
           />
         </div>
+        <MobileBottomBar
+          isHomeActive
+          isSearchActive={isSearchMode}
+          pendingSync={hasPendingSync}
+          onHome={handleMobileNavHome}
+          onSearch={handleOpenMobileSearch}
+          onNewTask={handleMobileNewTask}
+          onOpenSettings={handleOpenSettings}
+        />
         {renderTaskModal()}
         {renderMobileCreationSheet()}
         {renderScheduleSheet()}
@@ -2132,7 +2162,7 @@ export default function TasksPage() {
     <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       {isMobile ? (
         <>
-          <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
             <MobileTasksPane
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -2140,30 +2170,34 @@ export default function TasksPage() {
               onSearchBlur={handleSearchBlur}
               onSearchClear={handleClearSearch}
               searchInputRef={mobileSearchInputRef}
-      onBack={handleMobileBack}
-      isProjectView={isMobileProjectView}
-      isSearchView={isSearchMode}
-      selectedArea={selectedArea}
-      mobileProject={mobileProject}
-      quickViewLabel={isSearchMode ? searchViewLabel : currentQuickView.label}
-      friendlyToday={friendlyToday}
-      filteredTaskCount={filteredTasks.length}
-      completedCount={completedCount}
-      projectsInArea={selectedAreaProjectCount}
-            filters={activeFilters}
-            compactFilters={isMobileDetail}
-            onRemoveFilter={handleRemoveFilter}
-            errorMessage={error}
-            renderTaskBoard={renderMobileTaskBoard}
-            renderDraftCard={renderMobileDraftTaskCard}
-            showDraft={showMobileHome && !!mobileDraftTask}
+              onBack={handleMobileBack}
+              isProjectView={isMobileProjectView}
+              isSearchView={isSearchMode}
+              selectedArea={selectedArea}
+              mobileProject={mobileProject}
+              quickViewLabel={isSearchMode ? searchViewLabel : currentQuickView.label}
+              friendlyToday={friendlyToday}
+              filteredTaskCount={filteredTasks.length}
+              completedCount={completedCount}
+              projectsInArea={selectedAreaProjectCount}
+              filters={activeFilters}
+              compactFilters={isMobileDetail}
+              onRemoveFilter={handleRemoveFilter}
+              errorMessage={error}
+              renderTaskBoard={renderMobileTaskBoard}
+              renderDraftCard={renderMobileDraftTaskCard}
+              showDraft={showMobileHome && !!mobileDraftTask}
+              pendingSync={hasPendingSync}
+            />
+          </div>
+          <MobileBottomBar
+            isHomeActive={showMobileHome}
+            isSearchActive={isSearchMode}
             pendingSync={hasPendingSync}
-          />
-        </div>
-          <MobileFab
-            isHomeView={showMobileHome}
-            onTapHome={() => setShowMobileCreationSheet(true)}
-            onTapDetail={() => startMobileTaskDraft(activeQuickView)}
+            onHome={handleMobileNavHome}
+            onSearch={handleOpenMobileSearch}
+            onNewTask={handleMobileNewTask}
+            onOpenSettings={handleOpenSettings}
           />
         </>
       ) : (

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signIn, signUp, type AuthResult } from '../lib/supabase.js'
 
@@ -18,21 +18,32 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
   const [isSignUp, setIsSignUp] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = navigateTo ?? useNavigate()
   const emailInputId = useId()
   const passwordInputId = useId()
 
+  const emailPattern = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, [])
+  const isEmailValid = emailPattern.test(email.trim())
+  const isPasswordValid = password.length >= 8
+  const canSubmit = isEmailValid && isPasswordValid && !loading
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const trimmedEmail = email.trim()
+    if (!isEmailValid || !isPasswordValid) {
+      setError('Revisa el email y la contraseña antes de continuar')
+      return
+    }
     setError('')
     setLoading(true)
 
     try {
       let result
       if (isSignUp) {
-        result = await authClient.signUp(email, password)
+        result = await authClient.signUp(trimmedEmail, password)
       } else {
-        result = await authClient.signIn(email, password)
+        result = await authClient.signIn(trimmedEmail, password)
       }
 
       if (result.success) {
@@ -67,7 +78,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-1">
               <label className="text-sm font-semibold text-[#2D2520]" htmlFor={emailInputId}>Email</label>
               <input
@@ -76,24 +87,53 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 id={emailInputId}
-                className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)]"
+                className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
+                  email && !isEmailValid ? 'border-red-300 focus:ring-red-300 focus:border-red-300' : 'border-[var(--color-border)]'
+                }`}
                 placeholder="tu@ejemplo.com"
+                aria-invalid={email ? !isEmailValid : undefined}
+                aria-describedby={email ? `${emailInputId}-hint` : undefined}
               />
+              <p id={`${emailInputId}-hint`} className="text-xs text-[#736B63] flex items-center gap-1">
+                {!email && 'Usa un correo con formato nombre@dominio.com'}
+                {email && !isEmailValid && <span className="text-red-600">Introduce un email válido.</span>}
+              </p>
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-semibold text-[#2D2520]" htmlFor={passwordInputId}>
                 Contraseña
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                id={passwordInputId}
-                className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)]"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  id={passwordInputId}
+                  className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
+                    password && !isPasswordValid
+                      ? 'border-red-300 focus:ring-red-300 focus:border-red-300'
+                      : 'border-[var(--color-border)]'
+                  }`}
+                  placeholder="••••••••"
+                  aria-invalid={password ? !isPasswordValid : undefined}
+                  aria-describedby={`${passwordInputId}-hint`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-3 px-2 text-xs font-semibold text-[var(--color-primary-700)] hover:text-[var(--color-primary-600)]"
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
+              <p id={`${passwordInputId}-hint`} className="text-xs text-[#736B63] flex items-center gap-1">
+                <span>Mínimo 8 caracteres.</span>
+                {password && !isPasswordValid && <span className="text-red-600">Añade un poco más para mayor seguridad.</span>}
+              </p>
               <div className="text-right">
                 <a
                   href="mailto:soporte@azahar.app"
@@ -105,17 +145,26 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm" role="alert" aria-live="assertive">
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={!canSubmit}
               className="w-full py-3 rounded-2xl bg-[var(--color-primary-600)] text-white font-semibold shadow-[0_18px_30px_rgba(45,37,32,0.15)] hover:bg-[var(--color-primary-700)] transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? 'Cargando...' : isSignUp ? 'Registrarse' : 'Entrar'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  <span>Cargando...</span>
+                </span>
+              ) : isSignUp ? (
+                'Registrarse'
+              ) : (
+                'Entrar'
+              )}
             </button>
           </form>
 
