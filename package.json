@@ -9,7 +9,8 @@
     "build": "pnpm -C apps/web build",
     "preview": "pnpm -C apps/web preview",
     "lint": "pnpm -C apps/web lint",
-    "install-all": "pnpm install"
+    "install-all": "pnpm install",
+    "playwright:install": "pnpm -C apps/web exec playwright install --with-deps chromium"
   },
   "workspaces": [
     "apps/*",

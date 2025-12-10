@@ -120,6 +120,24 @@ pnpm dev
 
 ---
 
+## 🎬 E2E con Playwright (si ves "self-installer exits with code 1")
+
+Las pruebas E2E usan Playwright. Si durante la instalación aparece el error:
+
+```
+Error: Something went wrong, self-installer exits with code 1
+```
+
+ejecuta el script de instalación que incluye las dependencias del navegador:
+
+```bash
+pnpm playwright:install
+```
+
+> Nota: el script usará `apt-get` para instalar librerías de sistema (GTK, fuentes, etc.).
+
+---
+
 ## 📚 Comandos Disponibles
 
 ```bash

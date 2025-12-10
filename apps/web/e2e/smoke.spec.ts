@@ -21,6 +21,8 @@ test.describe('Smoke Test', () => {
     await page.getByText('Cargando tareas...', { exact: false }).first().waitFor({ state: 'detached', timeout: 5000 })
 
     // Smoke minimal: lista cargada y UI disponible para crear tareas
-    await expect(page.getByRole('button', { name: /Crear tarea/i })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Crear tarea', exact: true })
+    ).toBeVisible()
   })
 })
