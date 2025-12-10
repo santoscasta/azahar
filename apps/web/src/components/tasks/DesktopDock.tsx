@@ -15,7 +15,7 @@ export default function DesktopDock({
   disableHeading = false,
 }: DesktopDockProps) {
   return (
-    <div className="hidden lg:flex fixed inset-x-0 bottom-6 justify-center pointer-events-none">
+    <div className="hidden md:flex fixed inset-x-0 bottom-6 justify-center pointer-events-none z-30">
       <div className="az-dock px-6 py-3 flex items-center gap-4 pointer-events-auto">
         <button
           type="button"

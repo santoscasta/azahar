@@ -66,6 +66,7 @@ import DesktopDock from '../components/tasks/DesktopDock.js'
 import DesktopTaskBoardSwitcher from '../components/tasks/boards/DesktopTaskBoardSwitcher.js'
 import MobileOverview from '../components/mobile/MobileOverview.js'
 import MobileTaskBoard from '../components/mobile/MobileTaskBoard.js'
+import { DesktopDraftCard } from '../components/tasks/DesktopDraftCard.js'
 import MoveTaskSheet from '../components/tasks/MoveTaskSheet.js'
 import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
 import PriorityMenu from '../components/tasks/PriorityMenu.js'
@@ -165,6 +166,7 @@ export default function TasksPage() {
   const [showCompletedInContext, setShowCompletedInContext] = useState(true)
   const [customViewNames, setCustomViewNames] = useState<Partial<Record<QuickViewId, string>>>({})
   const [showAssistantChat, setShowAssistantChat] = useState(false)
+  const [showDesktopDraft, setShowDesktopDraft] = useState(false)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
@@ -560,8 +562,12 @@ export default function TasksPage() {
   }
 
   const handleLabelSheetConfirm = () => {
-    if (labelSheetTarget?.kind === 'draft-task' && mobileDraftTask) {
-      updateMobileDraft(prev => (prev ? { ...prev, labelIds: labelSheetSelection } : prev))
+    if (labelSheetTarget?.kind === 'draft-task') {
+      if (mobileDraftTask) {
+        updateMobileDraft(prev => (prev ? { ...prev, labelIds: labelSheetSelection } : prev))
+      } else if (showDesktopDraft) {
+        setTaskLabels(labelSheetSelection)
+      }
     } else if (labelSheetTarget?.kind === 'task') {
       const targetTask = tasks.find(task => task.id === labelSheetTarget.taskId)
       if (targetTask) {
@@ -720,7 +726,7 @@ export default function TasksPage() {
       showLoadingState?: boolean
       renderDraftCard?: () => ReactNode
       showDraftCard?: boolean
-      autoSaveOnMobileBlur?: boolean
+      autoSaveOnBlur?: boolean
     } = {}
   ) => (
     <TaskList
@@ -754,7 +760,7 @@ export default function TasksPage() {
       formatDateLabel={formatDateForLabel}
       renderDraftCard={options.renderDraftCard}
       showDraftCard={options.showDraftCard}
-      autoSaveOnMobileBlur={options.autoSaveOnMobileBlur}
+      autoSaveOnBlur={options.autoSaveOnBlur}
     />
   )
 
@@ -790,13 +796,15 @@ export default function TasksPage() {
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]
   const moveSheetTask = moveSheetTaskId ? tasks.find(task => task.id === moveSheetTaskId) ?? null : null
   const overflowTask = overflowTaskId ? tasks.find(task => task.id === overflowTaskId) ?? null : null
-  const shouldAutoSaveMobileEdit =
+  const shouldAutoSaveEdit =
     labelSheetTarget === null &&
     !scheduleSheetOpen &&
     moveSheetTaskId === null &&
     !isChecklistSheetOpen &&
     !isPriorityMenuOpen &&
-    overflowTaskId === null
+    overflowTaskId === null &&
+    datePickerTarget === null
+  const shouldAutoSaveDraft = labelSheetTarget === null && datePickerTarget === null
 
   const handleSelectQuickView = (view: QuickViewId) => {
     setActiveQuickView(view)
@@ -1133,7 +1141,12 @@ export default function TasksPage() {
     variant: 'desktop' | 'mobile',
     taskSource?: Task[],
     showEmptyState = true,
-    options: { showLoadingState?: boolean; renderDraftCard?: () => ReactNode; showDraftCard?: boolean } = {}
+    options: {
+      showLoadingState?: boolean
+      renderDraftCard?: () => ReactNode
+      showDraftCard?: boolean
+      autoSaveOnBlur?: boolean
+    } = {}
   ) => {
     const tasks = taskSource ?? (variant === 'mobile' ? visibleMobileTasks : filteredTasks)
     const showLoadingState = options.showLoadingState ?? !taskSource
@@ -1142,7 +1155,7 @@ export default function TasksPage() {
       showLoadingState,
       renderDraftCard: options.renderDraftCard,
       showDraftCard: options.showDraftCard,
-      autoSaveOnMobileBlur: variant === 'mobile' ? shouldAutoSaveMobileEdit : false,
+      autoSaveOnBlur: options.autoSaveOnBlur ?? shouldAutoSaveEdit,
     })
   }
 
@@ -1246,6 +1259,26 @@ export default function TasksPage() {
       onSelect={handleConfirmMoveDestination}
     />
   )
+
+  const renderDesktopDraftTaskCard = () =>
+    showDesktopDraft ? (
+      <DesktopDraftCard
+        draft={taskDraft}
+        viewLabel={quickViewLabels[taskDraft.view]}
+        dueLabel={formatDateForLabel(taskDraft.due_at)}
+        onSubmit={handleAddTask}
+        onCancel={handleCancelDesktopDraft}
+        onTitleChange={(value) => updateTaskDraft('title', value)}
+        onNotesChange={(value) => updateTaskDraft('notes', value)}
+        onRequestDueDate={() => openDatePicker('new')}
+        onOpenLabels={() => {
+          setLabelSheetSelection(taskDraft.labelIds)
+          setLabelSheetTarget({ kind: 'draft-task' })
+        }}
+        onCyclePriority={handleCycleDesktopPriority}
+        autoSaveEnabled={shouldAutoSaveDraft}
+      />
+    ) : null
 
 
   const renderMobileDraftTaskCard = () => (
@@ -1779,8 +1812,17 @@ export default function TasksPage() {
     )
   }
 
-  const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCancelDesktopDraft = () => {
+    setShowDesktopDraft(false)
+    resetTaskDraft()
+  }
+
+  const handleCycleDesktopPriority = () => {
+    updateTaskDraft('priority', ((taskDraft.priority + 1) % 4) as 0 | 1 | 2 | 3)
+  }
+
+  const handleAddTask = (e?: React.FormEvent) => {
+    e?.preventDefault?.()
     if (!taskDraft.title.trim()) {
       setError('El título no puede estar vacío')
       return
@@ -1799,6 +1841,7 @@ export default function TasksPage() {
       onSuccess: () => {
         resetTaskDraft()
         closeTaskModal()
+        setShowDesktopDraft(false)
       },
     })
   }
@@ -1996,15 +2039,16 @@ export default function TasksPage() {
   }
 
   const renderDesktopTaskBoard = () => {
+    const hasDraft = showDesktopDraft
     const isQuickViewContext = !selectedProject && !selectedArea
-    if (isQuickViewContext && isLoading && filteredTasks.length === 0) {
+    if (isQuickViewContext && isLoading && filteredTasks.length === 0 && !hasDraft) {
       return (
         <div className="az-card overflow-hidden">
           <div className="p-10 text-center text-slate-500">Cargando tareas...</div>
         </div>
       )
     }
-    if (isQuickViewContext && filteredTasks.length === 0) {
+    if (isQuickViewContext && filteredTasks.length === 0 && !hasDraft) {
       return (
         <div className="az-card overflow-hidden">
           <div className="p-10 text-center text-slate-500">
@@ -2036,7 +2080,13 @@ export default function TasksPage() {
         onDeleteHeading={handleDeleteHeading}
         onSelectArea={handleSelectArea}
         onSelectProject={handleSelectProject}
-        renderTaskList={(tasks, options) => renderTaskBody('desktop', tasks, options?.showEmptyState ?? false)}
+        renderTaskList={(tasks, options: { showEmptyState?: boolean; showLoadingState?: boolean } = {}) =>
+          renderTaskBody('desktop', tasks, options.showEmptyState ?? !hasDraft, {
+            showLoadingState: options.showLoadingState,
+            renderDraftCard: hasDraft ? renderDesktopDraftTaskCard : undefined,
+            showDraftCard: hasDraft,
+          })
+        }
       />
     )
   }
@@ -2068,21 +2118,32 @@ export default function TasksPage() {
     }, 120)
   }
 
-  const handleOpenTaskModal = () => {
+  const startDesktopDraft = () => {
     const defaultView = activeQuickView === 'logbook' ? 'inbox' : activeQuickView
-    updateTaskDraft('projectId', selectedProjectId || null)
-    if (selectedProjectId) {
-      const project = projects.find(project => project.id === selectedProjectId)
-      updateTaskDraft('areaId', project?.area_id || null)
-    } else if (selectedAreaId) {
-      updateTaskDraft('areaId', selectedAreaId)
-    } else {
-      updateTaskDraft('areaId', null)
-    }
+    const targetProjectId = selectedProjectId || null
+    const targetAreaId =
+      targetProjectId ? projects.find(project => project.id === targetProjectId)?.area_id || null : selectedAreaId || null
+    const defaultDue = defaultDueForView(defaultView, todayISO, tomorrowISO) || ''
+    updateTaskDraft('title', '')
+    updateTaskDraft('notes', '')
+    updateTaskDraft('priority', 0)
+    updateTaskDraft('projectId', targetProjectId)
+    updateTaskDraft('areaId', targetAreaId)
     updateTaskDraft('headingId', null)
+    updateTaskDraft('view', defaultView)
+    updateTaskDraft('status', defaultView === 'someday' ? 'snoozed' : 'open')
+    updateTaskDraft('due_at', defaultDue)
     setTaskLabels([])
-    applyViewPreset(defaultView)
-    openTaskModal()
+    setInlineLabelName('')
+    setShowDesktopDraft(true)
+  }
+
+  const handleOpenTaskModal = () => {
+    if (isMobile) {
+      openTaskModal()
+      return
+    }
+    startDesktopDraft()
   }
 
   const handleCloseTaskModal = () => {

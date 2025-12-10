@@ -38,6 +38,7 @@ export default function AreaBoard({
   })
 
   const openLoose = openTasksByProject.get('loose') || looseTasks.filter(task => task.status !== 'done')
+  const hasAnyList = projects.length > 0 || openLoose.length > 0 || (showCompletedTasks && completedTasks.length > 0)
 
   return (
     <div className="az-card overflow-hidden">
@@ -78,6 +79,11 @@ export default function AreaBoard({
           <section className="px-6 py-5 space-y-3">
             <p className="text-xs uppercase tracking-wide text-slate-400">Completadas</p>
             {renderTaskList(completedTasks)}
+          </section>
+        )}
+        {!hasAnyList && (
+          <section className="px-6 py-5">
+            {renderTaskList([])}
           </section>
         )}
       </div>

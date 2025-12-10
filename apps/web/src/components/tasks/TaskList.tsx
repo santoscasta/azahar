@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent, ReactNode, KeyboardEvent } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
@@ -57,7 +57,7 @@ interface TaskListProps {
   formatDateLabel: (value: string) => string
   renderDraftCard?: () => ReactNode
   showDraftCard?: boolean
-  autoSaveOnMobileBlur?: boolean
+  autoSaveOnBlur?: boolean
 }
 
 const priorityLabels: Record<Priority, string> = {
@@ -98,10 +98,11 @@ export default function TaskList({
   formatDateLabel,
   renderDraftCard,
   showDraftCard,
-  autoSaveOnMobileBlur = false,
+  autoSaveOnBlur = false,
 }: TaskListProps) {
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
+  const hasDraft = showDraftCard && renderDraftCard
 
   const triggerCompletionCelebration = (taskId: string) => {
     if (celebrationTimeoutRef.current) {
@@ -121,12 +122,12 @@ export default function TaskList({
     }
   }, [])
 
-  if (isLoading && showEmptyState && showLoadingState) {
+  if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
     const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[#736B63]' : 'p-10 text-center text-[#736B63]'
     return <div className={loadingClass}>Cargando tareas...</div>
   }
 
-  if (tasks.length === 0) {
+  if (tasks.length === 0 && !hasDraft) {
     if (!showEmptyState) {
       return null
     }
@@ -158,8 +159,30 @@ export default function TaskList({
     setHeadingId: _setEditingHeadingId,
   } = editingHandlers
 
+  const autoSaveTriggerRef = useRef(false)
+
+  const triggerAutoSave = () => {
+    if (autoSaveTriggerRef.current) {
+      return
+    }
+    autoSaveTriggerRef.current = true
+    onSaveEdit()
+  }
+
   useEffect(() => {
-    if (variant !== 'mobile' || !editingId || !autoSaveOnMobileBlur) {
+    autoSaveTriggerRef.current = false
+  }, [editingId, editingTitle, editingNotes, editingPriority, editingDueAt, editingProjectId, editingAreaId, editingHeadingId])
+
+  const handleEditKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onCancelEdit()
+    }
+  }
+
+  useEffect(() => {
+    const shouldAutoSave = !!editingId && autoSaveOnBlur
+    if (!shouldAutoSave) {
       editingContainerRef.current = null
       return
     }
@@ -171,14 +194,14 @@ export default function TaskList({
       if (editingContainerRef.current.contains(event.target as Node)) {
         return
       }
-      onSaveEdit()
+      triggerAutoSave()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown)
     }
-  }, [variant, editingId, autoSaveOnMobileBlur, onSaveEdit])
+  }, [editingId, autoSaveOnBlur, triggerAutoSave])
 
   const checkboxIcon = (
     <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -192,7 +215,7 @@ export default function TaskList({
 
   return (
     <>
-      {variant === 'mobile' && showDraftCard && renderDraftCard ? renderDraftCard() : null}
+      {showDraftCard && renderDraftCard ? renderDraftCard() : null}
       <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col gap-3'}>
         {tasks.map(task => {
           const legacyContent = deserializeChecklistNotes(task.notes)
@@ -257,9 +280,24 @@ export default function TaskList({
           return (
             <li key={task.id} className={baseLiClass} {...compactActivationProps}>
               {isEditing ? (
-                <div ref={(node) => (isEditing ? (editingContainerRef.current = node) : undefined)}>
+                <div
+                  ref={(node) => (isEditing ? (editingContainerRef.current = node) : undefined)}
+                  onBlurCapture={(event) => {
+                    if (!autoSaveOnBlur || !editingContainerRef.current) {
+                      return
+                    }
+                    const nextTarget = event.relatedTarget as Node | null
+                    if (nextTarget && editingContainerRef.current.contains(nextTarget)) {
+                      return
+                    }
+                    triggerAutoSave()
+                  }}
+                >
                   <form
-                    onSubmit={(event) => onSaveEdit(event)}
+                    onSubmit={(event) => {
+                      autoSaveTriggerRef.current = true
+                      onSaveEdit(event)
+                    }}
                     className="space-y-3 p-4 bg-[var(--color-primary-100)] rounded-2xl border border-[var(--color-border)]"
                   >
                     <input
@@ -267,6 +305,7 @@ export default function TaskList({
                       value={editingTitle}
                       onChange={(event) => setEditingTitle(event.target.value)}
                       placeholder="Título"
+                      onKeyDown={handleEditKeyDown}
                       autoFocus
                       className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                     />
@@ -274,6 +313,7 @@ export default function TaskList({
                       value={editingNotes}
                       onChange={(event) => setEditingNotes(event.target.value)}
                       placeholder="Notas..."
+                      onKeyDown={handleEditKeyDown}
                       rows={variant === 'mobile' ? 3 : 2}
                       className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#736B63] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none"
                     />
@@ -328,21 +368,7 @@ export default function TaskList({
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-sm font-semibold hover:bg-[var(--color-primary-700)] transition disabled:opacity-50"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onCancelEdit}
-                        className="px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[#736B63] hover:border-[var(--color-primary-600)]"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
+                    <p className="text-xs text-[#736B63]">Los cambios se guardan automáticamente al salir.</p>
                   </form>
                   <div
                     className={`mt-4 ${

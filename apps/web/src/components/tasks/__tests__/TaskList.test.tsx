@@ -140,7 +140,7 @@ describe('TaskList', () => {
     expect(screen.getByPlaceholderText('Título')).toBeDefined()
   })
 
-  it('auto-saves on mobile when tapping outside the editor', () => {
+  it('auto-saves when tapping outside the editor', () => {
     const onSave = vi.fn()
     const state = { ...editingState, id: 'task-1', title: 'Task', notes: '', dueAt: '' }
 
@@ -171,7 +171,7 @@ describe('TaskList', () => {
         onOpenOverflowMenu={vi.fn()}
         onToggleCollapsedChecklist={vi.fn()}
         formatDateLabel={() => 'Sin fecha'}
-        autoSaveOnMobileBlur
+        autoSaveOnBlur
       />
     )
 

@@ -20,6 +20,14 @@ export default function QuickViewBoard({
   onSelectArea,
   renderTaskList,
 }: QuickViewBoardProps) {
+  if (groups.length === 0) {
+    return (
+      <div className="rounded-3xl border border-[var(--color-border)] bg-white px-6 py-5 space-y-3">
+        {renderTaskList([])}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {groups.map(group => (

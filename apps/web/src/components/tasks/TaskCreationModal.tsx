@@ -56,11 +56,7 @@ export default function TaskCreationModal({
   onCreateInlineLabel,
 }: TaskCreationModalProps) {
   const [showContext, setShowContext] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
-
-  if (!open) {
-    return null
-  }
+  const [showDetails, setShowDetails] = useState(isMobile)
 
   const wrapperClasses = isMobile
     ? 'fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm overflow-y-auto'
@@ -74,6 +70,7 @@ export default function TaskCreationModal({
 
   const hasContext = Boolean(draft.areaId || draft.projectId || draft.headingId)
   const hasDetails = Boolean(draft.notes || draft.labelIds.length > 0 || inlineLabelName)
+  const isTitleEmpty = draft.title.trim().length === 0
 
   const contextBadges = useMemo(() => {
     const badges: string[] = []
@@ -92,6 +89,10 @@ export default function TaskCreationModal({
     return badges
   }, [areas, availableHeadings, draft.areaId, draft.headingId, draft.projectId, projects])
 
+  if (!open) {
+    return null
+  }
+
   return (
     <div className={wrapperClasses}>
       <div className={cardClasses}>
@@ -101,9 +102,9 @@ export default function TaskCreationModal({
               Captura rápida
             </p>
             <p className="text-lg font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-              Anota y sigue
+              Nueva tarea
             </p>
-            <p className="text-sm text-[#736B63]">Empieza con la acción; el contexto es opcional y siempre a mano.</p>
+            <p className="text-sm text-[#736B63]">Igual que en móvil: escribe, agenda y listo.</p>
           </div>
           <button
             type="button"
@@ -115,15 +116,13 @@ export default function TaskCreationModal({
           </button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-6">
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-50)] p-4 space-y-3">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 space-y-3 shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--color-primary-600)' }}>
-                  Vista destino
-                </p>
-                <p className="text-sm text-[#736B63]">Elige dónde quieres ver esta tarea apenas la crees.</p>
+                <p className="text-xs uppercase tracking-wide text-[#736B63]">Vista destino</p>
+                <p className="text-sm text-[#2D2520]">Elige la lista donde aterriza, como en el panel móvil.</p>
               </div>
-              <span className="text-xs font-medium text-[var(--color-primary-600)] bg-white px-3 py-1 rounded-full border border-[var(--color-border)]">
+              <span className="text-xs font-medium text-[var(--color-primary-600)] bg-[var(--color-primary-50)] px-3 py-1 rounded-full border border-[var(--color-border)]">
                 Cambio en un toque
               </span>
             </div>
@@ -157,32 +156,22 @@ export default function TaskCreationModal({
               ))}
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
-              ¿Qué quieres hacer?
-            </label>
-            <input
-              type="text"
-              value={draft.title}
-              onChange={(event) => onUpdateDraft('title', event.target.value)}
-              placeholder="Escribe la tarea en lenguaje natural: 'Enviar propuesta mañana', 'Llamar a Ana'..."
-              className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-base text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-white"
-              autoFocus
-            />
-            <div className="flex flex-wrap gap-3 items-center pt-1">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[var(--color-border)] bg-white text-sm text-[#2D2520] shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
-                <span className="text-xs uppercase tracking-wide text-[#736B63]">Prioridad</span>
-                <select
-                  value={draft.priority}
-                  onChange={(event) => onUpdateDraft('priority', Number(event.target.value) as 0 | 1 | 2 | 3)}
-                  className="bg-transparent outline-none text-sm text-[#2D2520]"
-                >
-                  <option value="0">Sin prioridad</option>
-                  <option value="1">🟢 Baja</option>
-                  <option value="2">🟡 Media</option>
-                  <option value="3">🔴 Alta</option>
-                </select>
-              </div>
+
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-primary-50)] p-4 space-y-3 shadow-[0_12px_30px_rgba(45,37,32,0.08)]">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
+                ¿Qué quieres hacer?
+              </label>
+              <input
+                type="text"
+                value={draft.title}
+                onChange={(event) => onUpdateDraft('title', event.target.value)}
+                placeholder="Nueva tarea (igual que en móvil)"
+                className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-base text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-white"
+                autoFocus
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={onRequestDueDate}
@@ -191,9 +180,52 @@ export default function TaskCreationModal({
                 <span className="text-lg">🗓️</span>
                 {dueDateLabel}
               </button>
-              <span className="text-xs text-[#736B63]">Añade solo lo esencial para arrancar.</span>
+              <div className="flex items-center gap-3 text-xl text-[#736B63]">
+                <button
+                  type="button"
+                  onClick={() => setShowDetails(true)}
+                  className="h-10 w-10 rounded-full border border-[var(--color-border)] bg-white flex items-center justify-center hover:border-[var(--color-primary-400)]"
+                  aria-label="Etiquetas"
+                >
+                  🏷
+                </button>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[var(--color-border)] bg-white text-sm text-[#2D2520] shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
+                  <span className="text-xs uppercase tracking-wide text-[#736B63]">Prioridad</span>
+                  <select
+                    value={draft.priority}
+                    onChange={(event) => onUpdateDraft('priority', Number(event.target.value) as 0 | 1 | 2 | 3)}
+                    className="bg-transparent outline-none text-sm text-[#2D2520]"
+                  >
+                    <option value="0">Sin prioridad</option>
+                    <option value="1">🟢 Baja</option>
+                    <option value="2">🟡 Media</option>
+                    <option value="3">🔴 Alta</option>
+                  </select>
+                </div>
+              </div>
             </div>
+            {draft.labelIds.length > 0 && !showDetails && (
+              <div className="flex flex-wrap gap-2">
+                {draft.labelIds.map(labelId => {
+                  const label = labels.find(item => item.id === labelId)
+                  if (!label) return null
+                  return (
+                    <span
+                      key={label.id}
+                      className="px-2 py-1 rounded-full text-xs"
+                      style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
+                    >
+                      #{label.name}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+            {draft.due_at && (
+              <p className="text-xs text-[#736B63]">Plazo: {draft.due_at}</p>
+            )}
           </div>
+
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 space-y-3 shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
@@ -399,7 +431,7 @@ export default function TaskCreationModal({
               <button type="button" onClick={onClose} className="az-btn-secondary px-4 py-2 text-sm">
                 Cancelar
               </button>
-              <button type="submit" disabled={savingTask} className="az-btn-primary px-6 py-2 text-sm">
+              <button type="submit" disabled={savingTask || isTitleEmpty} className="az-btn-primary px-6 py-2 text-sm">
                 {savingTask ? 'Creando...' : 'Crear tarea'}
               </button>
             </div>

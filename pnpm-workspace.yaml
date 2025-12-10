@@ -1,3 +1,6 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - apps/*
+  - packages/*
+
+# Use a repo-local pnpm store to avoid host-specific paths
+storeDir: .pnpm-store
