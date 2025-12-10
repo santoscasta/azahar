@@ -39,6 +39,19 @@ cp apps/web/.env.local.example apps/web/.env.local
 # (Opcional para seeds de e2e) SUPABASE_SERVICE_ROLE_KEY para scripts de pruebas
 ```
 
+## 🚢 Despliegue automatizado con GitHub Actions
+
+El repositorio incluye un workflow en `.github/workflows/deploy.yml` que construye y despliega la aplicación a Vercel cada vez que se hace push a `main` (o manualmente con **Run workflow**).
+
+1. Crea los secretos en **Settings > Secrets and variables > Actions** del repositorio:
+   - `VERCEL_TOKEN`
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+2. Opcional: ajusta el branch de disparo en el propio workflow si usas otro nombre.
+3. El pipeline instala dependencias con pnpm, ejecuta `pnpm -C apps/web build` y utiliza `vercel pull/build/deploy` para publicar la versión precompilada.
+
+Con los secretos configurados, cada commit en `main` generará un despliegue automático en tu proyecto Vercel.
+
 ### 4. Levantar desarrollo
 
 ```bash
