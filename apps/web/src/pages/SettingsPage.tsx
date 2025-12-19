@@ -4,59 +4,28 @@ import type { Language } from '../lib/i18n.js'
 import { translate } from '../lib/i18n.js'
 import { useTranslations } from '../App.js'
 import { signOut } from '../lib/supabase.js'
-
-type ThemeOption = 'system' | 'light' | 'dark'
-
-interface SettingsState {
-  theme: ThemeOption
-  language: Language
-  showCompletedInContexts: boolean
-  customViewNames?: Partial<Record<'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook', string>>
-}
-
-const defaultSettings: SettingsState = {
-  theme: 'system',
-  language: 'es',
-  showCompletedInContexts: true,
-}
-
-const SETTINGS_KEY = 'azahar:settings'
+import {
+  defaultSettings,
+  loadSettings,
+  persistSettings,
+  subscribeToSettings,
+  type SettingsState,
+  type ThemeOption,
+} from '../lib/settingsStore.js'
 
 export default function SettingsPage() {
   const { t } = useTranslations()
   const navigate = useNavigate()
-  const [settings, setSettings] = useState<SettingsState>(() => {
-    try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null
-      if (!raw) return defaultSettings
-      const parsed = JSON.parse(raw) as Partial<SettingsState>
-      return { ...defaultSettings, ...parsed }
-    } catch {
-      return defaultSettings
-    }
-  })
+  const [settings, setSettings] = useState<SettingsState>(() => loadSettings())
   const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('azahar:settings-updated', { detail: settings }))
-    }
+    persistSettings(settings)
   }, [settings])
 
   useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === SETTINGS_KEY && event.newValue) {
-        try {
-          const parsed = JSON.parse(event.newValue) as Partial<SettingsState>
-          setSettings(prev => ({ ...prev, ...parsed }))
-        } catch {
-          // ignore
-        }
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    const unsubscribe = subscribeToSettings(next => setSettings(prev => ({ ...prev, ...next })))
+    return unsubscribe
   }, [])
 
   const defaultViewNames = useMemo(() => ({

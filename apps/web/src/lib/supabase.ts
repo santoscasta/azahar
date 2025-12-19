@@ -9,15 +9,18 @@ const runtimeEnv: RuntimeEnv | undefined =
 const supabaseUrl = runtimeEnv?.VITE_SUPABASE_URL
 const supabaseKey = runtimeEnv?.VITE_SUPABASE_ANON_KEY
 const appBaseUrl = runtimeEnv?.VITE_APP_BASE_URL
-const bypassE2E = runtimeEnv?.VITE_E2E_BYPASS_AUTH === 'true'
+const appMode = runtimeEnv?.MODE ?? runtimeEnv?.NODE_ENV
+const isTestEnv = appMode === 'test' || appMode === 'vitest'
+const bypassE2E = runtimeEnv?.VITE_E2E_BYPASS_AUTH === 'true' && isTestEnv
 const enableMutationIds = runtimeEnv?.VITE_ENABLE_MUTATION_IDS === 'true'
 
 const hasSupabaseCreds = Boolean(supabaseUrl && supabaseKey)
 type MaybeNodeProcess = { versions?: { node?: string } }
 const nodeProcess = (globalThis as { process?: MaybeNodeProcess }).process
 const runningInNode = !!nodeProcess?.versions?.node
+const allowPlaceholderClient = runningInNode && isTestEnv
 
-if (!hasSupabaseCreds && !runningInNode) {
+if (!hasSupabaseCreds && !allowPlaceholderClient) {
   throw new Error('Faltan variables de entorno VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY')
 }
 
