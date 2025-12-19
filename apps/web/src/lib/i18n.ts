@@ -45,6 +45,29 @@ type TranslationKey =
   | 'sidebar.projects'
   | 'sidebar.emptyAreas'
   | 'sidebar.noProjects'
+  | 'gtd.title'
+  | 'gtd.subtitle'
+  | 'gtd.switchClassic'
+  | 'gtd.settings'
+  | 'gtd.capture'
+  | 'gtd.capture.subtitle'
+  | 'gtd.clarify'
+  | 'gtd.clarify.subtitle'
+  | 'gtd.organize'
+  | 'gtd.organize.subtitle'
+  | 'gtd.reflect'
+  | 'gtd.reflect.subtitle'
+  | 'gtd.engage'
+  | 'gtd.engage.subtitle'
+  | 'gtd.quickCapture.placeholder'
+  | 'gtd.quickCapture.notes'
+  | 'gtd.quickCapture.cta'
+  | 'gtd.quickCapture.saving'
+  | 'gtd.noNotes'
+  | 'gtd.markDone'
+  | 'gtd.markOpen'
+  | 'gtd.empty'
+  | 'gtd.due'
   | 'auth.title.login'
   | 'auth.title.signup'
   | 'auth.tagline'
@@ -139,6 +162,29 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.projects': 'Proyectos',
     'sidebar.emptyAreas': 'Crea tu primera área para organizarte.',
     'sidebar.noProjects': 'Sin proyectos todavía',
+    'gtd.title': 'Comando GTD',
+    'gtd.subtitle': 'Una sala de control para capturar, aclarar, organizar y ejecutar sin perder contexto.',
+    'gtd.switchClassic': 'Volver a la vista clásica',
+    'gtd.settings': 'Ajustes',
+    'gtd.capture': 'Capturar',
+    'gtd.capture.subtitle': 'Entrada sin fricción',
+    'gtd.clarify': 'Aclarar',
+    'gtd.clarify.subtitle': 'Enfócate en lo que toca hoy',
+    'gtd.organize': 'Organizar',
+    'gtd.organize.subtitle': 'Planea próximos pasos',
+    'gtd.reflect': 'Reflexionar',
+    'gtd.reflect.subtitle': 'Incuba y revisa',
+    'gtd.engage': 'Enganchar',
+    'gtd.engage.subtitle': 'Cierra ciclos',
+    'gtd.quickCapture.placeholder': 'Captura en un solo campo: “Enviar briefing a Juan mañana”',
+    'gtd.quickCapture.notes': 'Notas rápidas, checklist mental o contexto adicional (opcional)',
+    'gtd.quickCapture.cta': 'Añadir',
+    'gtd.quickCapture.saving': 'Guardando...',
+    'gtd.noNotes': 'Sin notas adicionales',
+    'gtd.markDone': 'Marcar como hecha',
+    'gtd.markOpen': 'Reabrir',
+    'gtd.empty': 'Nada aquí todavía. Respira, prioriza o captura algo nuevo.',
+    'gtd.due': 'Vence',
     'auth.title.login': 'Inicia sesión',
     'auth.title.signup': 'Crea tu cuenta',
     'auth.tagline': 'Organiza tus tareas con calma y sin distracciones.',
@@ -232,6 +278,29 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.projects': 'Projects',
     'sidebar.emptyAreas': 'Create your first area to organize your work.',
     'sidebar.noProjects': 'No projects yet',
+    'gtd.title': 'GTD Command Center',
+    'gtd.subtitle': 'A radical control room to capture, clarify, organize, and execute with zero friction.',
+    'gtd.switchClassic': 'Back to classic view',
+    'gtd.settings': 'Settings',
+    'gtd.capture': 'Capture',
+    'gtd.capture.subtitle': 'Frictionless inboxing',
+    'gtd.clarify': 'Clarify',
+    'gtd.clarify.subtitle': 'What deserves attention today',
+    'gtd.organize': 'Organize',
+    'gtd.organize.subtitle': 'Stage the next moves',
+    'gtd.reflect': 'Reflect',
+    'gtd.reflect.subtitle': 'Incubate and review',
+    'gtd.engage': 'Engage',
+    'gtd.engage.subtitle': 'Close loops',
+    'gtd.quickCapture.placeholder': 'Capture in one field: “Send briefing to Sarah tomorrow”',
+    'gtd.quickCapture.notes': 'Quick notes, mental checklist, or extra context (optional)',
+    'gtd.quickCapture.cta': 'Add',
+    'gtd.quickCapture.saving': 'Saving...',
+    'gtd.noNotes': 'No extra notes',
+    'gtd.markDone': 'Mark done',
+    'gtd.markOpen': 'Reopen',
+    'gtd.empty': 'Nothing here yet. Breathe, prioritize, or capture something new.',
+    'gtd.due': 'Due',
     'auth.title.login': 'Sign in',
     'auth.title.signup': 'Create your account',
     'auth.tagline': 'Organize your tasks calmly and without distractions.',

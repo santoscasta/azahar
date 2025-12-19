@@ -21,6 +21,7 @@
     "src/lib/scheduleUtils.test.ts",
     "src/lib/settingsStore.ts",
     "src/lib/settingsStore.test.ts",
+    "src/pages/GtdCommandPage.tsx",
     "src/pages/LoginPage.tsx",
     "src/pages/LoginPage.test.tsx",
     "src/hooks/useTaskCreation.ts",

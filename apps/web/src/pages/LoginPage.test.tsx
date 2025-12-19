@@ -33,7 +33,7 @@ describe('LoginPage', () => {
 
     expect(signInMock).toHaveBeenCalledWith('test@example.com', 'secret123')
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/app')
+      expect(navigateMock).toHaveBeenCalledWith('/gtd')
     })
   })
 
@@ -50,7 +50,7 @@ describe('LoginPage', () => {
 
     expect(signUpMock).toHaveBeenCalledWith('new@example.com', 'secret123')
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/app')
+      expect(navigateMock).toHaveBeenCalledWith('/gtd')
     })
   })
 
@@ -140,7 +140,7 @@ describe('LoginPage', () => {
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
     await waitFor(() => {
       expect(view.queryByText('Credenciales inválidas')).toBeNull()
-      expect(navigateMock).toHaveBeenCalledWith('/app')
+      expect(navigateMock).toHaveBeenCalledWith('/gtd')
     })
   })
 
