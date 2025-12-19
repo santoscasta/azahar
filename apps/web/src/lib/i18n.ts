@@ -57,12 +57,37 @@ type TranslationKey =
   | 'gtd.organize.subtitle'
   | 'gtd.reflect'
   | 'gtd.reflect.subtitle'
+  | 'gtd.focus.title'
+  | 'gtd.focus.subtitle'
+  | 'gtd.focus.today'
+  | 'gtd.focus.upcoming'
+  | 'gtd.focus.anytime'
+  | 'gtd.focus.empty'
   | 'gtd.engage'
   | 'gtd.engage.subtitle'
+  | 'gtd.quickCapture.title'
+  | 'gtd.quickCapture.subtitle'
   | 'gtd.quickCapture.placeholder'
   | 'gtd.quickCapture.notes'
+  | 'gtd.quickCapture.notesHint'
+  | 'gtd.quickCapture.when'
+  | 'gtd.quickCapture.whenHint'
+  | 'gtd.quickCapture.destination'
+  | 'gtd.quickCapture.destinationHint'
+  | 'gtd.quickCapture.projectPlaceholder'
+  | 'gtd.quickCapture.areaPlaceholder'
+  | 'gtd.quickCapture.priority.default'
+  | 'gtd.quickCapture.priority.soft'
+  | 'gtd.quickCapture.priority.strong'
+  | 'gtd.quickCapture.priority.urgent'
+  | 'gtd.quickCapture.priorityHint'
   | 'gtd.quickCapture.cta'
   | 'gtd.quickCapture.saving'
+  | 'gtd.quickCapture.preset.inbox'
+  | 'gtd.quickCapture.preset.today'
+  | 'gtd.quickCapture.preset.upcoming'
+  | 'gtd.quickCapture.preset.anytime'
+  | 'gtd.quickCapture.preset.someday'
   | 'gtd.noNotes'
   | 'gtd.markDone'
   | 'gtd.markOpen'
@@ -174,12 +199,37 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.organize.subtitle': 'Planea próximos pasos',
     'gtd.reflect': 'Reflexionar',
     'gtd.reflect.subtitle': 'Incuba y revisa',
+    'gtd.focus.title': 'Radar de enfoque',
+    'gtd.focus.subtitle': 'Una vista reducida de lo que merece tu atención.',
+    'gtd.focus.today': 'Hoy / Atrasadas',
+    'gtd.focus.upcoming': 'Próximos días',
+    'gtd.focus.anytime': 'Sin fecha',
+    'gtd.focus.empty': 'Sin tareas aquí. Elige algo del tablero o captura una nueva.',
     'gtd.engage': 'Enganchar',
     'gtd.engage.subtitle': 'Cierra ciclos',
+    'gtd.quickCapture.title': 'Captura rápida',
+    'gtd.quickCapture.subtitle': 'Inspírate en Things: escribe primero, ordena después.',
     'gtd.quickCapture.placeholder': 'Captura en un solo campo: “Enviar briefing a Juan mañana”',
     'gtd.quickCapture.notes': 'Notas rápidas, checklist mental o contexto adicional (opcional)',
+    'gtd.quickCapture.notesHint': 'Añade contexto, enlaces o tu checklist mental.',
+    'gtd.quickCapture.when': 'Cuándo',
+    'gtd.quickCapture.whenHint': 'Usa presets rápidos',
+    'gtd.quickCapture.destination': 'Destino',
+    'gtd.quickCapture.destinationHint': 'Asigna hogar opcional',
+    'gtd.quickCapture.projectPlaceholder': 'Sin proyecto (inbox)',
+    'gtd.quickCapture.areaPlaceholder': 'Sin área',
+    'gtd.quickCapture.priority.default': 'Normal',
+    'gtd.quickCapture.priority.soft': 'Tranquila',
+    'gtd.quickCapture.priority.strong': 'Importante',
+    'gtd.quickCapture.priority.urgent': 'Urgente',
+    'gtd.quickCapture.priorityHint': 'Prioridad al estilo Things',
     'gtd.quickCapture.cta': 'Añadir',
     'gtd.quickCapture.saving': 'Guardando...',
+    'gtd.quickCapture.preset.inbox': 'Deja que lo revises luego.',
+    'gtd.quickCapture.preset.today': 'Para hoy o atrasadas.',
+    'gtd.quickCapture.preset.upcoming': 'Planifica para los próximos días.',
+    'gtd.quickCapture.preset.anytime': 'Cuando haya tiempo.',
+    'gtd.quickCapture.preset.someday': 'Incuba sin presión.',
     'gtd.noNotes': 'Sin notas adicionales',
     'gtd.markDone': 'Marcar como hecha',
     'gtd.markOpen': 'Reabrir',
@@ -290,12 +340,37 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.organize.subtitle': 'Stage the next moves',
     'gtd.reflect': 'Reflect',
     'gtd.reflect.subtitle': 'Incubate and review',
+    'gtd.focus.title': 'Focus radar',
+    'gtd.focus.subtitle': 'A compact glance at what deserves attention.',
+    'gtd.focus.today': 'Today / Overdue',
+    'gtd.focus.upcoming': 'Next days',
+    'gtd.focus.anytime': 'Anytime',
+    'gtd.focus.empty': 'Nothing here. Pick from the board or capture something new.',
     'gtd.engage': 'Engage',
     'gtd.engage.subtitle': 'Close loops',
+    'gtd.quickCapture.title': 'Quick capture',
+    'gtd.quickCapture.subtitle': 'Inspired by Things: write first, sort later.',
     'gtd.quickCapture.placeholder': 'Capture in one field: “Send briefing to Sarah tomorrow”',
     'gtd.quickCapture.notes': 'Quick notes, mental checklist, or extra context (optional)',
+    'gtd.quickCapture.notesHint': 'Add context, links, or your mental checklist.',
+    'gtd.quickCapture.when': 'When',
+    'gtd.quickCapture.whenHint': 'Use quick presets',
+    'gtd.quickCapture.destination': 'Destination',
+    'gtd.quickCapture.destinationHint': 'Optional home',
+    'gtd.quickCapture.projectPlaceholder': 'No project (inbox)',
+    'gtd.quickCapture.areaPlaceholder': 'No area',
+    'gtd.quickCapture.priority.default': 'Normal',
+    'gtd.quickCapture.priority.soft': 'Light',
+    'gtd.quickCapture.priority.strong': 'Important',
+    'gtd.quickCapture.priority.urgent': 'Urgent',
+    'gtd.quickCapture.priorityHint': 'Things-like priority',
     'gtd.quickCapture.cta': 'Add',
     'gtd.quickCapture.saving': 'Saving...',
+    'gtd.quickCapture.preset.inbox': 'Leave it to clarify later.',
+    'gtd.quickCapture.preset.today': 'For today or overdue.',
+    'gtd.quickCapture.preset.upcoming': 'Plan for the next days.',
+    'gtd.quickCapture.preset.anytime': 'Whenever you find time.',
+    'gtd.quickCapture.preset.someday': 'Incubate without pressure.',
     'gtd.noNotes': 'No extra notes',
     'gtd.markDone': 'Mark done',
     'gtd.markOpen': 'Reopen',
