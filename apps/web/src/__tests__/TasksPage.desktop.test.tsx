@@ -4,6 +4,7 @@ import { screen, waitFor } from '@testing-library/react'
 import TasksPage from '../pages/TasksPage'
 import { renderWithProviders } from '../tests/renderWithProviders'
 import { translate } from '../lib/i18n'
+import { useConnectivity } from '../hooks/useConnectivity'
 
 
 // Mock Supabase API
@@ -36,17 +37,20 @@ vi.mock('../lib/supabase', () => ({
     updateProjectHeading: vi.fn(),
     deleteProjectHeading: vi.fn(),
 }))
+vi.mock('../hooks/useConnectivity', () => ({ useConnectivity: vi.fn(() => true) }))
 
 describe('TasksPage desktop', () => {
     beforeEach(() => {
         // Mock desktop media query
         Object.defineProperty(window, 'matchMedia', {
-            writable: true,
-            value: vi.fn().mockReturnValue({
-                matches: false, // Desktop
-                addEventListener: vi.fn(),
-                removeEventListener: vi.fn(),
-            }),
+          writable: true,
+          value: vi.fn().mockReturnValue({
+            matches: false, // Desktop
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+          }),
         })
     })
 
@@ -54,8 +58,8 @@ describe('TasksPage desktop', () => {
         vi.restoreAllMocks()
     })
 
-    it('renders sidebar and task list on desktop', async () => {
-        renderWithProviders(<TasksPage />)
+  it('renders sidebar and task list on desktop', async () => {
+    renderWithProviders(<TasksPage />)
 
         const inboxLabel = translate('es', 'view.inbox')
         const todayLabel = translate('es', 'view.today')
@@ -70,8 +74,16 @@ describe('TasksPage desktop', () => {
         })
 
         // Task list should show the mocked task
-        await waitFor(() => {
-            expect(screen.getByText('Desktop Task 1')).toBeDefined()
-        })
+    await waitFor(() => {
+      expect(screen.getByText('Desktop Task 1')).toBeDefined()
     })
+  })
+
+  it('shows an offline banner when connectivity is lost', async () => {
+    vi.mocked(useConnectivity).mockReturnValue(false)
+
+    renderWithProviders(<TasksPage />)
+
+    expect(await screen.findByText(translate('es', 'status.offline'))).toBeDefined()
+  })
 })

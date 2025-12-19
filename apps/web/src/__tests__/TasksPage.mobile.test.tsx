@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, waitFor, within } from '@testing-library/react'
 import TasksPage from '../pages/TasksPage'
 import { renderWithProviders } from '../tests/renderWithProviders'
 import * as supabaseApi from '../lib/supabase'
@@ -27,16 +27,18 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 describe('TasksPage mobile quick-add', () => {
-  beforeEach(() => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      }),
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockReturnValue({
+          matches: true,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }),
+      })
     })
-  })
 
   afterEach(() => {
     vi.restoreAllMocks()
@@ -45,9 +47,10 @@ describe('TasksPage mobile quick-add', () => {
   it('saves a task from the mobile creation sheet', async () => {
     const screen = renderWithProviders(<TasksPage />)
 
-    fireEvent.click(screen.getByLabelText('Abrir creación rápida'))
+    fireEvent.click(screen.getByLabelText('Crear nueva tarea'))
 
-    const quickTaskButton = await screen.findByRole('button', { name: /Nueva tarea/i })
+    const sheet = await screen.findByTestId('mobile-creation-sheet')
+    const quickTaskButton = within(sheet).getByRole('button', { name: /Nueva tarea/i })
     fireEvent.click(quickTaskButton)
 
     const titleInput = await screen.findByPlaceholderText('Nueva tarea')
