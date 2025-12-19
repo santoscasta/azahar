@@ -28,10 +28,10 @@ describe('LoginPage', () => {
     const view = renderWithProviders(<LoginPage authClient={{ signIn: signInMock, signUp: vi.fn() }} navigateTo={navigateMock} />)
 
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'test@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret123' } })
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
 
-    expect(signInMock).toHaveBeenCalledWith('test@example.com', 'secret')
+    expect(signInMock).toHaveBeenCalledWith('test@example.com', 'secret123')
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/app')
     })
@@ -45,10 +45,10 @@ describe('LoginPage', () => {
 
     fireEvent.click(view.getByRole('button', { name: 'Regístrate' }))
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'new@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret123' } })
     fireEvent.click(view.getByRole('button', { name: 'Registrarse' }))
 
-    expect(signUpMock).toHaveBeenCalledWith('new@example.com', 'secret')
+    expect(signUpMock).toHaveBeenCalledWith('new@example.com', 'secret123')
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/app')
     })
@@ -60,7 +60,7 @@ describe('LoginPage', () => {
     const view = renderWithProviders(<LoginPage authClient={{ signIn: signInMock, signUp: vi.fn() }} navigateTo={navigateMock} />)
 
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'bad@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'wrong' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'wrongpass' } })
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
 
     expect(await view.findByText('Credenciales inválidas')).toBeDefined()
@@ -77,7 +77,7 @@ describe('LoginPage', () => {
     const view = renderWithProviders(<LoginPage authClient={{ signIn: signInMock, signUp: vi.fn() }} navigateTo={vi.fn()} />)
 
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'test@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret123' } })
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
 
     const loadingButton = view.getByRole('button', { name: 'Cargando...' }) as HTMLButtonElement
@@ -94,7 +94,7 @@ describe('LoginPage', () => {
     const view = renderWithProviders(<LoginPage authClient={{ signIn: signInMock, signUp: vi.fn() }} navigateTo={navigateMock} />)
 
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'oops@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret123' } })
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
 
     expect(await view.findByText('Error inesperado')).toBeDefined()
@@ -115,13 +115,13 @@ describe('LoginPage', () => {
 
     fireEvent.click(view.getByRole('button', { name: 'Regístrate' }))
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'taken@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret123' } })
     fireEvent.click(view.getByRole('button', { name: 'Registrarse' }))
 
     await waitFor(() => {
       expect(view.getByText('Email en uso')).toBeDefined()
     })
-    expect(signUpMock).toHaveBeenCalledWith('taken@example.com', 'secret')
+    expect(signUpMock).toHaveBeenCalledWith('taken@example.com', 'secret123')
   })
 
   it('clears previous errors after a successful retry', async () => {
@@ -133,7 +133,7 @@ describe('LoginPage', () => {
     const view = renderWithProviders(<LoginPage authClient={{ signIn: signInMock, signUp: vi.fn() }} navigateTo={navigateMock} />)
 
     fireEvent.change(view.getByLabelText('Email'), { target: { value: 'retry@example.com' } })
-    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret' } })
+    fireEvent.change(view.getByLabelText('Contraseña'), { target: { value: 'secret123' } })
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
     expect(await view.findByText('Credenciales inválidas')).toBeDefined()
 

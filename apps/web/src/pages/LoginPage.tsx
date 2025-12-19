@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signIn, signUp, type AuthResult } from '../lib/supabase.js'
+import { useTranslations } from '../App.js'
 
 interface AuthClient {
   signIn: (email: string, password: string) => Promise<AuthResult>
@@ -22,6 +23,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
   const navigate = navigateTo ?? useNavigate()
   const emailInputId = useId()
   const passwordInputId = useId()
+  const { t } = useTranslations()
 
   const emailPattern = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, [])
   const isEmailValid = emailPattern.test(email.trim())
@@ -32,7 +34,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
     e.preventDefault()
     const trimmedEmail = email.trim()
     if (!isEmailValid || !isPasswordValid) {
-      setError('Revisa el email y la contraseña antes de continuar')
+      setError(t('auth.error.inputInvalid'))
       return
     }
     setError('')
@@ -49,10 +51,10 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
       if (result.success) {
         navigate('/app')
       } else {
-        setError(result.error || 'Error desconocido')
+        setError(result.error || t('auth.error.unknown'))
       }
     } catch (err) {
-      setError('Error inesperado')
+      setError(t('auth.error.unknown'))
     } finally {
       setLoading(false)
     }
@@ -73,14 +75,14 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
             </div>
             <div className="space-y-1">
               <p className="text-[11px] uppercase tracking-[0.35em] text-[#736B63]">Azahar</p>
-              <p className="text-3xl font-bold text-[#2D2520]">{isSignUp ? 'Crea tu cuenta' : 'Inicia sesión'}</p>
-              <p className="text-sm text-[#736B63]">Organiza tus tareas con calma y sin distracciones.</p>
+              <p className="text-3xl font-bold text-[#2D2520]">{isSignUp ? t('auth.title.signup') : t('auth.title.login')}</p>
+              <p className="text-sm text-[#736B63]">{t('auth.tagline')}</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-[#2D2520]" htmlFor={emailInputId}>Email</label>
+              <label className="text-sm font-semibold text-[#2D2520]" htmlFor={emailInputId}>{t('auth.email.label')}</label>
               <input
                 type="email"
                 value={email}
@@ -90,19 +92,19 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                 className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
                   email && !isEmailValid ? 'border-red-300 focus:ring-red-300 focus:border-red-300' : 'border-[var(--color-border)]'
                 }`}
-                placeholder="tu@ejemplo.com"
+                placeholder={t('auth.email.placeholder')}
                 aria-invalid={email ? !isEmailValid : undefined}
                 aria-describedby={email ? `${emailInputId}-hint` : undefined}
               />
               <p id={`${emailInputId}-hint`} className="text-xs text-[#736B63] flex items-center gap-1">
-                {!email && 'Usa un correo con formato nombre@dominio.com'}
-                {email && !isEmailValid && <span className="text-red-600">Introduce un email válido.</span>}
+                {!email && t('auth.email.hint')}
+                {email && !isEmailValid && <span className="text-red-600">{t('auth.email.error')}</span>}
               </p>
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-semibold text-[#2D2520]" htmlFor={passwordInputId}>
-                Contraseña
+                {t('auth.password.label')}
               </label>
               <div className="relative">
                 <input
@@ -116,7 +118,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                       ? 'border-red-300 focus:ring-red-300 focus:border-red-300'
                       : 'border-[var(--color-border)]'
                   }`}
-                  placeholder="••••••••"
+                  placeholder={t('auth.password.placeholder')}
                   aria-invalid={password ? !isPasswordValid : undefined}
                   aria-describedby={`${passwordInputId}-hint`}
                 />
@@ -125,21 +127,21 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                   onClick={() => setShowPassword(prev => !prev)}
                   className="absolute inset-y-0 right-3 px-2 text-xs font-semibold text-[var(--color-primary-700)] hover:text-[var(--color-primary-600)]"
                   aria-pressed={showPassword}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPassword ? t('auth.password.toggle.hide') : t('auth.password.toggle.show')}
                 >
-                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                  {showPassword ? t('auth.password.toggle.hide') : t('auth.password.toggle.show')}
                 </button>
               </div>
               <p id={`${passwordInputId}-hint`} className="text-xs text-[#736B63] flex items-center gap-1">
-                <span>Mínimo 8 caracteres.</span>
-                {password && !isPasswordValid && <span className="text-red-600">Añade un poco más para mayor seguridad.</span>}
+                <span>{t('auth.password.hint')}</span>
+                {password && !isPasswordValid && <span className="text-red-600">{t('auth.password.error')}</span>}
               </p>
               <div className="text-right">
                 <a
                   href="mailto:soporte@azahar.app"
                   className="text-xs text-[var(--color-primary-700)] font-semibold hover:text-[var(--color-primary-600)]"
                 >
-                  ¿Olvidaste tu contraseña?
+                  {t('auth.forgot')}
                 </a>
               </div>
             </div>
@@ -158,24 +160,24 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                  <span>Cargando...</span>
+                  <span>{t('auth.cta.loading')}</span>
                 </span>
               ) : isSignUp ? (
-                'Registrarse'
+                t('auth.cta.signup')
               ) : (
-                'Entrar'
+                t('auth.cta.login')
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-[#736B63] flex items-center justify-center gap-2">
-            <span>{isSignUp ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}</span>
+            <span>{isSignUp ? t('auth.switch.toLoginQuestion') : t('auth.switch.toSignupQuestion')}</span>
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-[var(--color-primary-700)] font-semibold hover:text-[var(--color-primary-600)]"
             >
-              {isSignUp ? 'Inicia sesión' : 'Regístrate'}
+              {isSignUp ? t('auth.switch.toLogin') : t('auth.switch.toSignup')}
             </button>
           </div>
         </div>

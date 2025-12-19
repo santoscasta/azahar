@@ -41,6 +41,7 @@ import {
 } from './tasksSelectors.js'
 import { defaultDueForView, determineViewFromDate } from '../lib/scheduleUtils.js'
 import { deserializeChecklistNotes, generateChecklistId } from '../lib/checklistNotes.js'
+import { loadSettings, subscribeToSettings, type SettingsState } from '../lib/settingsStore.js'
 import { useTaskCreation } from '../hooks/useTaskCreation.js'
 import { useProjectCreation } from '../hooks/useProjectCreation.js'
 import { useAreaCreation } from '../hooks/useAreaCreation.js'
@@ -102,7 +103,7 @@ export default function TasksPage() {
     mobileDraftTask,
     updateMobileDraft,
   } = useTaskCreation()
-  const { language } = useTranslations()
+  const { language, t } = useTranslations()
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -327,37 +328,14 @@ export default function TasksPage() {
   }, [])
 
   useEffect(() => {
-    const readSetting = () => {
-      try {
-        const raw = localStorage.getItem('azahar:settings')
-        if (!raw) return
-        const parsed = JSON.parse(raw) as { showCompletedInContexts?: boolean; customViewNames?: Partial<Record<QuickViewId, string>> }
-        if (typeof parsed.showCompletedInContexts === 'boolean') {
-          setShowCompletedInContext(parsed.showCompletedInContexts)
-        }
-        setCustomViewNames(parsed.customViewNames ?? {})
-      } catch {
-        // ignore
-      }
+    const applySettings = (state: SettingsState) => {
+      setShowCompletedInContext(state.showCompletedInContexts)
+      setCustomViewNames(state.customViewNames ?? {})
     }
-    const handleSettingsUpdate = (event: Event) => {
-      const detail = (event as CustomEvent<{ showCompletedInContexts?: boolean; customViewNames?: Partial<Record<QuickViewId, string>> }>).detail
-      if (typeof detail?.showCompletedInContexts === 'boolean') {
-        setShowCompletedInContext(detail.showCompletedInContexts)
-      }
-      if ('customViewNames' in detail) {
-        setCustomViewNames(detail.customViewNames ?? {})
-      } else {
-        readSetting()
-      }
-    }
-    readSetting()
-    window.addEventListener('storage', readSetting)
-    window.addEventListener('azahar:settings-updated', handleSettingsUpdate as EventListener)
-    return () => {
-      window.removeEventListener('storage', readSetting)
-      window.removeEventListener('azahar:settings-updated', handleSettingsUpdate as EventListener)
-    }
+
+    applySettings(loadSettings())
+    const unsubscribe = subscribeToSettings(applySettings)
+    return unsubscribe
   }, [])
   const quickViewStats = useMemo(
     () => buildQuickViewStats(tasks, todayISO),
@@ -2328,8 +2306,8 @@ export default function TasksPage() {
                   onRemove={handleRemoveFilter}
                 />
                 <ErrorBanner message={error} />
-                {!isOnline && <ErrorBanner message="Trabajando sin conexión. Los cambios se sincronizarán al volver." />}
-                {hasPendingSync && <ErrorBanner message="Hay cambios pendientes por sincronizar." />}
+                {!isOnline && <ErrorBanner message={t('status.offline')} />}
+                {hasPendingSync && <ErrorBanner message={t('status.pendingSync')} />}
                 {renderDesktopTaskBoard()}
               </section>
             </div>

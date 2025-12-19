@@ -16,11 +16,12 @@ export function MobileCreationSheet({
   if (!isOpen) {
     return null
   }
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
-      onClick={() => onClose()}
-    >
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
+        data-testid="mobile-creation-sheet"
+        onClick={() => onClose()}
+      >
       <div
         className="absolute bottom-6 left-4 right-4 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}

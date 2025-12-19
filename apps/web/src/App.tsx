@@ -8,42 +8,12 @@ import LoginPage from './pages/LoginPage'
 import TasksPage from './pages/TasksPage'
 import SettingsPage from './pages/SettingsPage'
 import { translate, type Language } from './lib/i18n'
-
-type ThemeOption = 'system' | 'light' | 'dark'
-
-interface StoredSettings {
-  theme: ThemeOption
-  language: Language
-  showCompletedInContexts: boolean
-}
-
-const SETTINGS_STORAGE_KEY = 'azahar:settings'
-
-const readStoredSettings = (): StoredSettings | null => {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as StoredSettings
-  } catch {
-    return null
-  }
-}
-
-const resolveTheme = (theme: ThemeOption): Exclude<ThemeOption, 'system'> => {
-  if (theme === 'system') {
-    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
-      return 'dark'
-    }
-    return 'light'
-  }
-  return theme
-}
-
-const applyThemeToDocument = (theme: Exclude<ThemeOption, 'system'>) => {
-  if (typeof document === 'undefined') return
-  document.documentElement.dataset.theme = theme
-}
+import {
+  applyThemeToDocument,
+  loadSettings,
+  resolveThemePreference,
+  subscribeToSettings,
+} from './lib/settingsStore'
 
 const LanguageContext = createContext<{ language: Language; t: (key: Parameters<typeof translate>[1]) => string }>({
   language: 'es',
@@ -89,42 +59,18 @@ export default function App() {
   const [language, setLanguage] = useState<Language>('es')
 
   useEffect(() => {
-    const applyStoredTheme = () => {
-      const stored = readStoredSettings()
-      const theme = resolveTheme(stored?.theme ?? 'system')
+    const applySettings = (settings = loadSettings()) => {
+      const theme = resolveThemePreference(settings.theme)
       applyThemeToDocument(theme)
-      const storedLang = (stored?.language ?? 'es') as Language
-      setLanguage(storedLang)
+      setLanguage(settings.language)
       if (typeof document !== 'undefined') {
-        document.documentElement.lang = storedLang
+        document.documentElement.lang = settings.language
       }
     }
 
-    const handleSettingsUpdate = (event: Event) => {
-      const detail = (event as CustomEvent<Partial<StoredSettings>>).detail
-      const stored = readStoredSettings()
-      const theme = resolveTheme(detail?.theme ?? stored?.theme ?? 'system')
-      applyThemeToDocument(theme)
-      const nextLang = (detail?.language ?? stored?.language ?? 'es') as Language
-      setLanguage(nextLang)
-      if (typeof document !== 'undefined') {
-        document.documentElement.lang = nextLang
-      }
-    }
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === SETTINGS_STORAGE_KEY) {
-        applyStoredTheme()
-      }
-    }
-
-    applyStoredTheme()
-    window.addEventListener('azahar:settings-updated', handleSettingsUpdate as EventListener)
-    window.addEventListener('storage', handleStorageChange)
-    return () => {
-      window.removeEventListener('azahar:settings-updated', handleSettingsUpdate as EventListener)
-      window.removeEventListener('storage', handleStorageChange)
-    }
+    applySettings()
+    const unsubscribe = subscribeToSettings(applySettings)
+    return unsubscribe
   }, [])
 
   const i18n = useMemo(() => ({
