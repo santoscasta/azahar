@@ -54,6 +54,7 @@ export default function TaskDatePickerOverlay({
       tomorrowISO={tomorrowISO}
       selectedDate={selectedDate}
       selectedDateLabel={selectedDateLabel}
+      formatDateLabel={formatDateLabel}
       onClose={onClose}
       onMonthChange={onMonthChange}
       onSelectDate={onSelectDate}
