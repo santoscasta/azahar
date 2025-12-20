@@ -92,24 +92,39 @@ export function MobileDraftCard({
       {draft.due_at && (
         <p className="text-xs text-slate-500">Plazo: {draft.due_at}</p>
       )}
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 rounded-full border text-sm"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-primary-700)' }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="px-4 py-2 rounded-full text-white text-sm font-semibold disabled:opacity-60"
-          style={{ backgroundColor: 'var(--color-primary-600)' }}
-        >
-          {saving ? 'Guardando...' : 'Guardar'}
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold border"
+            style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)', borderColor: 'var(--color-border)' }}
+          >
+            <span aria-hidden>✓</span>
+            Autoguardado
+          </span>
+          <span className="hidden sm:inline text-[var(--color-primary-700)]">Marca "Listo" cuando quieras crearla.</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-10 w-10 rounded-full border text-lg text-slate-500 hover:text-[var(--color-primary-700)] hover:border-[var(--color-primary-600)]"
+            style={{ borderColor: 'var(--color-border)' }}
+            aria-label="Descartar borrador"
+          >
+            ✕
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold shadow-sm disabled:opacity-60"
+            style={{ backgroundColor: 'var(--color-primary-600)' }}
+            aria-label="Crear tarea"
+          >
+            <span className="text-lg" aria-hidden>✓</span>
+            <span>{saving ? 'Guardando…' : 'Listo'}</span>
+          </button>
+        </div>
       </div>
     </div>
   )

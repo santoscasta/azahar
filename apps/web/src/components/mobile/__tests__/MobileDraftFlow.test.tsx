@@ -43,7 +43,7 @@ describe('Mobile draft flow', () => {
 
     fireEvent.change(getByPlaceholderText('Nueva tarea'), { target: { value: 'Escribir post' } })
 
-    fireEvent.click(getByRole('button', { name: 'Guardar' }))
+    fireEvent.click(getByRole('button', { name: 'Crear tarea' }))
 
     expect(submitSpy).toHaveBeenCalledWith({
       title: 'Escribir post',
