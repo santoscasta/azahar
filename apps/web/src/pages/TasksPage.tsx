@@ -337,6 +337,11 @@ export default function TasksPage() {
     const unsubscribe = subscribeToSettings(applySettings)
     return unsubscribe
   }, [])
+  const projectMap = useMemo(() => {
+    const map = new Map<string, Project>()
+    projects.forEach(project => map.set(project.id, project))
+    return map
+  }, [projects])
   const quickViewStats = useMemo(
     () => buildQuickViewStats(tasks, todayISO),
     [tasks, todayISO]
@@ -346,8 +351,8 @@ export default function TasksPage() {
     if (isSearchMode) {
       return showCompletedInContext ? tasks : tasks.filter(task => task.status !== 'done')
     }
-    return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId)
-  }, [isSearchMode, showCompletedInContext, tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId])
+    return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap)
+  }, [isSearchMode, showCompletedInContext, tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false
@@ -373,11 +378,6 @@ export default function TasksPage() {
     })
     return base
   }, [tasks, todayISO])
-  const projectMap = useMemo(() => {
-    const map = new Map<string, Project>()
-    projects.forEach(project => map.set(project.id, project))
-    return map
-  }, [projects])
   const projectStats = useMemo(() => {
     const stats = new Map<string, { total: number; overdue: number }>()
     tasks.forEach(task => {

@@ -9,6 +9,12 @@ export interface ActiveFilterDescriptor {
   referenceId: string
 }
 
+const resolveTaskArea = (task: Task, projectMap?: Map<string, Pick<Project, 'area_id'>>) => {
+  if (task.area_id) return task.area_id
+  if (!task.project_id || !projectMap) return null
+  return projectMap.get(task.project_id)?.area_id ?? null
+}
+
 export function normalizeDate(value?: string | null): string | null {
   if (!value) return null
   const date = new Date(value)
@@ -45,13 +51,14 @@ export function filterTasksForContext(
   view: QuickViewId,
   todayISO: string,
   selectedProjectId: string | null,
-  selectedAreaId: string | null
+  selectedAreaId: string | null,
+  projectMap?: Map<string, Pick<Project, 'area_id'>>
 ) {
   if (selectedProjectId) {
     return tasks.filter(task => task.project_id === selectedProjectId)
   }
   if (selectedAreaId) {
-    return tasks.filter(task => task.area_id === selectedAreaId)
+    return tasks.filter(task => resolveTaskArea(task, projectMap) === selectedAreaId)
   }
   return filterTasksByQuickView(tasks, view, todayISO)
 }
