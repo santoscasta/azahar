@@ -2132,36 +2132,38 @@ export default function TasksPage() {
 
   if (isMobile && showMobileHome) {
     return (
-      <main className="min-h-screen pb-28" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <main className="app-shell pb-28">
         <div className="max-w-md mx-auto px-4 py-6">
-          <MobileOverview
-            showDraftCard={!!mobileDraftTask}
-            renderDraftCard={renderMobileDraftTaskCard}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onSearchFocus={handleMobileHomeSearchFocus}
-            quickLists={quickLists}
-            quickViewStats={quickViewStats}
-            onSelectQuickView={handleSelectQuickView}
-            areas={areas}
-            areaDraft={mobileDraftArea}
-            areaInputRef={assignMobileDraftAreaInput}
-            onAreaDraftChange={handleMobileAreaNameChange}
-            onAreaDraftBlur={handleMobileAreaNameBlur}
-            onCancelAreaDraft={handleCancelMobileAreaDraft}
-            onSaveAreaDraft={handleSaveMobileDraftArea}
-            onSelectArea={handleOpenMobileArea}
-            projects={projects}
-            projectDraft={mobileDraftProject}
-            projectInputRef={assignMobileDraftProjectInput}
-            onProjectDraftChange={handleMobileProjectNameChange}
-            onProjectDraftBlur={handleMobileProjectNameBlur}
-            onCancelProjectDraft={handleCancelMobileProjectDraft}
-            onSaveProjectDraft={handleSaveMobileDraftProject}
-            onSelectProject={handleOpenMobileProject}
-            onOpenCreationSheet={() => setShowMobileCreationSheet(true)}
-            onOpenSettings={handleOpenSettings}
-          />
+          <div className="glass-panel p-4 sm:p-6">
+            <MobileOverview
+              showDraftCard={!!mobileDraftTask}
+              renderDraftCard={renderMobileDraftTaskCard}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onSearchFocus={handleMobileHomeSearchFocus}
+              quickLists={quickLists}
+              quickViewStats={quickViewStats}
+              onSelectQuickView={handleSelectQuickView}
+              areas={areas}
+              areaDraft={mobileDraftArea}
+              areaInputRef={assignMobileDraftAreaInput}
+              onAreaDraftChange={handleMobileAreaNameChange}
+              onAreaDraftBlur={handleMobileAreaNameBlur}
+              onCancelAreaDraft={handleCancelMobileAreaDraft}
+              onSaveAreaDraft={handleSaveMobileDraftArea}
+              onSelectArea={handleOpenMobileArea}
+              projects={projects}
+              projectDraft={mobileDraftProject}
+              projectInputRef={assignMobileDraftProjectInput}
+              onProjectDraftChange={handleMobileProjectNameChange}
+              onProjectDraftBlur={handleMobileProjectNameBlur}
+              onCancelProjectDraft={handleCancelMobileProjectDraft}
+              onSaveProjectDraft={handleSaveMobileDraftProject}
+              onSelectProject={handleOpenMobileProject}
+              onOpenCreationSheet={() => setShowMobileCreationSheet(true)}
+              onOpenSettings={handleOpenSettings}
+            />
+          </div>
         </div>
         <MobileBottomBar
           isHomeActive
@@ -2198,36 +2200,38 @@ export default function TasksPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+    <main className="app-shell">
       {isMobile ? (
         <>
           <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
-            <MobileTasksPane
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onSearchFocus={handleSearchFocus}
-              onSearchBlur={handleSearchBlur}
-              onSearchClear={handleClearSearch}
-              searchInputRef={mobileSearchInputRef}
-              onBack={handleMobileBack}
-              isProjectView={isMobileProjectView}
-              isSearchView={isSearchMode}
-              selectedArea={selectedArea}
-              mobileProject={mobileProject}
-              quickViewLabel={isSearchMode ? searchViewLabel : currentQuickView.label}
-              friendlyToday={friendlyToday}
-              filteredTaskCount={filteredTasks.length}
-              completedCount={completedCount}
-              projectsInArea={selectedAreaProjectCount}
-              filters={activeFilters}
-              compactFilters={isMobileDetail}
-              onRemoveFilter={handleRemoveFilter}
-              errorMessage={error}
-              renderTaskBoard={renderMobileTaskBoard}
-              renderDraftCard={renderMobileDraftTaskCard}
-              showDraft={showMobileHome && !!mobileDraftTask}
-              pendingSync={hasPendingSync}
-            />
+            <div className="glass-panel p-4 sm:p-5">
+              <MobileTasksPane
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onSearchFocus={handleSearchFocus}
+                onSearchBlur={handleSearchBlur}
+                onSearchClear={handleClearSearch}
+                searchInputRef={mobileSearchInputRef}
+                onBack={handleMobileBack}
+                isProjectView={isMobileProjectView}
+                isSearchView={isSearchMode}
+                selectedArea={selectedArea}
+                mobileProject={mobileProject}
+                quickViewLabel={isSearchMode ? searchViewLabel : currentQuickView.label}
+                friendlyToday={friendlyToday}
+                filteredTaskCount={filteredTasks.length}
+                completedCount={completedCount}
+                projectsInArea={selectedAreaProjectCount}
+                filters={activeFilters}
+                compactFilters={isMobileDetail}
+                onRemoveFilter={handleRemoveFilter}
+                errorMessage={error}
+                renderTaskBoard={renderMobileTaskBoard}
+                renderDraftCard={renderMobileDraftTaskCard}
+                showDraft={showMobileHome && !!mobileDraftTask}
+                pendingSync={hasPendingSync}
+              />
+            </div>
           </div>
           <MobileBottomBar
             isHomeActive={showMobileHome}
@@ -2242,74 +2246,76 @@ export default function TasksPage() {
       ) : (
         <>
           <div className="max-w-6xl mx-auto px-4 py-10 lg:px-8">
-            <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
-              <div className="hidden lg:block">
-                <DesktopSidebar
-                  filteredTaskCount={activeTaskCount}
-                  completedCount={completedCount}
-                  quickLists={quickLists}
-                  quickViewStats={quickViewStats}
-                  quickViewOverdueStats={quickViewOverdueStats}
-                  projects={projects}
-                  areas={areas}
-                  projectStats={projectStats}
-                  areaStats={areaStats}
-                  selectedProjectId={selectedProjectId}
-                  selectedAreaId={selectedAreaId}
-                  activeQuickView={activeQuickView}
-                  showNewListMenu={showNewListMenu}
-                  onSelectQuickView={handleSelectQuickView}
-                  onSelectArea={handleSelectArea}
-                  onSelectProject={handleSelectProject}
-                  onToggleNewListMenu={toggleNewListMenu}
-                  onCreateProject={handleCreateProjectFromSidebar}
-                  onCreateArea={handleCreateAreaFromSidebar}
-                  onOpenSettings={handleOpenSettings}
-                />
-              </div>
-              <section className="space-y-6">
-                <DesktopSearch
-                  searchQuery={searchQuery}
-                  suggestions={suggestionResults}
-                  projects={projects}
-                  showSuggestions={showSuggestionPanel}
-                  onQueryChange={setSearchQuery}
-                  onFocus={handleSearchFocus}
-                  onBlur={handleSearchBlur}
-                  onClear={handleClearSearch}
-                  onSelectSuggestion={handleSuggestionSelect}
-                />
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowAssistantChat(true)}
-                    className="px-4 py-2 text-sm font-semibold rounded-xl border border-[var(--color-border)] text-[#2D2520] hover:border-[var(--color-primary-600)]"
-                  >
-                    Chat IA (crear tareas)
-                  </button>
+            <div className="glass-panel p-6 lg:p-8">
+              <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
+                <div className="hidden lg:block">
+                  <DesktopSidebar
+                    filteredTaskCount={activeTaskCount}
+                    completedCount={completedCount}
+                    quickLists={quickLists}
+                    quickViewStats={quickViewStats}
+                    quickViewOverdueStats={quickViewOverdueStats}
+                    projects={projects}
+                    areas={areas}
+                    projectStats={projectStats}
+                    areaStats={areaStats}
+                    selectedProjectId={selectedProjectId}
+                    selectedAreaId={selectedAreaId}
+                    activeQuickView={activeQuickView}
+                    showNewListMenu={showNewListMenu}
+                    onSelectQuickView={handleSelectQuickView}
+                    onSelectArea={handleSelectArea}
+                    onSelectProject={handleSelectProject}
+                    onToggleNewListMenu={toggleNewListMenu}
+                    onCreateProject={handleCreateProjectFromSidebar}
+                    onCreateArea={handleCreateAreaFromSidebar}
+                    onOpenSettings={handleOpenSettings}
+                  />
                 </div>
-                <DesktopContextHeader
-                  label={contextLabel}
-                  title={contextTitle}
-                  description={contextDescription}
-                  pendingCount={pendingCount}
-                  overdueCount={overdueCount}
-                  pendingLabel={translate(language, 'context.pending')}
-                  overdueLabel={translate(language, 'context.overdue')}
-                  chips={headerChipItems}
-                  activeChip={activeProjectFilterChip}
-                  onChipSelect={(chipId) => handleProjectChipSelect(chipId as 'all' | 'important' | string)}
-                />
-                <ActiveFilterChips
-                  filters={activeFilters}
-                  compact={false}
-                  onRemove={handleRemoveFilter}
-                />
-                <ErrorBanner message={error} />
-                {!isOnline && <ErrorBanner message={t('status.offline')} />}
-                {hasPendingSync && <ErrorBanner message={t('status.pendingSync')} />}
-                {renderDesktopTaskBoard()}
-              </section>
+                <section className="space-y-6">
+                  <DesktopSearch
+                    searchQuery={searchQuery}
+                    suggestions={suggestionResults}
+                    projects={projects}
+                    showSuggestions={showSuggestionPanel}
+                    onQueryChange={setSearchQuery}
+                    onFocus={handleSearchFocus}
+                    onBlur={handleSearchBlur}
+                    onClear={handleClearSearch}
+                    onSelectSuggestion={handleSuggestionSelect}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowAssistantChat(true)}
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-white/60 border border-[var(--color-border)] text-[#2D2520] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
+                    >
+                      Chat IA (crear tareas)
+                    </button>
+                  </div>
+                  <DesktopContextHeader
+                    label={contextLabel}
+                    title={contextTitle}
+                    description={contextDescription}
+                    pendingCount={pendingCount}
+                    overdueCount={overdueCount}
+                    pendingLabel={translate(language, 'context.pending')}
+                    overdueLabel={translate(language, 'context.overdue')}
+                    chips={headerChipItems}
+                    activeChip={activeProjectFilterChip}
+                    onChipSelect={(chipId) => handleProjectChipSelect(chipId as 'all' | 'important' | string)}
+                  />
+                  <ActiveFilterChips
+                    filters={activeFilters}
+                    compact={false}
+                    onRemove={handleRemoveFilter}
+                  />
+                  <ErrorBanner message={error} />
+                  {!isOnline && <ErrorBanner message={t('status.offline')} />}
+                  {hasPendingSync && <ErrorBanner message={t('status.pendingSync')} />}
+                  {renderDesktopTaskBoard()}
+                </section>
+              </div>
             </div>
           </div>
           <DesktopDock
@@ -2347,32 +2353,32 @@ export default function TasksPage() {
         isSaving={addHeadingMutation.isPending}
         onClose={() => setShowQuickHeadingForm(false)}
         onSubmit={handleAddHeading}
-      onNameChange={(value) => setNewHeadingName(value)}
-    />
-    {renderMobileCreationSheet()}
-    {renderScheduleSheet()}
-    {renderMoveSheet()}
-    {renderChecklistSheet()}
-    {renderPriorityMenu()}
-    {renderOverflowMenu()}
-    {renderLabelSheet()}
-    <AssistantChat
-      open={showAssistantChat}
-      onClose={() => setShowAssistantChat(false)}
-    />
-    <TaskDatePickerOverlay
-      target={datePickerTarget}
-      month={datePickerMonth}
-      todayISO={todayISO}
-      tomorrowISO={tomorrowISO}
-      draftDueDate={taskDraft.due_at}
-      editingDueDate={editingDueAt}
-      mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
-      formatDateLabel={formatDateForLabel}
-      onClose={closeDatePicker}
-      onMonthChange={handleDatePickerMonthChange}
-      onSelectDate={applyPickedDate}
-    />
-  </main>
-)
+        onNameChange={(value) => setNewHeadingName(value)}
+      />
+      {renderMobileCreationSheet()}
+      {renderScheduleSheet()}
+      {renderMoveSheet()}
+      {renderChecklistSheet()}
+      {renderPriorityMenu()}
+      {renderOverflowMenu()}
+      {renderLabelSheet()}
+      <AssistantChat
+        open={showAssistantChat}
+        onClose={() => setShowAssistantChat(false)}
+      />
+      <TaskDatePickerOverlay
+        target={datePickerTarget}
+        month={datePickerMonth}
+        todayISO={todayISO}
+        tomorrowISO={tomorrowISO}
+        draftDueDate={taskDraft.due_at}
+        editingDueDate={editingDueAt}
+        mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
+        formatDateLabel={formatDateForLabel}
+        onClose={closeDatePicker}
+        onMonthChange={handleDatePickerMonthChange}
+        onSelectDate={applyPickedDate}
+      />
+    </main>
+  )
 }
