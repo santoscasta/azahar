@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
 
 type PickerMode = 'new' | 'edit' | 'draft'
@@ -10,6 +11,7 @@ interface DatePickerOverlayProps {
   tomorrowISO: string
   selectedDate: string
   selectedDateLabel: string
+  formatDateLabel: (value: string) => string
   onClose: () => void
   onMonthChange: (offset: number) => void
   onSelectDate: (value: string | null) => void
@@ -23,6 +25,7 @@ export default function DatePickerOverlay({
   tomorrowISO,
   selectedDate,
   selectedDateLabel,
+  formatDateLabel,
   onClose,
   onMonthChange,
   onSelectDate,
@@ -30,6 +33,14 @@ export default function DatePickerOverlay({
   if (!open) {
     return null
   }
+
+  const [pendingDate, setPendingDate] = useState(selectedDate)
+
+  useEffect(() => {
+    if (open) {
+      setPendingDate(selectedDate)
+    }
+  }, [open, selectedDate])
 
   const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
   const monthLabel = month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
@@ -56,6 +67,22 @@ export default function DatePickerOverlay({
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation()
+  }
+
+  const currentSelectionLabel = pendingDate === selectedDate
+    ? selectedDateLabel
+    : pendingDate
+      ? formatDateLabel(pendingDate)
+      : 'Sin fecha'
+
+  const handleApply = () => {
+    onSelectDate(pendingDate || null)
+    onClose()
+  }
+
+  const handleCancel = () => {
+    setPendingDate(selectedDate)
+    onClose()
   }
 
   return (
@@ -87,9 +114,9 @@ export default function DatePickerOverlay({
               <button
                 key={option.id}
                 type="button"
-                onClick={() => onSelectDate(option.value || null)}
+                onClick={() => setPendingDate(option.value)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                  selectedDate === option.value
+                  pendingDate === option.value
                     ? 'border-[var(--color-primary-600)] text-[var(--color-primary-600)] bg-[var(--color-primary-100)]'
                     : 'border-slate-200 text-slate-600 hover:border-slate-400'
                 }`}
@@ -130,9 +157,9 @@ export default function DatePickerOverlay({
                 <button
                   key={day.iso}
                   type="button"
-                  onClick={() => onSelectDate(day.iso)}
+                  onClick={() => setPendingDate(day.iso)}
                   className={`py-2 rounded-2xl text-sm font-semibold transition ${
-                    day.isSelected
+                    pendingDate === day.iso
                       ? 'bg-[var(--color-primary-600)] text-white'
                       : day.isToday
                         ? 'border border-[var(--color-primary-200)] text-[var(--color-primary-600)]'
@@ -148,14 +175,30 @@ export default function DatePickerOverlay({
           </div>
           <div className="flex items-center justify-between text-sm text-slate-500">
             <span>
-              {selectedDate ? `Seleccionada: ${selectedDateLabel}` : 'Sin fecha asignada'}
+              {pendingDate ? `Seleccionada: ${currentSelectionLabel}` : 'Sin fecha asignada'}
             </span>
             <button
               type="button"
-              onClick={() => onSelectDate('')}
+              onClick={() => setPendingDate('')}
               className="text-[var(--color-primary-600)] font-semibold"
             >
               Limpiar
+            </button>
+          </div>
+          <div className="flex justify-end gap-2 pt-1 text-sm">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-semibold hover:border-slate-400"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleApply}
+              className="px-5 py-2 rounded-full bg-[var(--color-primary-600)] text-white font-semibold shadow-sm"
+            >
+              Aplicar
             </button>
           </div>
         </div>
