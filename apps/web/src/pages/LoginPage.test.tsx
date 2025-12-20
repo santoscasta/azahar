@@ -33,8 +33,8 @@ describe('LoginPage', () => {
 
     expect(signInMock).toHaveBeenCalledWith('test@example.com', 'secret123')
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/gtd')
-    })
+    expect(navigateMock).toHaveBeenCalledWith('/app')
+  })
   })
 
   it('allows switching to sign up and calls signUp', async () => {
@@ -50,8 +50,8 @@ describe('LoginPage', () => {
 
     expect(signUpMock).toHaveBeenCalledWith('new@example.com', 'secret123')
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/gtd')
-    })
+    expect(navigateMock).toHaveBeenCalledWith('/app')
+  })
   })
 
   it('shows error message on failure', async () => {
@@ -140,8 +140,8 @@ describe('LoginPage', () => {
     fireEvent.click(view.getByRole('button', { name: 'Entrar' }))
     await waitFor(() => {
       expect(view.queryByText('Credenciales inválidas')).toBeNull()
-      expect(navigateMock).toHaveBeenCalledWith('/gtd')
-    })
+    expect(navigateMock).toHaveBeenCalledWith('/app')
+  })
   })
 
   it('shows the support email link for password reset', () => {

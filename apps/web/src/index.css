@@ -49,6 +49,45 @@ main {
   background-color: var(--color-bg);
 }
 
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 157, 102, 0.12), transparent 32%),
+    radial-gradient(circle at 82% 12%, rgba(143, 170, 143, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 248, 237, 0.85), rgba(255, 248, 237, 0.95));
+  position: relative;
+}
+
+.app-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(45, 37, 32, 0.04) 45%, rgba(45, 37, 32, 0.08));
+}
+
+.app-shell[data-theme='dark'],
+:root[data-theme='dark'] .app-shell {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 157, 102, 0.08), transparent 32%),
+    radial-gradient(circle at 78% 12%, rgba(143, 170, 143, 0.08), transparent 30%),
+    linear-gradient(180deg, #1f1b19, #15110f 55%, #0f0c0a);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(232, 222, 208, 0.8);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  border-radius: 28px;
+}
+
+:root[data-theme='dark'] .glass-panel {
+  background: rgba(58, 51, 48, 0.72);
+  border-color: rgba(74, 67, 64, 0.9);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
 .az-pill {
   display: inline-flex;
   align-items: center;

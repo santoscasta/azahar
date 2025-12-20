@@ -49,7 +49,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
       }
 
       if (result.success) {
-        navigate('/gtd')
+        navigate('/app')
       } else {
         setError(result.error || t('auth.error.unknown'))
       }

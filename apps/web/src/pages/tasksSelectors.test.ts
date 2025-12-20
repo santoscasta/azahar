@@ -43,9 +43,13 @@ describe('tasksSelectors', () => {
   })
 
   it('computes quick view stats and filters by context', () => {
+    const projects: Project[] = [
+      { id: 'p-1', name: 'Proyecto', user_id: 'user', color: null, sort_order: 0, created_at: todayISO, area_id: 'a-1' },
+    ]
+    const projectMap = new Map(projects.map(project => [project.id, project]))
     const tasks: Task[] = [
       { ...baseTask, id: 't1', due_at: todayISO },
-      { ...baseTask, id: 't2', project_id: 'p-1' },
+      { ...baseTask, id: 't2', project_id: 'p-1', area_id: null },
       { ...baseTask, id: 't3', area_id: 'a-1' },
     ]
 
@@ -53,11 +57,11 @@ describe('tasksSelectors', () => {
     expect(stats.today).toBe(1)
     expect(stats.anytime).toBe(2)
 
-    const onlyProject = filterTasksForContext(tasks, 'inbox', todayISO, 'p-1', null)
+    const onlyProject = filterTasksForContext(tasks, 'inbox', todayISO, 'p-1', null, projectMap)
     expect(onlyProject.map(task => task.id)).toEqual(['t2'])
 
-    const onlyArea = filterTasksForContext(tasks, 'inbox', todayISO, null, 'a-1')
-    expect(onlyArea.map(task => task.id)).toEqual(['t3'])
+    const onlyArea = filterTasksForContext(tasks, 'inbox', todayISO, null, 'a-1', projectMap)
+    expect(onlyArea.map(task => task.id).sort()).toEqual(['t2', 't3'])
   })
 
   it('builds active filters for areas, projects and labels', () => {

@@ -7,7 +7,6 @@ import { supabase, getCurrentUser } from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import TasksPage from './pages/TasksPage'
 import SettingsPage from './pages/SettingsPage'
-import GtdCommandPage from './pages/GtdCommandPage'
 import { translate, type Language } from './lib/i18n'
 import {
   applyThemeToDocument,
@@ -104,14 +103,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/gtd"
-              element={(
-                <ProtectedRoute>
-                  <GtdCommandPage />
-                </ProtectedRoute>
-              )}
-            />
             {enableSettings && (
               <Route
                 path="/settings"
@@ -122,8 +113,8 @@ export default function App() {
                 )}
               />
             )}
-            <Route path="/" element={<Navigate to="/gtd" replace />} />
-            <Route path="*" element={<Navigate to="/gtd" replace />} />
+            <Route path="/" element={<Navigate to="/app" replace />} />
+            <Route path="*" element={<Navigate to="/app" replace />} />
           </Routes>
         </Router>
       </Provider>
