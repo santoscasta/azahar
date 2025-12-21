@@ -1429,8 +1429,9 @@ export default function TasksPage() {
     mutationKey: ['mutations', 'tasks', 'update'],
     networkMode: 'online',
     mutationFn: async (taskId: string) => {
+      const resolvedTitle = editingTitle.trim() ? editingTitle : 'Nueva tarea'
       const updated = await updateTask(taskId, {
-        title: editingTitle,
+        title: resolvedTitle,
         notes: editingNotes,
         priority: editingPriority,
         due_at: editingDueAt || null,
@@ -1857,13 +1858,11 @@ export default function TasksPage() {
     if (event) {
       event.preventDefault()
     }
-    if (!editingTitle.trim()) {
-      setError('El título no puede estar vacío')
-      return
-    }
     if (editingId) {
       updateTaskMutation.mutate(editingId)
+      return true
     }
+    return false
   }
 
   const handleCancelEdit = () => {

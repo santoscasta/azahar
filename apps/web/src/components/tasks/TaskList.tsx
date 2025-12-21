@@ -41,7 +41,7 @@ interface TaskListProps {
   editingState: EditingState
   editingHandlers: EditingHandlers
   onStartEdit: (task: Task) => void
-  onSaveEdit: (event?: FormEvent<HTMLFormElement>) => void
+  onSaveEdit: (event?: FormEvent<HTMLFormElement>) => boolean
   onCancelEdit: () => void
   onToggleTask: (taskId: string) => void
   togglePending?: boolean
@@ -166,7 +166,10 @@ export default function TaskList({
       return
     }
     autoSaveTriggerRef.current = true
-    onSaveEdit()
+    const didSave = onSaveEdit()
+    if (didSave) {
+      onCancelEdit()
+    }
   }
 
   useEffect(() => {
@@ -197,9 +200,9 @@ export default function TaskList({
       triggerAutoSave()
     }
 
-    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('pointerdown', handlePointerDown, true)
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('pointerdown', handlePointerDown, true)
     }
   }, [editingId, autoSaveOnBlur, triggerAutoSave])
 

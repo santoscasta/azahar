@@ -141,7 +141,8 @@ describe('TaskList', () => {
   })
 
   it('auto-saves when tapping outside the editor', () => {
-    const onSave = vi.fn()
+    const onSave = vi.fn(() => true)
+    const onCancel = vi.fn()
     const state = { ...editingState, id: 'task-1', title: 'Task', notes: '', dueAt: '' }
 
     renderWithProviders(
@@ -160,7 +161,7 @@ describe('TaskList', () => {
         editingHandlers={editingHandlers}
         onStartEdit={vi.fn()}
         onSaveEdit={onSave}
-        onCancelEdit={vi.fn()}
+        onCancelEdit={onCancel}
         onToggleTask={vi.fn()}
         onDeleteTask={vi.fn()}
         onOpenEditDatePicker={vi.fn()}
@@ -177,5 +178,6 @@ describe('TaskList', () => {
 
     fireEvent.pointerDown(document.body)
     expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onCancel).toHaveBeenCalledTimes(1)
   })
 })
