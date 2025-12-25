@@ -2292,11 +2292,9 @@ export default function TasksPage() {
         <MobileBottomBar
           isHomeActive
           isSearchActive={isSearchMode}
-          pendingSync={hasPendingSync}
           onHome={handleMobileNavHome}
           onSearch={handleOpenMobileSearch}
           onNewTask={handleMobileNewTask}
-          onOpenSettings={handleOpenSettings}
         />
         {renderTaskModal()}
         {renderMobileCreationSheet()}
@@ -2360,11 +2358,9 @@ export default function TasksPage() {
           <MobileBottomBar
             isHomeActive={showMobileHome}
             isSearchActive={isSearchMode}
-            pendingSync={hasPendingSync}
             onHome={handleMobileNavHome}
             onSearch={handleOpenMobileSearch}
             onNewTask={handleMobileNewTask}
-            onOpenSettings={handleOpenSettings}
           />
         </>
       ) : (

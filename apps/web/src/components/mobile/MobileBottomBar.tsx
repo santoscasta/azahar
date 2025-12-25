@@ -1,15 +1,12 @@
 import homeIcon from '../../assets/icons/inbox.svg'
 import searchIcon from '../../assets/icons/search.svg'
-import settingsIcon from '../../assets/icons/settings.svg'
 
 interface MobileBottomBarProps {
   isHomeActive: boolean
   isSearchActive: boolean
-  pendingSync: boolean
   onHome: () => void
   onSearch: () => void
   onNewTask: () => void
-  onOpenSettings: () => void
 }
 
 interface NavButtonProps {
@@ -51,11 +48,9 @@ function NavButton({ label, icon, active, badge, helperText, onClick }: NavButto
 export default function MobileBottomBar({
   isHomeActive,
   isSearchActive,
-  pendingSync,
   onHome,
   onSearch,
   onNewTask,
-  onOpenSettings,
 }: MobileBottomBarProps) {
   return (
     <div
@@ -74,14 +69,6 @@ export default function MobileBottomBar({
           <span className="text-lg leading-none">＋</span>
           <span>Nueva</span>
         </button>
-        <NavButton
-          label="Ajustes"
-          icon={settingsIcon}
-          active={false}
-          badge={pendingSync ? 'Cambios pendientes por sincronizar' : undefined}
-          helperText={pendingSync ? 'Sincronizando…' : undefined}
-          onClick={onOpenSettings}
-        />
       </div>
     </div>
   )
