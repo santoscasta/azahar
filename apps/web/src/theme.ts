@@ -1,24 +1,24 @@
 export const theme = {
   brand: {
     primary: {
-      100: '#EEF3FF',
-      300: '#BFD3FB',
-      500: '#6FAEF5',
-      600: '#4F6FD8',
-      700: '#3E5ECB',
-    },
-    accent: {
-      200: '#FBE7B6',
+      100: '#FFF2D4',
       300: '#F9DC98',
       500: '#F6C45C',
       600: '#E6B44E',
+      700: '#D99C35',
+    },
+    accent: {
+      200: '#D6E3FD',
+      300: '#BFD3FB',
+      500: '#6FAEF5',
+      600: '#4F6FD8',
     },
     blossom: '#F9FAFF',
     pistil: '#F6C45C',
   },
   neutrals: {
     50: '#F9FAFF',
-    200: '#DADDF0',
+    200: '#C9CEE4',
     500: '#6B6F84',
     700: '#4B4F63',
     900: '#2F2F3A',

@@ -88,7 +88,7 @@ export function MobileOverview({
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
-          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
+          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent-200)] focus:border-[var(--color-accent-500)] outline-none bg-[var(--color-surface)]"
         />
       </div>
 
@@ -97,7 +97,7 @@ export function MobileOverview({
           <button
             key={`mobile-${view.id}`}
             onClick={() => onSelectQuickView(view.id)}
-            className="w-full flex items-center justify-between px-4 py-4 text-left"
+            className="w-full min-h-[52px] flex items-center justify-between px-4 py-4 text-left"
           >
             <span className="flex items-center gap-3">
               <span className="h-10 w-10 rounded-2xl bg-[var(--color-primary-100)] flex items-center justify-center">
@@ -106,7 +106,11 @@ export function MobileOverview({
               <span className="text-base font-medium text-[var(--on-surface)]">{view.label}</span>
             </span>
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-              {quickViewStats[view.id] > 0 && <span className="text-sm text-[var(--on-surface)]">{quickViewStats[view.id]}</span>}
+              {quickViewStats[view.id] > 0 && (
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-accent-200)] px-2 text-[11px] font-semibold text-[var(--color-accent-600)]">
+                  {quickViewStats[view.id]}
+                </span>
+              )}
               <span className="text-[var(--on-surface)]">›</span>
             </div>
           </button>
@@ -152,7 +156,7 @@ export function MobileOverview({
           {areas.slice(0, 4).map(area => (
             <button
               key={`mobile-area-${area.id}`}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
+              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectArea(area.id)}
             >
               <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
@@ -204,7 +208,7 @@ export function MobileOverview({
           {projects.slice(0, 4).map(project => (
             <button
               key={`mobile-project-${project.id}`}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
+              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectProject(project.id)}
             >
               <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">

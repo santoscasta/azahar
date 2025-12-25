@@ -22,7 +22,7 @@ export default function MobileSearchBar({
   return (
     <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow px-4 py-3">
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">🔍</span>
         <input
           ref={inputRef}
           type="text"
@@ -32,7 +32,7 @@ export default function MobileSearchBar({
           onBlur={onBlur}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Buscar tareas..."
-          className="w-full pl-10 pr-10 py-2.5 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
+          className="w-full min-h-[48px] pl-10 pr-10 py-2.5 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent-200)] focus:border-[var(--color-accent-500)] outline-none bg-[var(--color-surface)]"
         />
         {value && (
           <button

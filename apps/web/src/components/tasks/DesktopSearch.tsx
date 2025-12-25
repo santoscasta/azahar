@@ -37,7 +37,7 @@ export default function DesktopSearch({
             onBlur={onBlur}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Buscar por título, notas o proyecto..."
-            className="w-full rounded-xl border border-transparent bg-transparent px-3 py-2 text-sm font-medium text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-300)] outline-none transition"
+            className="w-full rounded-xl border border-transparent bg-transparent px-3 py-2 text-sm font-medium text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-accent-500)] focus:ring-1 focus:ring-[var(--color-accent-200)] outline-none transition"
           />
           {searchQuery && (
             <button

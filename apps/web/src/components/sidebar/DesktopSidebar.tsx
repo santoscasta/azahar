@@ -50,10 +50,20 @@ export interface DesktopSidebarProps {
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
   if (!total && !overdue) return null
+  const badgeClass =
+    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-full px-2 text-[11px] font-semibold'
   return (
-    <div className="flex items-center gap-1 text-[11px] font-semibold">
-      {overdue ? <span className="text-[#FF7A33]">{overdue}</span> : null}
-      {total ? <span className="text-[var(--color-text-muted)]">{total}</span> : null}
+    <div className="flex items-center gap-1">
+      {overdue ? (
+        <span className={`${badgeClass} bg-[var(--color-accent-200)] text-[var(--color-accent-600)]`}>
+          {overdue}
+        </span>
+      ) : null}
+      {total ? (
+        <span className={`${badgeClass} bg-[var(--color-border-subtle)] text-[var(--color-text-muted)]`}>
+          {total}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -257,7 +267,7 @@ export function DesktopSidebar({
                   <button
                     type="button"
                     onClick={() => onSelectQuickView(view.id)}
-                    className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
+                    className={`w-full min-h-[48px] flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
                       isActive
                         ? 'bg-[var(--color-primary-600)] text-white shadow-md'
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
@@ -290,7 +300,7 @@ export function DesktopSidebar({
                     onClick={() => handleAreaClick(area.id)}
                     onDragOver={(event) => handleAreaDragOver(event, area.id)}
                     onDrop={(event) => handleAreaDrop(event, area.id)}
-                    className={`w-full flex items-center justify-between text-sm font-semibold rounded-xl px-2 py-1 ${
+                    className={`w-full min-h-[48px] flex items-center justify-between text-sm font-semibold rounded-xl px-3 py-2 ${
                       isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     } ${dragOverAreaId === area.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
                   >
@@ -314,7 +324,7 @@ export function DesktopSidebar({
                           onDragEnd={handleProjectDragEnd}
                           onDragOver={(event) => handleProjectDragOver(event, project.id)}
                           onDrop={(event) => handleProjectDrop(event, project.id, area.id)}
-                          className={`w-full flex items-center justify-between text-xs rounded-xl px-2 py-1 ${
+                          className={`w-full min-h-[48px] flex items-center justify-between text-sm rounded-xl px-3 py-2 ${
                             isActiveProject
                               ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] shadow-inner'
                               : 'text-[var(--color-text-muted)] hover:text-[var(--on-surface)]'
@@ -354,7 +364,7 @@ export function DesktopSidebar({
                     onDragEnd={handleProjectDragEnd}
                     onDragOver={(event) => handleProjectDragOver(event, project.id)}
                     onDrop={(event) => handleProjectDrop(event, project.id, null)}
-                    className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
+                    className={`w-full min-h-[48px] flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
                       isActive
                         ? 'bg-[var(--color-primary-600)] text-white shadow-md'
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
@@ -380,7 +390,7 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onToggleNewListMenu}
-          className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary-600)] text-white py-2 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
+          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary-600)] text-white py-2 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
         >
           +
           <span>Nueva lista</span>

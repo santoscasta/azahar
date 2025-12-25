@@ -8,5 +8,5 @@
   <rect x="12" y="14" width="40" height="36" rx="6" stroke="url(#todayGradient)" stroke-width="3" fill="rgba(255,255,255,0.06)"/>
   <path d="M20 22h24M20 30h12" stroke="#F08A46" stroke-width="3" stroke-linecap="round"/>
   <circle cx="36" cy="32" r="6" fill="url(#todayGradient)"/>
-  <path d="M36 28v4l3 2" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M36 28v4l3 2" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
