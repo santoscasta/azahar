@@ -40,7 +40,9 @@ export default function PriorityMenu({ open, selected, onSelect, onClose }: Prio
                   onClose()
                 }}
                 className={`w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-                  isActive ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  isActive
+                    ? 'border-slate-900 text-slate-900'
+                    : 'border-[var(--color-border)] text-slate-600 hover:border-[var(--color-primary-400)]'
                 }`}
               >
                 <span>{option.emoji}</span>

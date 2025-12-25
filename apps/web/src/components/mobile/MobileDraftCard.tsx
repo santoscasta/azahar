@@ -39,13 +39,13 @@ export function MobileDraftCard({
           value={draft.title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Nueva tarea"
-          className="w-full bg-transparent text-lg font-semibold text-slate-900 placeholder-slate-400 outline-none"
+          className="w-full bg-transparent text-lg font-semibold text-slate-900 placeholder-[var(--color-text-subtle)] outline-none"
         />
         <textarea
           value={draft.notes}
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Notas"
-          className="w-full bg-transparent text-sm text-slate-600 placeholder-slate-400 outline-none resize-none mt-1"
+          className="w-full bg-transparent text-sm text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] outline-none resize-none mt-1"
           rows={2}
         />
       </div>

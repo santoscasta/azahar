@@ -44,12 +44,14 @@ export default function ChecklistSheet({
         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {items.length === 0 && <p className="text-sm text-slate-500">Aún no hay elementos.</p>}
           {items.map(item => (
-            <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-slate-200 px-3 py-2">
+            <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] px-3 py-2">
               <button
                 type="button"
                 onClick={() => onToggle(item.id)}
                 className={`h-6 w-6 rounded-full border flex items-center justify-center text-sm ${
-                  item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'
+                  item.completed
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-[var(--color-border)] text-transparent'
                 }`}
               >
                 ✓
@@ -77,7 +79,7 @@ export default function ChecklistSheet({
             value={inputValue}
             onChange={(event) => setInputValue(event.target.value)}
             placeholder="Nueva tarea"
-            className="flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900"
+            className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900"
           />
           <button
             type="submit"

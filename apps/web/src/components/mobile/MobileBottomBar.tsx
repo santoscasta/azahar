@@ -36,7 +36,10 @@ function NavButton({ label, icon, active, badge, helperText, onClick }: NavButto
       }`}>
         <img src={icon} alt="" className="h-5 w-5" />
         {badge ? (
-          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#FF7A33]" aria-label={badge} />
+          <span
+            className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[var(--color-done-500)]"
+            aria-label={badge}
+          />
         ) : null}
       </span>
       <span>{label}</span>

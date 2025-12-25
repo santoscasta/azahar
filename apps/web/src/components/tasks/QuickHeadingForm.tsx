@@ -47,13 +47,13 @@ export default function QuickHeadingForm({
             value={headingName}
             onChange={(event) => onNameChange(event.target.value)}
             placeholder="Nombre de la sección"
-            className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+            className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
           />
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-500"
+              className="px-4 py-2 rounded-full border border-[var(--color-border)] text-sm font-semibold text-slate-500"
             >
               Cancelar
             </button>
