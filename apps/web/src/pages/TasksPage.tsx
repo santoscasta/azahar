@@ -2282,7 +2282,6 @@ export default function TasksPage() {
               onCancelProjectDraft={handleCancelMobileProjectDraft}
               onSaveProjectDraft={handleSaveMobileDraftProject}
               onSelectProject={handleOpenMobileProject}
-              onOpenCreationSheet={() => setShowMobileCreationSheet(true)}
               onOpenSettings={handleOpenSettings}
             />
           </div>

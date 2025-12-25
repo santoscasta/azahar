@@ -26,7 +26,7 @@ function NavButton({ label, icon, active, badge, helperText, onClick }: NavButto
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 text-xs font-semibold transition ${
+      className={`flex h-16 flex-col items-center justify-end gap-1 text-xs font-semibold transition ${
         active ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-muted)]'
       }`}
       aria-pressed={active}
@@ -62,13 +62,13 @@ export default function MobileBottomBar({
       className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-md px-6 py-3"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
     >
-      <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
+      <div className="mx-auto max-w-2xl flex items-end justify-between gap-3">
         <NavButton label="Inicio" icon={homeIcon} active={isHomeActive} onClick={onHome} />
         <NavButton label="Buscar" icon={searchIcon} active={isSearchActive} onClick={onSearch} />
         <button
           type="button"
           onClick={onNewTask}
-          className="flex-1 max-w-[140px] flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary-600)] text-white py-3 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
+          className="flex-1 max-w-[140px] self-end flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary-600)] text-white py-3 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
           aria-label="Crear nueva tarea"
         >
           <span className="text-lg leading-none">＋</span>

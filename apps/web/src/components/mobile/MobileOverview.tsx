@@ -45,7 +45,6 @@ interface MobileOverviewProps {
   onCancelProjectDraft: () => void
   onSaveProjectDraft: () => void
   onSelectProject: (projectId: string) => void
-  onOpenCreationSheet: () => void
   onOpenSettings: () => void
 }
 
@@ -74,7 +73,6 @@ export function MobileOverview({
   onCancelProjectDraft,
   onSaveProjectDraft,
   onSelectProject,
-  onOpenCreationSheet,
   onOpenSettings,
 }: MobileOverviewProps) {
   return (
@@ -231,15 +229,6 @@ export function MobileOverview({
           ❓<span>Ayuda</span>
         </button>
       </div>
-
-        <button
-          type="button"
-          onClick={onOpenCreationSheet}
-          className="fixed bottom-8 right-6 h-14 w-14 rounded-full bg-[var(--color-primary-600)] text-white text-3xl shadow-2xl flex items-center justify-center"
-          aria-label="Abrir creación rápida"
-      >
-        +
-      </button>
     </div>
   )
 }
