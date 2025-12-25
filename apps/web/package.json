@@ -11,6 +11,7 @@
     "test:unit": "tsc -p tsconfig.test.json && vitest run",
     "test:e2e": "playwright test",
     "test:all": "pnpm test:unit && pnpm test:e2e",
+    "seed:agent": "tsx ./scripts/seedAgentUser.ts",
     "seed:test": "tsx ./scripts/seedTestData.ts",
     "reset:test": "tsx ./scripts/resetTestData.ts"
   },

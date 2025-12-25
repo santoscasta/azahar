@@ -38,7 +38,7 @@ export default function TaskOverflowMenu({
             type="button"
             onClick={onTogglePin}
             disabled={isPinning}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-semibold text-slate-700 hover:border-slate-400 disabled:opacity-60"
+            className="w-full rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-slate-700 hover:border-[var(--color-primary-400)] disabled:opacity-60"
           >
             {task.pinned ? 'Quitar fijado' : 'Fijar tarea'}
           </button>
@@ -46,14 +46,14 @@ export default function TaskOverflowMenu({
             type="button"
             onClick={onDuplicate}
             disabled={isDuplicating}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-semibold text-slate-700 hover:border-slate-400 disabled:opacity-60"
+            className="w-full rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-slate-700 hover:border-[var(--color-primary-400)] disabled:opacity-60"
           >
             Duplicar tarea
           </button>
           <button
             type="button"
             onClick={onCopyLink}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-semibold text-slate-700 hover:border-slate-400"
+            className="w-full rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-slate-700 hover:border-[var(--color-primary-400)]"
           >
             Copiar enlace
           </button>
@@ -62,7 +62,7 @@ export default function TaskOverflowMenu({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:border-slate-400"
+            className="px-4 py-2 rounded-full border border-[var(--color-border)] text-sm font-semibold text-slate-600 hover:border-[var(--color-primary-400)]"
           >
             Cerrar
           </button>

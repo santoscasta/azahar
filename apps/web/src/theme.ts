@@ -8,6 +8,7 @@ export const theme = {
       700: '#3E5ECB',
     },
     accent: {
+      200: '#FBE7B6',
       300: '#F9DC98',
       500: '#F6C45C',
       600: '#E6B44E',

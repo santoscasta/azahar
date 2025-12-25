@@ -94,7 +94,7 @@ export default function DatePickerOverlay({
         className="w-full max-w-md bg-white rounded-3xl shadow-2xl"
         onClick={handleOverlayClick}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-400">{headerLabel}</p>
             <p className="text-lg font-semibold text-slate-800 capitalize">{monthLabel}</p>
@@ -118,7 +118,7 @@ export default function DatePickerOverlay({
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
                   pendingDate === option.value
                     ? 'border-[var(--color-primary-600)] text-[var(--color-primary-600)] bg-[var(--color-primary-100)]'
-                    : 'border-slate-200 text-slate-600 hover:border-slate-400'
+                    : 'border-[var(--color-border)] text-slate-600 hover:border-[var(--color-primary-400)]'
                 }`}
               >
                 {option.label}
@@ -129,7 +129,7 @@ export default function DatePickerOverlay({
             <button
               type="button"
               onClick={() => onMonthChange(-1)}
-              className="p-2 rounded-full border border-slate-200 text-slate-500 hover:border-slate-400"
+              className="p-2 rounded-full border border-[var(--color-border)] text-slate-500 hover:border-[var(--color-primary-400)]"
               aria-label="Mes anterior"
             >
               ←
@@ -140,7 +140,7 @@ export default function DatePickerOverlay({
             <button
               type="button"
               onClick={() => onMonthChange(1)}
-              className="p-2 rounded-full border border-slate-200 text-slate-500 hover:border-slate-400"
+              className="p-2 rounded-full border border-[var(--color-border)] text-slate-500 hover:border-[var(--color-primary-400)]"
               aria-label="Mes siguiente"
             >
               →
@@ -164,7 +164,7 @@ export default function DatePickerOverlay({
                       : day.isToday
                         ? 'border border-[var(--color-primary-200)] text-[var(--color-primary-600)]'
                         : day.inMonth
-                          ? 'text-slate-700 hover:bg-slate-100'
+                          ? 'text-slate-700 hover:bg-[var(--color-primary-100)]'
                           : 'text-slate-300'
                   }`}
                 >
@@ -189,7 +189,7 @@ export default function DatePickerOverlay({
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-semibold hover:border-slate-400"
+              className="px-4 py-2 rounded-full border border-[var(--color-border)] text-slate-600 font-semibold hover:border-[var(--color-primary-400)]"
             >
               Cancelar
             </button>
