@@ -146,7 +146,7 @@ export default function TasksPage() {
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   // Force mobile viewports to use the desktop experience.
-  const forceDesktopOnMobile = true
+  const forceDesktopOnMobile = false
   const useMobileExperience = isMobile && !forceDesktopOnMobile
   const [showMobileHome, setShowMobileHome] = useState(true)
   const [mobileProjectFocusId, setMobileProjectFocusId] = useState<string | null>(null)
