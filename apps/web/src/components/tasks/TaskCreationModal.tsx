@@ -104,12 +104,12 @@ export default function TaskCreationModal({
             <p className="text-lg font-semibold" style={{ color: 'var(--color-primary-700)' }}>
               Nueva tarea
             </p>
-            <p className="text-sm text-[#736B63]">Igual que en móvil: escribe, agenda y listo.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">Igual que en móvil: escribe, agenda y listo.</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#C4BDB5] hover:text-[#736B63] text-xl"
+            className="text-[var(--color-text-subtle)] hover:text-[var(--color-text-muted)] text-xl"
             aria-label="Cerrar"
           >
             ✕
@@ -119,8 +119,8 @@ export default function TaskCreationModal({
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 space-y-3 shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-xs uppercase tracking-wide text-[#736B63]">Vista destino</p>
-                <p className="text-sm text-[#2D2520]">Elige la lista donde aterriza, como en el panel móvil.</p>
+                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Vista destino</p>
+                <p className="text-sm text-[var(--on-surface)]">Elige la lista donde aterriza, como en el panel móvil.</p>
               </div>
               <span className="text-xs font-medium text-[var(--color-primary-600)] bg-[var(--color-primary-50)] px-3 py-1 rounded-full border border-[var(--color-border)]">
                 Cambio en un toque
@@ -167,7 +167,7 @@ export default function TaskCreationModal({
                 value={draft.title}
                 onChange={(event) => onUpdateDraft('title', event.target.value)}
                 placeholder="Nueva tarea (igual que en móvil)"
-                className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-base text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-base text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-white"
                 autoFocus
               />
             </div>
@@ -175,12 +175,12 @@ export default function TaskCreationModal({
               <button
                 type="button"
                 onClick={onRequestDueDate}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--color-border)] bg-white text-sm font-medium text-[#2D2520] shadow-[0_6px_20px_rgba(0,0,0,0.03)] hover:border-[var(--color-primary-400)]"
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--color-border)] bg-white text-sm font-medium text-[var(--on-surface)] shadow-[0_6px_20px_rgba(0,0,0,0.03)] hover:border-[var(--color-primary-400)]"
               >
                 <span className="text-lg">🗓️</span>
                 {dueDateLabel}
               </button>
-              <div className="flex items-center gap-3 text-xl text-[#736B63]">
+              <div className="flex items-center gap-3 text-xl text-[var(--color-text-muted)]">
                 <button
                   type="button"
                   onClick={() => setShowDetails(true)}
@@ -189,12 +189,12 @@ export default function TaskCreationModal({
                 >
                   🏷
                 </button>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[var(--color-border)] bg-white text-sm text-[#2D2520] shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
-                  <span className="text-xs uppercase tracking-wide text-[#736B63]">Prioridad</span>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[var(--color-border)] bg-white text-sm text-[var(--on-surface)] shadow-[0_6px_20px_rgba(0,0,0,0.03)]">
+                  <span className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Prioridad</span>
                   <select
                     value={draft.priority}
                     onChange={(event) => onUpdateDraft('priority', Number(event.target.value) as 0 | 1 | 2 | 3)}
-                    className="bg-transparent outline-none text-sm text-[#2D2520]"
+                    className="bg-transparent outline-none text-sm text-[var(--on-surface)]"
                   >
                     <option value="0">Sin prioridad</option>
                     <option value="1">🟢 Baja</option>
@@ -222,7 +222,7 @@ export default function TaskCreationModal({
               </div>
             )}
             {draft.due_at && (
-              <p className="text-xs text-[#736B63]">Plazo: {draft.due_at}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">Plazo: {draft.due_at}</p>
             )}
           </div>
 
@@ -232,7 +232,7 @@ export default function TaskCreationModal({
                 <p className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
                   Contexto opcional
                 </p>
-                <p className="text-xs text-[#736B63]">Añade área, proyecto o sección solo si ayuda a ubicarla.</p>
+                <p className="text-xs text-[var(--color-text-muted)]">Añade área, proyecto o sección solo si ayuda a ubicarla.</p>
               </div>
               <div className="flex items-center gap-2">
                 {hasContext && (
@@ -259,7 +259,7 @@ export default function TaskCreationModal({
             {showContext && (
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-[#736B63]">Área</p>
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Área</p>
                   <select
                     value={draft.areaId || ''}
                     onChange={(event) => {
@@ -273,7 +273,7 @@ export default function TaskCreationModal({
                         }
                       }
                     }}
-                    className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#2D2520] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[color-mix(in_srgb,#fff_80%,var(--color-primary-50)_20%)]"
+                    className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[color-mix(in_srgb,#fff_80%,var(--color-primary-50)_20%)]"
                   >
                     <option value="">Sin área</option>
                     {areas.map(area => (
@@ -284,7 +284,7 @@ export default function TaskCreationModal({
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-[#736B63]">Proyecto</p>
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Proyecto</p>
                   <select
                     value={draft.projectId || ''}
                     onChange={(event) => {
@@ -296,7 +296,7 @@ export default function TaskCreationModal({
                       }
                       onUpdateDraft('headingId', null)
                     }}
-                    className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#2D2520] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[color-mix(in_srgb,#fff_80%,var(--color-primary-50)_20%)]"
+                    className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[color-mix(in_srgb,#fff_80%,var(--color-primary-50)_20%)]"
                   >
                     <option value="">Sin proyecto</option>
                     {filteredProjects.map(project => (
@@ -310,11 +310,11 @@ export default function TaskCreationModal({
             )}
             {showContext && draft.projectId && (
               <div className="space-y-2">
-                <p className="text-xs uppercase tracking-wide text-[#736B63]">Sección</p>
+                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Sección</p>
                 <select
                   value={draft.headingId || ''}
                   onChange={(event) => onUpdateDraft('headingId', event.target.value || null)}
-                  className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[#2D2520] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[color-mix(in_srgb,#fff_80%,var(--color-primary-50)_20%)]"
+                  className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[color-mix(in_srgb,#fff_80%,var(--color-primary-50)_20%)]"
                 >
                   <option value="">Sin sección</option>
                   {availableHeadings.map(heading => (
@@ -332,7 +332,7 @@ export default function TaskCreationModal({
                 <p className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
                   Detalles al vuelo
                 </p>
-                <p className="text-xs text-[#736B63]">Notas y etiquetas solo cuando aportan claridad.</p>
+                <p className="text-xs text-[var(--color-text-muted)]">Notas y etiquetas solo cuando aportan claridad.</p>
               </div>
               {hasDetails && (
                 <span className="text-xs text-[var(--color-primary-700)] bg-[color-mix(in_srgb,#fff_85%,var(--color-accent-50)_15%)] px-3 py-1 rounded-full border border-[var(--color-border)]">
@@ -354,14 +354,14 @@ export default function TaskCreationModal({
                     <label className="text-sm font-semibold" style={{ color: 'var(--color-primary-700)' }}>
                       Notas rápidas
                     </label>
-                    <span className="text-xs text-[#736B63]">Opcional</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">Opcional</span>
                   </div>
                   <textarea
                     value={draft.notes}
                     onChange={(event) => onUpdateDraft('notes', event.target.value)}
                     placeholder="Pega ideas, enlaces o pasos sueltos."
                     rows={3}
-                    className="w-full px-3 py-3 rounded-2xl border border-[var(--color-border)] text-[#736B63] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none bg-white"
+                    className="w-full px-3 py-3 rounded-2xl border border-[var(--color-border)] text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none bg-white"
                   />
                 </div>
                 <div className="space-y-3">
@@ -370,11 +370,11 @@ export default function TaskCreationModal({
                       Etiquetas rápidas
                     </label>
                     {labels.length > 0 && (
-                      <span className="text-xs text-[#736B63]">Toca para añadirlas al vuelo</span>
+                      <span className="text-xs text-[var(--color-text-muted)]">Toca para añadirlas al vuelo</span>
                     )}
                   </div>
                   {labels.length === 0 ? (
-                    <p className="text-sm text-[#736B63]">
+                    <p className="text-sm text-[var(--color-text-muted)]">
                       Aún no tienes etiquetas. Crea la primera aquí abajo.
                     </p>
                   ) : (
@@ -409,7 +409,7 @@ export default function TaskCreationModal({
                       value={inlineLabelName}
                       onChange={(event) => onInlineLabelNameChange(event.target.value)}
                       placeholder="Ej. Diseño, Personal..."
-                      className="flex-1 px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-white"
+                      className="flex-1 px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-white"
                       disabled={savingLabel}
                     />
                     <button
@@ -426,7 +426,7 @@ export default function TaskCreationModal({
             )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <p className="text-xs text-[#736B63]">Pulsa "Crear" y ajusta luego en la lista si hace falta.</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Pulsa "Crear" y ajusta luego en la lista si hace falta.</p>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={onClose} className="az-btn-secondary px-4 py-2 text-sm">
                 Cancelar

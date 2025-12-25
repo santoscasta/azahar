@@ -96,13 +96,13 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
       <div className="relative w-full max-w-xl bg-white border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
           <div>
-            <p className="text-sm font-semibold text-[#2D2520]">Asistente IA</p>
-            <p className="text-xs text-[#736B63]">Pide que cree tareas por ti</p>
+            <p className="text-sm font-semibold text-[var(--on-surface)]">Asistente IA</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Pide que cree tareas por ti</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-full border border-[var(--color-border)] text-[#736B63] hover:border-[var(--color-primary-600)]"
+            className="h-8 w-8 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
             aria-label="Cerrar chat"
           >
             ×
@@ -117,8 +117,8 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
               <div
                 className={
                   message.role === 'user'
-                    ? 'max-w-[90%] rounded-2xl bg-[var(--color-primary-100)] text-[#2D2520] px-3 py-2 text-sm shadow-sm'
-                    : 'max-w-[90%] rounded-2xl bg-white border border-[var(--color-border)] text-[#2D2520] px-3 py-2 text-sm shadow-sm'
+                    ? 'max-w-[90%] rounded-2xl bg-[var(--color-primary-100)] text-[var(--on-surface)] px-3 py-2 text-sm shadow-sm'
+                    : 'max-w-[90%] rounded-2xl bg-white border border-[var(--color-border)] text-[var(--on-surface)] px-3 py-2 text-sm shadow-sm'
                 }
               >
                 {message.content}
@@ -126,7 +126,7 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
             </div>
           ))}
           {isSending && (
-            <div className="text-xs text-[#736B63]">Consultando ChatGPT...</div>
+            <div className="text-xs text-[var(--color-text-muted)]">Consultando ChatGPT...</div>
           )}
           {status && <div className="text-xs text-[var(--color-primary-700)]">{status}</div>}
           <div ref={endRef} />
@@ -137,13 +137,13 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="Ej: crea 2 tareas para mañana sobre revisar métricas y enviar informe"
-            className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[#2D2520] placeholder-[#C4BDB5] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+            className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-2 text-sm rounded-xl border border-[var(--color-border)] text-[#736B63] hover:border-[var(--color-primary-600)]"
+              className="px-3 py-2 text-sm rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
             >
               Cerrar
             </button>

@@ -44,7 +44,6 @@ type TranslationKey =
   | 'sidebar.areas'
   | 'sidebar.projects'
   | 'sidebar.emptyAreas'
-  | 'sidebar.noProjects'
   | 'gtd.title'
   | 'gtd.subtitle'
   | 'gtd.switchClassic'
@@ -186,7 +185,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.areas': 'Áreas',
     'sidebar.projects': 'Proyectos',
     'sidebar.emptyAreas': 'Crea tu primera área para organizarte.',
-    'sidebar.noProjects': 'Sin proyectos todavía',
     'gtd.title': 'Comando GTD',
     'gtd.subtitle': 'Una sala de control para capturar, aclarar, organizar y ejecutar sin perder contexto.',
     'gtd.switchClassic': 'Volver a la vista clásica',
@@ -327,7 +325,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.areas': 'Areas',
     'sidebar.projects': 'Projects',
     'sidebar.emptyAreas': 'Create your first area to organize your work.',
-    'sidebar.noProjects': 'No projects yet',
     'gtd.title': 'GTD Command Center',
     'gtd.subtitle': 'A radical control room to capture, clarify, organize, and execute with zero friction.',
     'gtd.switchClassic': 'Back to classic view',

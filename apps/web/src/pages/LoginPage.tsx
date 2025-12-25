@@ -74,36 +74,36 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
               <img src="/icon.png" alt="Azahar" className="h-32 w-32 object-contain" />
             </div>
             <div className="space-y-1">
-              <p className="text-[11px] uppercase tracking-[0.35em] text-[#736B63]">Azahar</p>
-              <p className="text-3xl font-bold text-[#2D2520]">{isSignUp ? t('auth.title.signup') : t('auth.title.login')}</p>
-              <p className="text-sm text-[#736B63]">{t('auth.tagline')}</p>
+              <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--color-text-muted)]">Azahar</p>
+              <p className="text-3xl font-bold text-[var(--on-surface)]">{isSignUp ? t('auth.title.signup') : t('auth.title.login')}</p>
+              <p className="text-sm text-[var(--color-text-muted)]">{t('auth.tagline')}</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-[#2D2520]" htmlFor={emailInputId}>{t('auth.email.label')}</label>
+              <label className="text-sm font-semibold text-[var(--on-surface)]" htmlFor={emailInputId}>{t('auth.email.label')}</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 id={emailInputId}
-                className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
+                className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
                   email && !isEmailValid ? 'border-red-300 focus:ring-red-300 focus:border-red-300' : 'border-[var(--color-border)]'
                 }`}
                 placeholder={t('auth.email.placeholder')}
                 aria-invalid={email ? !isEmailValid : undefined}
                 aria-describedby={email ? `${emailInputId}-hint` : undefined}
               />
-              <p id={`${emailInputId}-hint`} className="text-xs text-[#736B63] flex items-center gap-1">
+              <p id={`${emailInputId}-hint`} className="text-xs text-[var(--color-text-muted)] flex items-center gap-1">
                 {!email && t('auth.email.hint')}
                 {email && !isEmailValid && <span className="text-red-600">{t('auth.email.error')}</span>}
               </p>
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-[#2D2520]" htmlFor={passwordInputId}>
+              <label className="text-sm font-semibold text-[var(--on-surface)]" htmlFor={passwordInputId}>
                 {t('auth.password.label')}
               </label>
               <div className="relative">
@@ -113,7 +113,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   id={passwordInputId}
-                  className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[#2D2520] placeholder-[#C4BDB5] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
+                  className={`w-full px-4 py-3 rounded-2xl border bg-[var(--color-primary-100)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] ${
                     password && !isPasswordValid
                       ? 'border-red-300 focus:ring-red-300 focus:border-red-300'
                       : 'border-[var(--color-border)]'
@@ -132,7 +132,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                   {showPassword ? t('auth.password.toggle.hide') : t('auth.password.toggle.show')}
                 </button>
               </div>
-              <p id={`${passwordInputId}-hint`} className="text-xs text-[#736B63] flex items-center gap-1">
+              <p id={`${passwordInputId}-hint`} className="text-xs text-[var(--color-text-muted)] flex items-center gap-1">
                 <span>{t('auth.password.hint')}</span>
                 {password && !isPasswordValid && <span className="text-red-600">{t('auth.password.error')}</span>}
               </p>
@@ -170,7 +170,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-[#736B63] flex items-center justify-center gap-2">
+          <div className="mt-6 text-center text-sm text-[var(--color-text-muted)] flex items-center justify-center gap-2">
             <span>{isSignUp ? t('auth.switch.toLoginQuestion') : t('auth.switch.toSignupQuestion')}</span>
             <button
               type="button"

@@ -218,7 +218,7 @@ export default function SettingsPage() {
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
-            className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[#736B63] hover:bg-[var(--color-primary-100)] disabled:opacity-60"
+            className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)] disabled:opacity-60"
             aria-label={t('settings.logout.aria')}
           >
             <svg

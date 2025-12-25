@@ -22,7 +22,7 @@ export default function QuickViewBoard({
 }: QuickViewBoardProps) {
   if (groups.length === 0) {
     return (
-      <div className="rounded-3xl border border-[var(--color-border)] bg-white px-6 py-5 space-y-3">
+      <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5 space-y-3">
         {renderTaskList([])}
       </div>
     )
@@ -33,19 +33,19 @@ export default function QuickViewBoard({
       {groups.map(group => (
         <section
           key={group.areaId || 'none'}
-          className="rounded-3xl border border-[var(--color-border)] bg-white px-6 py-5 space-y-5"
+          className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5 space-y-5"
         >
           {group.area && (
             <div>
-              <p className="text-xs uppercase tracking-wide text-[#736B63]">Área</p>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Área</p>
               <button
                 type="button"
                 onClick={() => onSelectArea(group.areaId!)}
-                className="text-base font-semibold text-[#2D2520] hover:underline text-left"
+                className="text-base font-semibold text-[var(--on-surface)] hover:underline text-left"
               >
                 {group.area.name}
               </button>
-              <p className="text-xs text-[#736B63]">
+              <p className="text-xs text-[var(--color-text-muted)]">
                 {group.projects.size} proyecto{group.projects.size === 1 ? '' : 's'} / {group.standalone.length} tareas sueltas
               </p>
             </div>
@@ -58,7 +58,7 @@ export default function QuickViewBoard({
             ))}
             {group.standalone.length > 0 && (
               <article className="space-y-3">
-                <p className="text-xs uppercase tracking-wide text-[#736B63]">Tareas sueltas</p>
+                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tareas sueltas</p>
                 {renderTaskList(group.standalone)}
               </article>
             )}

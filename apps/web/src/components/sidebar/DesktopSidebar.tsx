@@ -1,7 +1,11 @@
+import { useRef, useState } from 'react'
+import type { DragEvent } from 'react'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { Project, Area } from '../../lib/supabase.js'
 import { useTranslations } from '../../App.js'
 import settingsIcon from '../../assets/icons/settings.svg'
+import AreaIcon from '../icons/AreaIcon.js'
+import ProjectIcon from '../icons/ProjectIcon.js'
 import AzaharLogo from './AzaharLogo.js'
 
 interface StatsMap extends Map<string, { total: number; overdue: number }> {}
@@ -11,6 +15,13 @@ interface QuickListItem {
   label: string
   icon: string
   accent: string
+}
+
+interface ProjectReorderPayload {
+  sourceAreaId: string | null
+  targetAreaId: string | null
+  orderedProjectIds: string[]
+  movedProjectId: string
 }
 
 export interface DesktopSidebarProps {
@@ -34,6 +45,7 @@ export interface DesktopSidebarProps {
   onCreateProject: () => void
   onCreateArea: () => void
   onOpenSettings: () => void
+  onReorderProjects: (payload: ProjectReorderPayload) => void
 }
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
@@ -41,7 +53,7 @@ function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
   return (
     <div className="flex items-center gap-1 text-[11px] font-semibold">
       {overdue ? <span className="text-[#FF7A33]">{overdue}</span> : null}
-      {total ? <span className="text-[#736B63]">{total}</span> : null}
+      {total ? <span className="text-[var(--color-text-muted)]">{total}</span> : null}
     </div>
   )
 }
@@ -67,24 +79,174 @@ export function DesktopSidebar({
   onCreateProject,
   onCreateArea,
   onOpenSettings,
+  onReorderProjects,
 }: DesktopSidebarProps) {
   const { t } = useTranslations()
   const standaloneProjects = projects.filter(project => !project.area_id)
+  const [draggingProjectId, setDraggingProjectId] = useState<string | null>(null)
+  const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
+  const [dragOverAreaId, setDragOverAreaId] = useState<string | null>(null)
+  const dragStateRef = useRef<'idle' | 'dragging' | 'justDropped'>('idle')
+  const draggingProjectRef = useRef<{ id: string; areaId: string | null } | null>(null)
+
+  const handleProjectClick = (projectId: string) => {
+    if (dragStateRef.current !== 'idle') {
+      return
+    }
+    onSelectProject(projectId)
+  }
+
+  const handleAreaClick = (areaId: string) => {
+    if (dragStateRef.current !== 'idle') {
+      return
+    }
+    onSelectArea(areaId)
+  }
+
+  const resetDragState = () => {
+    draggingProjectRef.current = null
+    setDraggingProjectId(null)
+    setDragOverProjectId(null)
+    setDragOverAreaId(null)
+    dragStateRef.current = 'justDropped'
+    setTimeout(() => {
+      dragStateRef.current = 'idle'
+    }, 0)
+  }
+
+  const handleProjectDragStart = (
+    event: DragEvent<HTMLButtonElement>,
+    projectId: string,
+    areaId: string | null
+  ) => {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', projectId)
+    dragStateRef.current = 'dragging'
+    draggingProjectRef.current = { id: projectId, areaId }
+    setDraggingProjectId(projectId)
+    setDragOverProjectId(null)
+    setDragOverAreaId(null)
+  }
+
+  const handleProjectDragEnd = () => {
+    resetDragState()
+  }
+
+  const handleProjectDragOver = (
+    event: DragEvent<HTMLButtonElement>,
+    projectId: string
+  ) => {
+    const dragging = draggingProjectRef.current
+    if (!dragging) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    if (dragOverAreaId) {
+      setDragOverAreaId(null)
+    }
+    if (dragOverProjectId !== projectId) {
+      setDragOverProjectId(projectId)
+    }
+  }
+
+  const handleAreaDragOver = (event: DragEvent<HTMLButtonElement>, areaId: string) => {
+    const dragging = draggingProjectRef.current
+    if (!dragging) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    if (dragOverProjectId) {
+      setDragOverProjectId(null)
+    }
+    if (dragOverAreaId !== areaId) {
+      setDragOverAreaId(areaId)
+    }
+  }
+
+  const handleAreaDrop = (event: DragEvent<HTMLButtonElement>, areaId: string) => {
+    event.preventDefault()
+    const dragging = draggingProjectRef.current
+    if (!dragging) {
+      resetDragState()
+      return
+    }
+    const groupProjects = projects.filter(project => project.area_id === areaId)
+    const groupIds = groupProjects.map(project => project.id)
+    const orderedIds = groupIds.includes(dragging.id)
+      ? [...groupIds.filter(id => id !== dragging.id), dragging.id]
+      : [...groupIds, dragging.id]
+    onReorderProjects({
+      sourceAreaId: dragging.areaId,
+      targetAreaId: areaId,
+      orderedProjectIds: orderedIds,
+      movedProjectId: dragging.id,
+    })
+    resetDragState()
+  }
+
+  const buildReorderedIds = (ids: string[], sourceId: string, targetId: string, insertAfter: boolean) => {
+    if (sourceId === targetId) {
+      return ids
+    }
+    const trimmed = ids.filter(id => id !== sourceId)
+    const targetIndex = trimmed.indexOf(targetId)
+    if (targetIndex === -1) {
+      return ids
+    }
+    const insertIndex = insertAfter ? targetIndex + 1 : targetIndex
+    return [...trimmed.slice(0, insertIndex), sourceId, ...trimmed.slice(insertIndex)]
+  }
+
+  const isSameOrder = (nextOrder: string[], currentOrder: string[]) =>
+    nextOrder.length === currentOrder.length && nextOrder.every((id, index) => id === currentOrder[index])
+
+  const handleProjectDrop = (
+    event: DragEvent<HTMLButtonElement>,
+    targetProjectId: string,
+    areaId: string | null
+  ) => {
+    event.preventDefault()
+    const dragging = draggingProjectRef.current
+    if (!dragging) {
+      resetDragState()
+      return
+    }
+    const sourceId = dragging.id
+    const groupProjects = areaId
+      ? projects.filter(project => project.area_id === areaId)
+      : standaloneProjects
+    const groupIds = groupProjects.map(project => project.id)
+    const baseIds = groupIds.includes(sourceId) ? groupIds : [...groupIds, sourceId]
+    const rect = event.currentTarget.getBoundingClientRect()
+    const insertAfter = event.clientY > rect.top + rect.height / 2
+    const reordered = buildReorderedIds(baseIds, sourceId, targetProjectId, insertAfter)
+    if (dragging.areaId !== areaId || !isSameOrder(reordered, groupIds)) {
+      onReorderProjects({
+        sourceAreaId: dragging.areaId,
+        targetAreaId: areaId,
+        orderedProjectIds: reordered,
+        movedProjectId: sourceId,
+      })
+    }
+    resetDragState()
+  }
 
   return (
-    <aside className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_50px_rgba(45,37,32,0.06)] flex flex-col h-full text-[#2D2520]">
+    <aside className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_50px_rgba(45,37,32,0.06)] flex flex-col h-full text-[var(--on-surface)]">
       <div className="px-5 pt-6 pb-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <AzaharLogo />
           <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-[#736B63]">{t('sidebar.brand')}</p>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--color-text-muted)]">{t('sidebar.brand')}</p>
             <p className="text-lg font-semibold">{t('sidebar.workspace')}</p>
           </div>
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.focus')}</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--color-text-muted)] mb-2">{t('sidebar.focus')}</p>
           <ul className="space-y-1">
             {quickLists.map(view => {
               const total = quickViewStats[view.id]
@@ -98,7 +260,7 @@ export function DesktopSidebar({
                     className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
                       isActive
                         ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                        : 'text-[#2D2520] hover:bg-[var(--color-primary-100)]'
+                        : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     }`}
                   >
                     <span className="flex items-center gap-3">
@@ -115,24 +277,25 @@ export function DesktopSidebar({
           </ul>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.areas')}</p>
           <div className="space-y-3">
-            {areas.length === 0 && <p className="text-sm text-[#736B63]">{t('sidebar.emptyAreas')}</p>}
+            {areas.length === 0 && <p className="text-sm text-[var(--color-text-muted)]">{t('sidebar.emptyAreas')}</p>}
             {areas.map(area => {
               const areaProjects = projects.filter(project => project.area_id === area.id)
               const stats = areaStats.get(area.id)
               const isActiveArea = selectedAreaId === area.id && !selectedProjectId
               return (
-                <div key={area.id} className="rounded-2xl border border-[var(--color-border)] px-3 py-2 bg-[color-mix(in_srgb,var(--color-bg)_80%,var(--color-surface)_20%)]">
+                <div key={area.id} className="px-1 py-1">
                   <button
                     type="button"
-                    onClick={() => onSelectArea(area.id)}
+                    onClick={() => handleAreaClick(area.id)}
+                    onDragOver={(event) => handleAreaDragOver(event, area.id)}
+                    onDrop={(event) => handleAreaDrop(event, area.id)}
                     className={`w-full flex items-center justify-between text-sm font-semibold rounded-xl px-2 py-1 ${
-                      isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[#2D2520] hover:bg-[var(--color-primary-100)]'
-                    }`}
+                      isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                    } ${dragOverAreaId === area.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-[#8FAA8F]" />
+                      <AreaIcon className="h-3.5 w-3.5" />
                       {area.name}
                     </span>
                     <CountPill total={stats?.total} overdue={stats?.overdue} />
@@ -145,21 +308,30 @@ export function DesktopSidebar({
                         <button
                           key={project.id}
                           type="button"
-                          onClick={() => onSelectProject(project.id)}
+                          draggable
+                          onClick={() => handleProjectClick(project.id)}
+                          onDragStart={(event) => handleProjectDragStart(event, project.id, area.id)}
+                          onDragEnd={handleProjectDragEnd}
+                          onDragOver={(event) => handleProjectDragOver(event, project.id)}
+                          onDrop={(event) => handleProjectDrop(event, project.id, area.id)}
                           className={`w-full flex items-center justify-between text-xs rounded-xl px-2 py-1 ${
                             isActiveProject
                               ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] shadow-inner'
-                              : 'text-[#736B63] hover:text-[#2D2520]'
+                              : 'text-[var(--color-text-muted)] hover:text-[var(--on-surface)]'
+                          } ${
+                            draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
+                          } ${
+                            dragOverProjectId === project.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
                           }`}
                         >
-                          <span>{project.name}</span>
+                          <span className="flex items-center gap-2">
+                            <ProjectIcon className="h-3 w-3" />
+                            {project.name}
+                          </span>
                           <CountPill total={projectStat?.total} overdue={projectStat?.overdue} />
                         </button>
                       )
                     })}
-                    {areaProjects.length === 0 && (
-                      <p className="text-xs text-[#736B63]">{t('sidebar.noProjects')}</p>
-                    )}
                   </div>
                 </div>
               )
@@ -168,7 +340,6 @@ export function DesktopSidebar({
         </div>
         {standaloneProjects.length > 0 && (
           <div>
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63] mb-2">{t('sidebar.projects')}</p>
             <div className="space-y-1">
               {standaloneProjects.map(project => {
                 const stats = projectStats.get(project.id)
@@ -177,15 +348,24 @@ export function DesktopSidebar({
                   <button
                     key={project.id}
                     type="button"
-                    onClick={() => onSelectProject(project.id)}
+                    draggable
+                    onClick={() => handleProjectClick(project.id)}
+                    onDragStart={(event) => handleProjectDragStart(event, project.id, null)}
+                    onDragEnd={handleProjectDragEnd}
+                    onDragOver={(event) => handleProjectDragOver(event, project.id)}
+                    onDrop={(event) => handleProjectDrop(event, project.id, null)}
                     className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
                       isActive
                         ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                        : 'text-[#2D2520] hover:bg-[var(--color-primary-100)]'
+                        : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                    } ${
+                      draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
+                    } ${
+                      dragOverProjectId === project.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#C4BDB5]" />
+                      <ProjectIcon className="h-3.5 w-3.5" />
                       {project.name}
                     </span>
                     <CountPill total={stats?.total} overdue={stats?.overdue} />
@@ -208,13 +388,13 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[#736B63] hover:bg-[var(--color-primary-100)]"
+          className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
           aria-label={t('sidebar.settings')}
         >
           <img src={settingsIcon} alt="" className="h-5 w-5" />
         </button>
         {showNewListMenu && (
-          <div className="absolute left-6 right-6 bottom-20 bg-[#2D2520] text-[#FFFCF7] rounded-3xl p-4 space-y-4 shadow-[0_20px_50px_rgba(45,37,32,0.24)] border border-[var(--color-border)]">
+          <div className="absolute left-6 right-6 bottom-20 bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-3xl p-4 space-y-4 shadow-[0_20px_50px_rgba(45,37,32,0.18)] border border-[var(--color-border)]">
             <button
               type="button"
               onClick={onCreateProject}
@@ -223,7 +403,7 @@ export function DesktopSidebar({
               <span className="text-sm font-semibold flex items-center gap-2">
                 <span className="text-blue-300">🌀</span> Nuevo proyecto
               </span>
-              <span className="text-xs text-[#C4BDB5]">Define un objetivo y avanza tarea a tarea.</span>
+              <span className="text-xs text-[var(--color-text-subtle)]">Define un objetivo y avanza tarea a tarea.</span>
             </button>
             <div className="h-px bg-[#4A4340]" />
             <button
@@ -234,7 +414,7 @@ export function DesktopSidebar({
               <span className="text-sm font-semibold flex items-center gap-2">
                 <span className="text-emerald-300">🧩</span> Nueva área
               </span>
-              <span className="text-xs text-[#C4BDB5]">Agrupa proyectos por responsabilidades.</span>
+              <span className="text-xs text-[var(--color-text-subtle)]">Agrupa proyectos por responsabilidades.</span>
             </button>
           </div>
         )}

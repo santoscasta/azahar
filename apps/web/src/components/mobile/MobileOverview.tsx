@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import type { Area, Project } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import searchIcon from '../../assets/icons/search.svg'
+import AreaIcon from '../icons/AreaIcon.js'
+import ProjectIcon from '../icons/ProjectIcon.js'
 
 interface DraftArea {
   name: string
@@ -79,7 +81,7 @@ export function MobileOverview({
     <div className="space-y-6 pb-28">
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]">
           <img src={searchIcon} alt="" className="h-4 w-4" />
         </span>
         <input
@@ -88,7 +90,7 @@ export function MobileOverview({
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
-          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
+          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
       </div>
 
@@ -105,7 +107,7 @@ export function MobileOverview({
               </span>
               <span className="text-base font-medium text-[var(--on-surface)]">{view.label}</span>
             </span>
-            <div className="flex items-center gap-2 text-[#736B63] dark:text-[#E5E7EF]">
+            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               {quickViewStats[view.id] > 0 && <span className="text-sm text-[var(--on-surface)]">{quickViewStats[view.id]}</span>}
               <span className="text-[var(--on-surface)]">›</span>
             </div>
@@ -114,8 +116,11 @@ export function MobileOverview({
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">
-          <span>Áreas</span>
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
+          <span className="inline-flex items-center gap-2">
+            <AreaIcon className="h-4 w-4" />
+            <span className="sr-only">Áreas</span>
+          </span>
         </div>
         {areaDraft && (
           <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
@@ -125,7 +130,7 @@ export function MobileOverview({
               value={areaDraft.name}
               onChange={(event) => onAreaDraftChange(event.target.value)}
               onBlur={(event) => onAreaDraftBlur(event.target.value)}
-              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] outline-none bg-[var(--color-surface)]"
+              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none bg-[var(--color-surface)]"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -152,16 +157,22 @@ export function MobileOverview({
               className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectArea(area.id)}
             >
-              <span className="text-sm text-[var(--on-surface)]">{area.name}</span>
-              <span className="text-[#736B63] dark:text-[#E5E7EF]">›</span>
+              <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
+                <AreaIcon className="h-4 w-4 text-[var(--color-text-muted)]" />
+                {area.name}
+              </span>
+              <span className="text-[var(--color-text-muted)]">›</span>
             </button>
           ))}
         </div>
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[#C4BDB5] dark:text-[#E5E7EF]">
-          <span>Proyectos</span>
+        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
+          <span className="inline-flex items-center gap-2">
+            <ProjectIcon className="h-4 w-4" />
+            <span className="sr-only">Proyectos</span>
+          </span>
         </div>
         {projectDraft && (
           <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
@@ -171,7 +182,7 @@ export function MobileOverview({
               value={projectDraft.name}
               onChange={(event) => onProjectDraftChange(event.target.value)}
               onBlur={(event) => onProjectDraftBlur(event.target.value)}
-              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[#C4BDB5] dark:placeholder-[#E5E7EF] outline-none bg-[var(--color-surface)]"
+              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none bg-[var(--color-surface)]"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -198,8 +209,11 @@ export function MobileOverview({
               className="w-full flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectProject(project.id)}
             >
-              <span className="text-sm text-[var(--on-surface)]">{project.name}</span>
-              <span className="text-[#736B63] dark:text-[#E5E7EF]">›</span>
+              <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
+                <ProjectIcon className="h-4 w-4 text-[var(--color-text-muted)]" />
+                {project.name}
+              </span>
+              <span className="text-[var(--color-text-muted)]">›</span>
             </button>
           ))}
         </div>

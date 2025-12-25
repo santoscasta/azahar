@@ -127,7 +127,7 @@ export function DesktopDraftCard({
         }
         commitDraft()
       }}
-      className="rounded-2xl border border-[var(--color-border)] bg-white text-[#2D2520] shadow-[0_18px_40px_rgba(45,37,32,0.12)] p-5 space-y-4"
+      className="rounded-2xl border border-[var(--color-border)] bg-white text-[var(--on-surface)] shadow-[0_18px_40px_rgba(45,37,32,0.12)] p-5 space-y-4"
     >
       <div className="flex gap-4">
         <span className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-lg border border-[var(--color-border)] text-transparent">
@@ -140,21 +140,21 @@ export function DesktopDraftCard({
             value={draft.title}
             onChange={(event) => onTitleChange(event.target.value)}
             placeholder="Nueva tarea"
-            className="w-full bg-transparent text-lg font-semibold text-[#2D2520] placeholder-[#C4BDB5] outline-none border-b border-transparent focus:border-[var(--color-primary-600)]"
+            className="w-full bg-transparent text-lg font-semibold text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none border-b border-transparent focus:border-[var(--color-primary-600)]"
           />
           <textarea
             value={draft.notes}
             onChange={(event) => onNotesChange(event.target.value)}
             placeholder="Notas"
             rows={2}
-            className="w-full bg-transparent text-sm text-[#736B63] placeholder-[#C4BDB5] outline-none resize-none"
+            className="w-full bg-transparent text-sm text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] outline-none resize-none"
           />
-          <div className="flex items-center justify-between text-sm text-[#736B63] pt-1 flex-wrap gap-3">
+          <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)] pt-1 flex-wrap gap-3">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-primary-100)] border border-[var(--color-border)] font-semibold text-[var(--color-primary-800)]">
               <span className="text-lg">⭐</span>
               {viewLabel}
             </span>
-            <div className="flex items-center gap-2 text-[#9B928A]">
+            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               <button
                 type="button"
                 onClick={onOpenLabels}
@@ -181,7 +181,7 @@ export function DesktopDraftCard({
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-between text-xs text-[#736B63] pt-1 flex-wrap gap-2">
+          <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] pt-1 flex-wrap gap-2">
             <p>Se guarda automáticamente al salir.</p>
             <button
               type="button"

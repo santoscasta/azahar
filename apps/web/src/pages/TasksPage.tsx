@@ -13,6 +13,7 @@ import {
   deleteTask,
   getProjects,
   addProject,
+  updateProject,
   getLabels,
   addLabel,
   deleteLabel,
@@ -1597,6 +1598,33 @@ export default function TasksPage() {
     },
   })
 
+  const reorderProjectsMutation = useMutation({
+    mutationKey: ['mutations', 'projects', 'reorder'],
+    networkMode: 'online',
+    mutationFn: async (updates: { id: string; sort_order: number; area_id?: string | null }[]) => {
+      const results = await Promise.all(
+        updates.map(({ id, ...rest }) => updateProject(id, rest))
+      )
+      const failed = results.find(result => !result.success)
+      if (failed) {
+        return { success: false, error: failed.error || 'Error al reordenar proyectos' }
+      }
+      return { success: true }
+    },
+    onSuccess: (result) => {
+      if (result.success) {
+        setError('')
+      } else {
+        setError(result.error || 'Error al reordenar proyectos')
+      }
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+    onError: () => {
+      setError('Error inesperado al reordenar proyectos')
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+  })
+
   // Mutaciones para headings
   const addHeadingMutation = useMutation({
     mutationKey: ['mutations', 'headings', 'add'],
@@ -1894,6 +1922,101 @@ export default function TasksPage() {
     setActiveProjectFilterChip('all')
     setShowNewListMenu(false)
   }
+
+  const handleReorderProjects = useCallback(
+    ({
+      sourceAreaId,
+      targetAreaId,
+      orderedProjectIds,
+      movedProjectId,
+    }: {
+      sourceAreaId: string | null
+      targetAreaId: string | null
+      orderedProjectIds: string[]
+      movedProjectId: string
+    }) => {
+      const normalizedSource = sourceAreaId ?? null
+      const normalizedTarget = targetAreaId ?? null
+      const sourceGroupIds = projects
+        .filter(project => (project.area_id ?? null) === normalizedSource)
+        .map(project => project.id)
+      const targetGroupIds = projects
+        .filter(project => (project.area_id ?? null) === normalizedTarget)
+        .map(project => project.id)
+      if (!sourceGroupIds.includes(movedProjectId)) {
+        return
+      }
+      const movingAcross = normalizedSource !== normalizedTarget
+      if (!orderedProjectIds.length) {
+        return
+      }
+      let nextTargetIds = orderedProjectIds
+      if (movingAcross && !nextTargetIds.includes(movedProjectId)) {
+        nextTargetIds = [...targetGroupIds, movedProjectId]
+      }
+      const expectedTargetIds = new Set(
+        movingAcross ? [...targetGroupIds, movedProjectId] : targetGroupIds
+      )
+      if (
+        nextTargetIds.length !== expectedTargetIds.size ||
+        !nextTargetIds.every(id => expectedTargetIds.has(id))
+      ) {
+        return
+      }
+      if (
+        !movingAcross &&
+        nextTargetIds.length === sourceGroupIds.length &&
+        nextTargetIds.every((id, index) => id === sourceGroupIds[index])
+      ) {
+        return
+      }
+      const nextSourceIds = movingAcross
+        ? sourceGroupIds.filter(id => id !== movedProjectId)
+        : sourceGroupIds
+      const updates: { id: string; sort_order: number; area_id?: string | null }[] = []
+      nextTargetIds.forEach((id, index) => {
+        const update: { id: string; sort_order: number; area_id?: string | null } = {
+          id,
+          sort_order: index,
+        }
+        if (movingAcross && id === movedProjectId) {
+          update.area_id = normalizedTarget
+        }
+        updates.push(update)
+      })
+      if (movingAcross) {
+        nextSourceIds.forEach((id, index) => {
+          updates.push({ id, sort_order: index })
+        })
+      }
+      queryClient.setQueryData<Project[]>(['projects'], (prev) => {
+        if (!prev) {
+          return prev
+        }
+        const updatesById = new Map(updates.map(update => [update.id, update]))
+        const next = prev.map(project => {
+          const update = updatesById.get(project.id)
+          if (!update) {
+            return project
+          }
+          return {
+            ...project,
+            sort_order: update.sort_order,
+            area_id: update.area_id !== undefined ? update.area_id : project.area_id,
+          }
+        })
+        return [...next].sort((a, b) => {
+          const orderDelta = (a.sort_order ?? 0) - (b.sort_order ?? 0)
+          if (orderDelta !== 0) {
+            return orderDelta
+          }
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+      })
+      reorderProjectsMutation.mutate(updates)
+    },
+    [projects, queryClient, reorderProjectsMutation]
+  )
 
   const handleSelectArea = (areaId: string) => {
     if (selectedAreaId === areaId) {
@@ -2269,6 +2392,7 @@ export default function TasksPage() {
                     onCreateProject={handleCreateProjectFromSidebar}
                     onCreateArea={handleCreateAreaFromSidebar}
                     onOpenSettings={handleOpenSettings}
+                    onReorderProjects={handleReorderProjects}
                   />
                 </div>
                 <section className="space-y-6">
@@ -2287,7 +2411,7 @@ export default function TasksPage() {
                     <button
                       type="button"
                       onClick={() => setShowAssistantChat(true)}
-                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-white/60 border border-[var(--color-border)] text-[#2D2520] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-white/60 border border-[var(--color-border)] text-[var(--on-surface)] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
                     >
                       Chat IA (crear tareas)
                     </button>

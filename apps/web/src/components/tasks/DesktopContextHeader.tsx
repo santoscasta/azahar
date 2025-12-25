@@ -32,12 +32,12 @@ export default function DesktopContextHeader({
     <header className="rounded-[28px] bg-[var(--color-primary-100)] px-8 py-6 space-y-4">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">{label}</p>
-          <h1 className="text-3xl font-semibold text-[#2D2520]">{title}</h1>
-          <p className="text-sm text-[#736B63] mt-1">{description}</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--color-text-muted)]">{label}</p>
+          <h1 className="text-3xl font-semibold text-[var(--on-surface)]">{title}</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">{description}</p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[#736B63]">{pendingLabel}</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--color-text-muted)]">{pendingLabel}</p>
           <p className="text-2xl font-semibold text-[var(--color-primary-700)]">{pendingCount}</p>
           {overdueCount > 0 && <p className="text-xs text-[#FF7A33]">{overdueCount} {overdueLabel}</p>}
         </div>
@@ -54,7 +54,7 @@ export default function DesktopContextHeader({
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
                   isActive
                     ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow'
-                    : 'border-[var(--color-border)] text-[#2D2520] hover:bg-[var(--color-primary-100)]'
+                    : 'border-[var(--color-border)] text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                 }`}
               >
                 {chip.label}

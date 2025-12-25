@@ -27,7 +27,7 @@ function NavButton({ label, icon, active, badge, helperText, onClick }: NavButto
       type="button"
       onClick={onClick}
       className={`flex flex-col items-center gap-1 text-xs font-semibold transition ${
-        active ? 'text-[var(--color-primary-700)]' : 'text-[#736B63]'
+        active ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-muted)]'
       }`}
       aria-pressed={active}
     >
@@ -40,7 +40,7 @@ function NavButton({ label, icon, active, badge, helperText, onClick }: NavButto
         ) : null}
       </span>
       <span>{label}</span>
-      {helperText ? <span className="text-[11px] text-[#736B63] leading-none">{helperText}</span> : null}
+      {helperText ? <span className="text-[11px] text-[var(--color-text-muted)] leading-none">{helperText}</span> : null}
     </button>
   )
 }

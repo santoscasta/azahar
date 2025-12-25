@@ -40,76 +40,76 @@ export default function MoveTaskSheet({
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
-        <div className="mx-auto w-full max-w-md bg-white rounded-[32px] p-5 space-y-5 shadow-2xl">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Mover tarea</p>
-          <p className="text-lg font-semibold text-slate-900">{task?.title || 'Selecciona destino'}</p>
-        </div>
-        <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
-          <section>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">General</p>
-            <button
-              type="button"
-              onClick={() => handleSelection(null, null)}
-              className="w-full flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-left font-medium hover:border-slate-900"
-              disabled={isProcessing}
-            >
-              <span>Inbox</span>
-              <span className="text-lg">→</span>
-            </button>
-          </section>
-          {areas.map(area => (
-            <section key={area.id} className="space-y-2">
+        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[32px] p-5 space-y-5 shadow-2xl border border-[var(--color-border)]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Mover tarea</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">{task?.title || 'Selecciona destino'}</p>
+          </div>
+          <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
+            <section>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)] mb-2">General</p>
               <button
                 type="button"
-                onClick={() => handleSelection(area.id, null)}
-                className="w-full flex items-center justify-between rounded-2xl border border-amber-200 px-4 py-3 text-left font-medium text-amber-700 hover:border-amber-400"
+                onClick={() => handleSelection(null, null)}
+                className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                 disabled={isProcessing}
               >
-                <span>{area.name}</span>
+                <span>Inbox</span>
                 <span className="text-lg">→</span>
               </button>
-              {groupedProjects[area.id]?.map(project => (
+            </section>
+            {areas.map(area => (
+              <section key={area.id} className="space-y-2">
                 <button
-                  key={project.id}
                   type="button"
-                  onClick={() => handleSelection(project.area_id || null, project.id)}
-                  className="w-full flex items-center justify-between rounded-2xl border border-blue-200 px-4 py-3 text-left font-medium text-blue-700 hover:border-blue-400"
+                  onClick={() => handleSelection(area.id, null)}
+                  className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                   disabled={isProcessing}
                 >
-                  <span className="pl-4">{project.name}</span>
+                  <span>{area.name}</span>
                   <span className="text-lg">→</span>
                 </button>
-              ))}
-            </section>
-          ))}
-          {groupedProjects.none && groupedProjects.none.length > 0 && (
-            <section className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Proyectos sin área</p>
-              {groupedProjects.none.map(project => (
-                <button
-                  key={project.id}
-                  type="button"
-                  onClick={() => handleSelection(null, project.id)}
-                  className="w-full flex items-center justify-between rounded-2xl border border-blue-200 px-4 py-3 text-left font-medium text-blue-700 hover:border-blue-400"
-                  disabled={isProcessing}
-                >
-                  <span>{project.name}</span>
-                  <span className="text-lg">→</span>
-                </button>
-              ))}
-            </section>
-          )}
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:border-slate-400"
-          >
-            Cancelar
-          </button>
-        </div>
+                {groupedProjects[area.id]?.map(project => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => handleSelection(project.area_id || null, project.id)}
+                    className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                    disabled={isProcessing}
+                  >
+                    <span className="pl-4">{project.name}</span>
+                    <span className="text-lg">→</span>
+                  </button>
+                ))}
+              </section>
+            ))}
+            {groupedProjects.none && groupedProjects.none.length > 0 && (
+              <section className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Proyectos sin área</p>
+                {groupedProjects.none.map(project => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => handleSelection(null, project.id)}
+                    className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                    disabled={isProcessing}
+                  >
+                    <span>{project.name}</span>
+                    <span className="text-lg">→</span>
+                  </button>
+                ))}
+              </section>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-full border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       </div>
     </div>
