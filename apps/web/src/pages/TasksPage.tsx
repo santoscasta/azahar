@@ -145,6 +145,9 @@ export default function TasksPage() {
   const [headingEditingName, setHeadingEditingName] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  // Force mobile viewports to use the desktop experience.
+  const forceDesktopOnMobile = true
+  const useMobileExperience = isMobile && !forceDesktopOnMobile
   const [showMobileHome, setShowMobileHome] = useState(true)
   const [mobileProjectFocusId, setMobileProjectFocusId] = useState<string | null>(null)
   const [mobileTaskLimit, setMobileTaskLimit] = useState(6)
@@ -281,7 +284,7 @@ export default function TasksPage() {
     const mediaQuery = window.matchMedia('(max-width: 768px)')
     const updateMatches = (matches: boolean) => {
       setIsMobile(matches)
-      if (matches) {
+      if (matches && !forceDesktopOnMobile) {
         setShowMobileHome(true)
       } else {
         setShowMobileHome(false)
@@ -304,10 +307,10 @@ export default function TasksPage() {
   }, [])
 
   useEffect(() => {
-    if (mobileDraftTaskTitleRef.current && isMobile && mobileDraftTask) {
+    if (mobileDraftTaskTitleRef.current && useMobileExperience && mobileDraftTask) {
       mobileDraftTaskTitleRef.current.focus()
     }
-  }, [mobileDraftTask, isMobile])
+  }, [mobileDraftTask, useMobileExperience])
 
   useEffect(() => {
     if (mobileDraftProjectRef.current && mobileDraftProject) {
@@ -792,7 +795,7 @@ export default function TasksPage() {
     setActiveProjectFilterChip('all')
     setShowNewListMenu(false)
     setMobileProjectFocusId(null)
-    if (isMobile) {
+    if (useMobileExperience) {
       setShowMobileHome(false)
     }
   }
@@ -815,7 +818,7 @@ export default function TasksPage() {
   const renderTaskModal = () => (
     <TaskCreationModal
       open={isTaskModalOpen}
-      isMobile={isMobile}
+      isMobile={useMobileExperience}
       draft={taskDraft}
       projects={projects}
       areas={areas}
@@ -864,7 +867,7 @@ export default function TasksPage() {
     })
   }, [language])
 
-  const isMobileDetail = isMobile && !showMobileHome && !isSearchMode
+  const isMobileDetail = useMobileExperience && !showMobileHome && !isSearchMode
   const mobileProject = mobileProjectFocusId ? projects.find(project => project.id === mobileProjectFocusId) ?? null : null
   const selectedAreaProjectCount = selectedArea ? projects.filter(project => project.area_id === selectedArea.id).length : 0
   const isMobileProjectView = isMobileDetail && !!mobileProject
@@ -1049,7 +1052,7 @@ export default function TasksPage() {
   const handleClearSearch = () => {
     setSearchQuery('')
     setIsSearchFocused(false)
-    if (isMobile) {
+    if (useMobileExperience) {
       setShowMobileHome(true)
     }
   }
@@ -1144,7 +1147,7 @@ export default function TasksPage() {
 
   const renderMobileCreationSheet = () => (
     <MobileCreationSheet
-      isOpen={isMobile && showMobileCreationSheet}
+      isOpen={useMobileExperience && showMobileCreationSheet}
       onClose={closeMobileCreationSheet}
       onCreateTask={() => startMobileTaskDraft('inbox', { areaId: null, projectId: null, stayHome: true })}
       onCreateProject={() => {
@@ -2239,7 +2242,7 @@ export default function TasksPage() {
   }
 
   const handleOpenTaskModal = () => {
-    if (isMobile) {
+    if (useMobileExperience) {
       openTaskModal()
       return
     }
@@ -2252,7 +2255,7 @@ export default function TasksPage() {
   }
 
 
-  if (isMobile && showMobileHome) {
+  if (useMobileExperience && showMobileHome) {
     return (
       <main className="app-shell pb-28">
         <div className="max-w-md mx-auto px-4 py-6">
@@ -2322,7 +2325,7 @@ export default function TasksPage() {
 
   return (
     <main className="app-shell">
-      {isMobile ? (
+      {useMobileExperience ? (
         <>
           <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
             <div className="glass-panel p-4 sm:p-5">
