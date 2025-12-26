@@ -26,6 +26,10 @@ type TranslationKey =
   | 'settings.completedContexts.description'
   | 'settings.completedContexts.visible'
   | 'settings.completedContexts.hidden'
+  | 'settings.mobilePreview.title'
+  | 'settings.mobilePreview.description'
+  | 'settings.mobilePreview.enabled'
+  | 'settings.mobilePreview.disabled'
   | 'settings.account'
   | 'settings.accountHint'
   | 'settings.logout.aria'
@@ -189,6 +193,10 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'settings.completedContexts.description': 'Incluye una sección “Completadas” en vistas de proyecto y área.',
     'settings.completedContexts.visible': 'Visibles',
     'settings.completedContexts.hidden': 'Ocultas',
+    'settings.mobilePreview.title': 'Modo móvil (QA)',
+    'settings.mobilePreview.description': 'Fuerza la interfaz móvil desde escritorio sin cambiar el ancho de pantalla.',
+    'settings.mobilePreview.enabled': 'Activo',
+    'settings.mobilePreview.disabled': 'Inactivo',
     'settings.account': 'Cuenta',
     'settings.accountHint': 'Cerrar sesión y volver a la pantalla de inicio',
     'settings.logout.aria': 'Cerrar sesión',
@@ -351,6 +359,10 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'settings.completedContexts.description': 'Adds a “Completed” section in project and area views.',
     'settings.completedContexts.visible': 'Visible',
     'settings.completedContexts.hidden': 'Hidden',
+    'settings.mobilePreview.title': 'Mobile mode (QA)',
+    'settings.mobilePreview.description': 'Forces the mobile interface on desktop without changing the viewport width.',
+    'settings.mobilePreview.enabled': 'Enabled',
+    'settings.mobilePreview.disabled': 'Disabled',
     'settings.account': 'Account',
     'settings.accountHint': 'Log out and return to the start screen',
     'settings.logout.aria': 'Log out',

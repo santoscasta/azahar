@@ -14,6 +14,7 @@ const mockSettings: SettingsState = {
   theme: 'dark',
   language: 'en',
   showCompletedInContexts: false,
+  forceMobileView: true,
   customViewNames: { today: 'Focus' },
 }
 

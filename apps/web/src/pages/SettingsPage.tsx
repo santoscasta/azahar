@@ -202,6 +202,21 @@ export default function SettingsPage() {
             </label>
           </div>
 
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-semibold text-[var(--on-surface)]">{t('settings.mobilePreview.title')}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t('settings.mobilePreview.description')}</p>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--on-surface)]">
+              <input
+                type="checkbox"
+                checked={settings.forceMobileView}
+                onChange={(event) => setSettings(prev => ({ ...prev, forceMobileView: event.target.checked }))}
+              />
+              {settings.forceMobileView ? t('settings.mobilePreview.enabled') : t('settings.mobilePreview.disabled')}
+            </label>
+          </div>
+
           <div className="flex justify-end">
             <button
               type="button"
