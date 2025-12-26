@@ -419,7 +419,7 @@ export default function TasksPage() {
       const titleMatch = task.title.toLowerCase().includes(query)
       const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
       const projectName = task.project_id
-        ? projects.find(project => project.id === task.project_id)?.name.toLowerCase()
+        ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
         : ''
       const projectMatch = projectName ? projectName.includes(query) : false
       return titleMatch || notesMatch || projectMatch
@@ -1493,6 +1493,7 @@ export default function TasksPage() {
       project_id?: string | null
       area_id?: string | null
       heading_id?: string | null
+      quick_view?: QuickViewId
       labelIds?: string[]
       clientMutationId?: string
     }) => {
@@ -1505,7 +1506,9 @@ export default function TasksPage() {
         args.status ?? 'open',
         args.project_id ?? null,
         args.area_id ?? null,
-        args.heading_id ?? null
+        args.heading_id ?? null,
+        clientMutationId,
+        args.quick_view
       )
       if (!result.success || !result.task) {
         throw new Error(result.error || 'Error al crear tarea')
@@ -2096,6 +2099,7 @@ export default function TasksPage() {
       project_id: targetProjectId,
       area_id: targetAreaId,
       heading_id: taskDraft.headingId,
+      quick_view: taskDraft.view,
       labelIds: taskDraft.labelIds,
     }, {
       onSuccess: () => {

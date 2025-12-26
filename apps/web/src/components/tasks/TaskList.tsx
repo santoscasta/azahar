@@ -327,7 +327,7 @@ export default function TaskList({
               metaItems.push(
                 <span key="due" className="min-w-0 inline-flex items-center gap-1 whitespace-nowrap">
                   <CalendarIcon className="h-3.5 w-3.5" />
-                  {new Date(task.due_at).toLocaleDateString('es-ES')}
+                  {formatDateLabel(task.due_at)}
                 </span>
               )
             }
@@ -583,7 +583,7 @@ export default function TaskList({
                       {task.due_at && (
                         <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] inline-flex items-center gap-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
-                          {new Date(task.due_at).toLocaleDateString('es-ES')}
+                          {formatDateLabel(task.due_at)}
                         </span>
                       )}
                     </div>

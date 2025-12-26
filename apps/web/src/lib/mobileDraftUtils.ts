@@ -19,6 +19,7 @@ export function buildMobileTaskPayload(draft: MobileDraftInput) {
     due_at: draft.due_at,
     project_id: draft.projectId,
     area_id: draft.areaId,
+    quick_view: draft.view,
     labelIds: draft.labelIds,
   }
 }
