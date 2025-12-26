@@ -187,6 +187,9 @@ export default function DatePickerOverlay({
               Limpiar
             </button>
           </div>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Confirma la fecha con el botón aplicar para guardar el cambio.
+          </p>
           <div className="flex justify-end gap-2 pt-1 text-sm">
             <button
               type="button"
@@ -200,7 +203,7 @@ export default function DatePickerOverlay({
               onClick={handleApply}
               className="min-h-[44px] px-6 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] font-semibold shadow-sm"
             >
-              Aplicar
+              Aplicar fecha
             </button>
           </div>
         </div>
