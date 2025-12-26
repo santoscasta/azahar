@@ -297,7 +297,8 @@ export async function addTask(
   project_id?: string | null,
   area_id?: string | null,
   heading_id?: string | null,
-  client_mutation_id?: string
+  client_mutation_id?: string,
+  quick_view?: TaskQuickView
 ): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
     if (bypassE2E) {
@@ -322,6 +323,7 @@ export async function addTask(
           created_at: new Date().toISOString(),
           completed_at: status === 'done' ? new Date().toISOString() : null,
           pinned: false,
+          quick_view: quick_view ?? undefined,
         },
       }
     }
@@ -344,6 +346,10 @@ export async function addTask(
       project_id: project_id || null,
       area_id: area_id || null,
       heading_id: heading_id || null,
+    }
+
+    if (quick_view) {
+      insertPayload.quick_view = quick_view
     }
 
     if (enableMutationIds && client_mutation_id) {
