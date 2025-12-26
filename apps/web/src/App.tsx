@@ -81,21 +81,13 @@ export default function App() {
     }
 
     if (prefersDark) {
-      if ('addEventListener' in prefersDark) {
-        prefersDark.addEventListener('change', handleSystemThemeChange)
-      } else {
-        prefersDark.addListener(handleSystemThemeChange)
-      }
+      prefersDark.addEventListener('change', handleSystemThemeChange)
     }
 
     return () => {
       unsubscribe()
       if (!prefersDark) return
-      if ('removeEventListener' in prefersDark) {
-        prefersDark.removeEventListener('change', handleSystemThemeChange)
-      } else {
-        prefersDark.removeListener(handleSystemThemeChange)
-      }
+      prefersDark.removeEventListener('change', handleSystemThemeChange)
     }
   }, [])
 
