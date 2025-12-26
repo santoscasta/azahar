@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Area, Project } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
@@ -79,6 +80,10 @@ export function MobileOverview({
   onOpenHelp,
 }: MobileOverviewProps) {
   const { t } = useTranslations()
+  const [showAllAreas, setShowAllAreas] = useState(false)
+  const [showAllProjects, setShowAllProjects] = useState(false)
+  const visibleAreas = showAllAreas ? areas : areas.slice(0, 4)
+  const visibleProjects = showAllProjects ? projects : projects.slice(0, 4)
   return (
     <div className="space-y-6 pb-28">
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
@@ -127,6 +132,15 @@ export function MobileOverview({
             <AreaIcon className="h-4 w-4" />
             <span className="sr-only">Áreas</span>
           </span>
+          {areas.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setShowAllAreas(prev => !prev)}
+              className="min-h-[44px] px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
+            >
+              {showAllAreas ? 'Ocultar' : 'Ver todo'}
+            </button>
+          )}
         </div>
         {areaDraft && (
           <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
@@ -157,7 +171,7 @@ export function MobileOverview({
           </div>
         )}
         <div className="space-y-2">
-          {areas.slice(0, 4).map(area => (
+          {visibleAreas.map(area => (
             <button
               key={`mobile-area-${area.id}`}
               className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-xl border border-transparent hover:border-[var(--color-border)]"
@@ -179,6 +193,15 @@ export function MobileOverview({
             <ProjectIcon className="h-4 w-4" />
             <span className="sr-only">Proyectos</span>
           </span>
+          {projects.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setShowAllProjects(prev => !prev)}
+              className="min-h-[44px] px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
+            >
+              {showAllProjects ? 'Ocultar' : 'Ver todo'}
+            </button>
+          )}
         </div>
         {projectDraft && (
           <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
@@ -209,7 +232,7 @@ export function MobileOverview({
           </div>
         )}
         <div className="space-y-2">
-          {projects.slice(0, 4).map(project => (
+          {visibleProjects.map(project => (
             <button
               key={`mobile-project-${project.id}`}
               className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-xl border border-transparent hover:border-[var(--color-border)]"

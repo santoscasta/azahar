@@ -177,6 +177,7 @@ export default function TasksPage() {
   const [isChecklistSheetOpen, setChecklistSheetOpen] = useState(false)
   const [isPriorityMenuOpen, setPriorityMenuOpen] = useState(false)
   const [overflowTaskId, setOverflowTaskId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
   const [showCompletedInContext, setShowCompletedInContext] = useState(true)
   const [customViewNames, setCustomViewNames] = useState<Partial<Record<QuickViewId, string>>>({})
   const [showAssistantChat, setShowAssistantChat] = useState(false)
@@ -736,6 +737,22 @@ export default function TasksPage() {
     setMoveSheetTaskId(null)
   }
 
+  const handleRequestDeleteTask = (taskId: string) => {
+    const targetTask = tasks.find(task => task.id === taskId)
+    setDeleteTarget({ id: taskId, title: targetTask?.title || 'Tarea' })
+  }
+
+  const handleCancelDelete = () => {
+    setDeleteTarget(null)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) {
+      return
+    }
+    deleteTaskMutation.mutate(deleteTarget.id)
+  }
+
   const handleConfirmMoveDestination = (destination: { areaId: string | null; projectId: string | null }) => {
     if (!moveSheetTaskId) {
       return
@@ -793,7 +810,7 @@ export default function TasksPage() {
       onCancelEdit={handleCancelEdit}
       onToggleTask={(taskId) => toggleTaskMutation.mutate(taskId)}
       togglePending={toggleTaskMutation.isPending}
-      onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
+      onDeleteTask={handleRequestDeleteTask}
       deletePending={deleteTaskMutation.isPending}
       onOpenEditDatePicker={() => openDatePicker('edit')}
       onOpenLabelSheet={handleOpenTaskLabelSheet}
@@ -942,6 +959,50 @@ export default function TasksPage() {
       onCreateInlineLabel={handleInlineLabelCreate}
     />
   )
+
+  const renderDeleteConfirmation = () => {
+    if (!deleteTarget) {
+      return null
+    }
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay)] backdrop-blur-sm p-4"
+        onClick={handleCancelDelete}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="px-6 py-5 border-b border-[var(--color-border)]">
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Confirmar eliminación</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">Eliminar tarea</p>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">
+              ¿Seguro que deseas enviar a la papelera la tarea <span className="font-semibold text-[var(--on-surface)]">"{deleteTarget.title}"</span>?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancelDelete}
+                className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleteTaskMutation.isPending}
+                className="min-h-[44px] px-5 py-2 rounded-xl bg-[var(--color-danger-500)] text-[var(--on-primary)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const selectedProject = selectedProjectId ? projects.find(project => project.id === selectedProjectId) ?? null : null
   const selectedArea = selectedAreaId ? areas.find(area => area.id === selectedAreaId) ?? null : null
@@ -1566,8 +1627,32 @@ export default function TasksPage() {
       }
       return updated
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.success) {
+        const resolvedTitle = variables.title.trim() ? variables.title.trim() : 'Nueva tarea'
+        queryClient.setQueriesData({ queryKey: ['tasks'] }, (old: Task[] | undefined) => {
+          if (!old) return old
+          return old.map(task => {
+            if (task.id !== variables.taskId) return task
+            return {
+              ...task,
+              ...result.task,
+              title: resolvedTitle,
+              notes: variables.notes,
+              priority: variables.priority,
+              due_at: variables.dueAt || null,
+              project_id: variables.projectId,
+              area_id: variables.areaId,
+              heading_id: variables.headingId,
+            }
+          })
+        })
+        const previousTitle = tasks.find(task => task.id === variables.taskId)?.title || ''
+        if (previousTitle && previousTitle.trim() !== resolvedTitle) {
+          pushSuccessMessage('Tarea renombrada')
+        } else {
+          pushSuccessMessage('Tarea actualizada')
+        }
         setEditingId(null)
         setEditingTitle('')
         setEditingNotes('')
@@ -1674,6 +1759,8 @@ export default function TasksPage() {
     onSuccess: (result) => {
       if (result.success) {
         setError('')
+        setDeleteTarget(null)
+        pushSuccessMessage('Tarea eliminada')
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
       } else {
         setError(result.error || 'Error al eliminar tarea')
@@ -2345,6 +2432,10 @@ export default function TasksPage() {
   }
 
   const handleMobileBack = () => {
+    if (isSearchMode) {
+      handleClearSearch()
+      return
+    }
     if (mobileProjectFocusId) {
       setMobileProjectFocusId(null)
       setSelectedProjectId(null)
@@ -2451,6 +2542,7 @@ export default function TasksPage() {
         {renderPriorityMenu()}
         {renderOverflowMenu()}
         {renderLabelSheet()}
+        {renderDeleteConfirmation()}
         <TaskDatePickerOverlay
           target={datePickerTarget}
           month={datePickerMonth}
@@ -2635,6 +2727,7 @@ export default function TasksPage() {
       {renderPriorityMenu()}
       {renderOverflowMenu()}
       {renderLabelSheet()}
+      {renderDeleteConfirmation()}
       {assistantEnabled && (
         <AssistantChat
           open={showAssistantChat}
