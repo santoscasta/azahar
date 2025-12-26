@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { formatISODate } from '../../lib/dateUtils.js'
+import { formatISODate, parseISODate } from '../../lib/dateUtils.js'
 
 type PickerMode = 'new' | 'edit' | 'draft'
 
@@ -45,12 +45,13 @@ export default function DatePickerOverlay({
 
   const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
   const monthLabel = month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-  const weekendDate = new Date(todayISO)
-  const dayOfWeek = weekendDate.getDay()
+  const baseDate = parseISODate(todayISO) ?? new Date()
+  const weekendDate = new Date(baseDate)
+  const dayOfWeek = baseDate.getDay()
   const daysUntilWeekend = dayOfWeek === 6 ? 0 : 6 - dayOfWeek
   weekendDate.setDate(weekendDate.getDate() + daysUntilWeekend)
   const weekendISO = formatISODate(weekendDate)
-  const nextWeekDate = new Date(todayISO)
+  const nextWeekDate = new Date(baseDate)
   nextWeekDate.setDate(nextWeekDate.getDate() + 7)
   const nextWeekISO = formatISODate(nextWeekDate)
 
