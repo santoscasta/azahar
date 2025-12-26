@@ -230,7 +230,7 @@ export default function TasksPage() {
   }, [])
 
   // Consulta para obtener tareas con búsqueda y filtros
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasksData = [], isLoading } = useQuery({
     queryKey: ['tasks', normalizedSearch, sortedLabelIds],
     queryFn: async () => {
       const result = await searchTasks({
@@ -247,6 +247,28 @@ export default function TasksPage() {
       return result.tasks || []
     },
   })
+  const tasks = useMemo(() => {
+    const deduped: Task[] = []
+    const indexById = new Map<string, number>()
+    tasksData.forEach(task => {
+      const existingIndex = indexById.get(task.id)
+      if (existingIndex === undefined) {
+        indexById.set(task.id, deduped.length)
+        deduped.push(task)
+        return
+      }
+      const existing = deduped[existingIndex]
+      const existingUpdated = Date.parse(existing.updated_at || '')
+      const nextUpdated = Date.parse(task.updated_at || '')
+      if (
+        Number.isNaN(existingUpdated) ||
+        (!Number.isNaN(nextUpdated) && nextUpdated >= existingUpdated)
+      ) {
+        deduped[existingIndex] = task
+      }
+    })
+    return deduped
+  }, [tasksData])
 
   // Consulta para obtener proyectos
   const { data: projects = [] } = useQuery({
