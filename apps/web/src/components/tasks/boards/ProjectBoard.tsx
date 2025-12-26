@@ -57,16 +57,16 @@ export default function ProjectBoard({
   return (
     <div className="space-y-6">
       <div className="az-card overflow-hidden">
-        <div className="px-6 py-5 border-b border-[var(--color-border)]">
+        <div className="px-6 py-6 border-b border-[var(--color-border)]">
           <div className="flex flex-wrap items-center gap-4 justify-between">
             <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Proyecto</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Proyecto</p>
               <h2 className="text-lg font-semibold text-[var(--on-surface)]">{project.name}</h2>
               {project.area_id && areaName && (
                 <button
                   type="button"
                   onClick={() => onSelectArea(project.area_id!)}
-                  className="text-xs font-semibold text-[var(--color-text-muted)] underline-offset-2 hover:underline"
+                  className="min-h-[44px] inline-flex items-center text-xs font-semibold text-[var(--color-text-muted)] underline-offset-2 hover:underline"
                 >
                   {areaName}
                 </button>
@@ -96,10 +96,10 @@ export default function ProjectBoard({
                       onChange={(event) => onChangeHeadingName(event.target.value)}
                       className="flex-1 px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                     />
-                    <button type="submit" className="az-btn-primary px-3 py-1 text-xs">
+                    <button type="submit" className="az-btn-primary min-h-[44px] px-4 py-2 text-xs">
                       Guardar
                     </button>
-                    <button type="button" onClick={onCancelHeadingEdit} className="az-btn-secondary px-3 py-1 text-xs">
+                    <button type="button" onClick={onCancelHeadingEdit} className="az-btn-secondary min-h-[44px] px-4 py-2 text-xs">
                       Cancelar
                     </button>
                   </form>
@@ -116,7 +116,7 @@ export default function ProjectBoard({
                       <button
                         type="button"
                         onClick={() => onStartEditHeading(heading.id, heading.name)}
-                        className="p-1 rounded-full text-xs text-[var(--color-text-muted)] hover:text-[var(--on-surface)]"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-xs text-[var(--color-text-muted)] hover:text-[var(--on-surface)]"
                         title="Renombrar"
                       >
                         ✏️
@@ -124,7 +124,7 @@ export default function ProjectBoard({
                       <button
                         type="button"
                         onClick={() => onDeleteHeading(heading.id)}
-                        className="p-1 rounded-full text-xs text-rose-500 hover:text-rose-700"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-xs text-[var(--color-danger-500)] hover:opacity-80"
                         title="Eliminar"
                       >
                         🗑️
@@ -139,7 +139,7 @@ export default function ProjectBoard({
             <section key={heading.id} className="space-y-3">
               <div className="flex items-center justify_between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Sección</p>
+                  <p className="text-sm font-semibold text-[var(--color-text-muted)]">Sección</p>
                   <p className="text-base font-semibold text-[var(--on-surface)]">{heading.name}</p>
                   <p className="text-xs text-[var(--color-text-muted)]">
                     {(openTasksByHeading.get(heading.id)?.length || 0)} tarea
@@ -153,7 +153,7 @@ export default function ProjectBoard({
           {unassignedOpen.length > 0 && renderTaskList(unassignedOpen, { showEmptyState: false })}
           {showCompletedTasks && completedTasks.length > 0 && (
             <section className="space-y-3">
-              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Completadas</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Completadas</p>
               {renderTaskList(completedTasks, { showEmptyState: false })}
             </section>
           )}

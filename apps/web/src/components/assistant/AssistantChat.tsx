@@ -92,8 +92,8 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
 
   return (
     <div className={containerClass}>
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-xl bg-white border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-[var(--color-overlay)] backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="relative w-full max-w-xl bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
           <div>
             <p className="text-sm font-semibold text-[var(--on-surface)]">Asistente IA</p>
@@ -102,7 +102,7 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+            className="h-11 w-11 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)] flex items-center justify-center"
             aria-label="Cerrar chat"
           >
             ×
@@ -118,7 +118,7 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
                 className={
                   message.role === 'user'
                     ? 'max-w-[90%] rounded-2xl bg-[var(--color-primary-100)] text-[var(--on-surface)] px-3 py-2 text-sm shadow-sm'
-                    : 'max-w-[90%] rounded-2xl bg-white border border-[var(--color-border)] text-[var(--on-surface)] px-3 py-2 text-sm shadow-sm'
+                    : 'max-w-[90%] rounded-2xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--on-surface)] px-3 py-2 text-sm shadow-sm'
                 }
               >
                 {message.content}
@@ -143,14 +143,14 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-2 text-sm rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+              className="min-h-[44px] px-3 py-2 text-sm rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
             >
               Cerrar
             </button>
             <button
               type="submit"
               disabled={!canSend}
-              className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+              className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] hover:bg-[var(--color-primary-700)] disabled:opacity-50"
             >
               {isSending ? 'Enviando...' : 'Enviar'}
             </button>

@@ -7,12 +7,36 @@ export interface ActiveFilterDescriptor {
   label: string
   type: 'project' | 'label' | 'area'
   referenceId: string
+  color?: string | null
 }
 
 const resolveTaskArea = (task: Task, projectMap?: Map<string, Pick<Project, 'area_id'>>) => {
   if (task.area_id) return task.area_id
   if (!task.project_id || !projectMap) return null
   return projectMap.get(task.project_id)?.area_id ?? null
+}
+
+const waitingLabels = new Set(['waiting', 'waiting for', 'en espera', 'espera', 'esperando'])
+const referenceLabels = new Set(['reference', 'referencia', 'archivo', 'documentacion', 'documentación'])
+
+export const getLabelQuickView = (labelName: string): QuickViewId | null => {
+  const normalized = labelName.trim().toLowerCase()
+  if (waitingLabels.has(normalized)) {
+    return 'waiting'
+  }
+  if (referenceLabels.has(normalized)) {
+    return 'reference'
+  }
+  return null
+}
+
+const resolveLabelQuickView = (task: Task): QuickViewId | null => {
+  if (!task.labels || task.labels.length === 0) return null
+  for (const label of task.labels) {
+    const view = getLabelQuickView(label.name)
+    if (view) return view
+  }
+  return null
 }
 
 export function normalizeDate(value?: string | null): string | null {
@@ -30,7 +54,9 @@ export function buildQuickViewStats(tasks: Task[], todayISO: string) {
     today: 0,
     upcoming: 0,
     anytime: 0,
+    waiting: 0,
     someday: 0,
+    reference: 0,
     logbook: 0,
   }
 
@@ -73,6 +99,10 @@ export function getTaskView(task: Task, todayISO: string): QuickViewId {
   }
   if (task.status === 'snoozed') {
     return 'someday'
+  }
+  const labelView = resolveLabelQuickView(task)
+  if (labelView) {
+    return labelView
   }
 
   const normalized = normalizeDate(task.due_at)
@@ -133,6 +163,7 @@ export function buildActiveFilters(
       label: `Etiqueta: ${label.name}`,
       type: 'label',
       referenceId: label.id,
+      color: label.color,
     })
   })
 

@@ -1,4 +1,5 @@
 import type { ActiveFilterDescriptor } from '../../pages/tasksSelectors.js'
+import { getSoftLabelStyle } from '../../lib/colorUtils.js'
 
 interface ActiveFilterChipsProps {
   filters: ActiveFilterDescriptor[]
@@ -13,7 +14,11 @@ export default function ActiveFilterChips({ filters, compact = false, onRemove }
   return (
     <div className={`flex flex-wrap gap-2 ${compact ? 'px-1' : ''}`}>
       {filters.map(filter => (
-        <span key={filter.key} className="az-pill">
+        <span
+          key={filter.key}
+          className="az-pill"
+          style={filter.type === 'label' ? getSoftLabelStyle(filter.color) : undefined}
+        >
           {filter.label}
           <button
             type="button"

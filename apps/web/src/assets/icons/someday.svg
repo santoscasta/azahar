@@ -1,12 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <linearGradient id="somedayGradient" x1="16" y1="14" x2="50" y2="50" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#9A7FF0"/>
-      <stop offset="1" stop-color="#5E7FA3"/>
-    </linearGradient>
-  </defs>
-  <rect x="14" y="18" width="36" height="26" rx="6" stroke="url(#somedayGradient)" stroke-width="3" fill="rgba(255,255,255,0.06)"/>
-  <path d="M20 24h24" stroke="#9A7FF0" stroke-width="3" stroke-linecap="round"/>
-  <path d="M20 30h18" stroke="#5E7FA3" stroke-width="3" stroke-linecap="round"/>
-  <path d="M22 38h8l3 3 3-3h8" stroke="#9A7FF0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" vector-effect="non-scaling-stroke">
+    <rect x="14" y="18" width="36" height="26" rx="6" stroke="#4F6FD8" />
+    <path d="M20 24h24" stroke="#6FAEF5" />
+    <path d="M20 30h18" stroke="#4F6FD8" />
+    <path d="M22 38h8l3 3 3-3h8" stroke="#6FAEF5" />
+  </g>
 </svg>

@@ -37,6 +37,7 @@ import {
   isFilteredView,
   normalizeDate,
   getTaskView,
+  getLabelQuickView,
   type QuickViewId,
   type ActiveFilterDescriptor,
 } from './tasksSelectors.js'
@@ -79,7 +80,9 @@ import inboxIcon from '../assets/icons/inbox.svg'
 import todayIcon from '../assets/icons/today.svg'
 import upcomingIcon from '../assets/icons/upcoming.svg'
 import anytimeIcon from '../assets/icons/anytime.svg'
+import waitingIcon from '../assets/icons/waiting.svg'
 import somedayIcon from '../assets/icons/someday.svg'
+import referenceIcon from '../assets/icons/reference.svg'
 import logbookIcon from '../assets/icons/logbook.svg'
 
 type LabelSheetTarget = { kind: 'draft-task' } | { kind: 'task'; taskId: string } | null
@@ -135,6 +138,9 @@ export default function TasksPage() {
   const navigate = useNavigate()
   const handleOpenSettings = useCallback(() => {
     navigate('/settings')
+  }, [navigate])
+  const handleOpenHelp = useCallback(() => {
+    navigate('/help')
   }, [navigate])
   const [inlineLabelName, setInlineLabelName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -370,7 +376,9 @@ export default function TasksPage() {
       today: 0,
       upcoming: 0,
       anytime: 0,
+      waiting: 0,
       someday: 0,
+      reference: 0,
       logbook: 0,
     }
     tasks.forEach(task => {
@@ -427,6 +435,7 @@ export default function TasksPage() {
   }, [todayISO])
   const applyViewPreset = (view: QuickViewId) => {
     updateTaskDraft('view', view)
+    applyQuickViewLabels(view)
     switch (view) {
       case 'today':
         updateTaskDraft('due_at', todayISO)
@@ -440,6 +449,8 @@ export default function TasksPage() {
         break
       }
       case 'anytime':
+      case 'waiting':
+      case 'reference':
         updateTaskDraft('due_at', '')
         updateTaskDraft('status', 'open')
         break
@@ -751,7 +762,9 @@ export default function TasksPage() {
     today: customViewNames.today?.trim() || translate(language, 'view.today'),
     upcoming: customViewNames.upcoming?.trim() || translate(language, 'view.upcoming'),
     anytime: customViewNames.anytime?.trim() || translate(language, 'view.anytime'),
+    waiting: customViewNames.waiting?.trim() || translate(language, 'view.waiting'),
     someday: customViewNames.someday?.trim() || translate(language, 'view.someday'),
+    reference: customViewNames.reference?.trim() || translate(language, 'view.reference'),
     logbook: customViewNames.logbook?.trim() || translate(language, 'view.logbook'),
   }), [customViewNames, language])
 
@@ -760,19 +773,57 @@ export default function TasksPage() {
     today: translate(language, 'view.desc.today'),
     upcoming: translate(language, 'view.desc.upcoming'),
     anytime: translate(language, 'view.desc.anytime'),
+    waiting: translate(language, 'view.desc.waiting'),
     someday: translate(language, 'view.desc.someday'),
+    reference: translate(language, 'view.desc.reference'),
     logbook: translate(language, 'view.desc.logbook'),
   }), [language])
   const searchViewLabel = translate(language, 'view.search')
   const searchViewDescription = translate(language, 'view.desc.search')
+  const quickViewLabelIds = useMemo(() => {
+    const payload: Record<'waiting' | 'reference', string[]> = { waiting: [], reference: [] }
+    labels.forEach(label => {
+      const view = getLabelQuickView(label.name)
+      if (view === 'waiting' || view === 'reference') {
+        payload[view].push(label.id)
+      }
+    })
+    return payload
+  }, [labels])
+  const getDraftLabelIdsForView = useCallback(
+    (view: QuickViewId, current: string[]) => {
+      const waitingIds = quickViewLabelIds.waiting
+      const referenceIds = quickViewLabelIds.reference
+      if (waitingIds.length === 0 && referenceIds.length === 0) {
+        return current
+      }
+      const cleaned = current.filter(id => !waitingIds.includes(id) && !referenceIds.includes(id))
+      if (view === 'waiting' && waitingIds.length) {
+        return Array.from(new Set([...cleaned, ...waitingIds]))
+      }
+      if (view === 'reference' && referenceIds.length) {
+        return Array.from(new Set([...cleaned, ...referenceIds]))
+      }
+      return cleaned
+    },
+    [quickViewLabelIds]
+  )
+  const applyQuickViewLabels = useCallback(
+    (view: QuickViewId) => {
+      setTaskLabels(prev => getDraftLabelIdsForView(view, prev))
+    },
+    [getDraftLabelIdsForView, setTaskLabels]
+  )
 
   const quickLists = useMemo(() => ([
-    { id: 'inbox', label: quickViewLabels.inbox, icon: inboxIcon, accent: 'text-slate-700' },
-    { id: 'today', label: quickViewLabels.today, icon: todayIcon, accent: 'text-amber-500' },
-    { id: 'upcoming', label: quickViewLabels.upcoming, icon: upcomingIcon, accent: 'text-sky-500' },
-    { id: 'anytime', label: quickViewLabels.anytime, icon: anytimeIcon, accent: 'text-emerald-600' },
-    { id: 'someday', label: quickViewLabels.someday, icon: somedayIcon, accent: 'text-violet-500' },
-    { id: 'logbook', label: quickViewLabels.logbook, icon: logbookIcon, accent: 'text-slate-400' },
+    { id: 'inbox', label: quickViewLabels.inbox, icon: inboxIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'today', label: quickViewLabels.today, icon: todayIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'upcoming', label: quickViewLabels.upcoming, icon: upcomingIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'anytime', label: quickViewLabels.anytime, icon: anytimeIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'waiting', label: quickViewLabels.waiting, icon: waitingIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'someday', label: quickViewLabels.someday, icon: somedayIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'reference', label: quickViewLabels.reference, icon: referenceIcon, accent: 'text-[var(--color-text-muted)]' },
+    { id: 'logbook', label: quickViewLabels.logbook, icon: logbookIcon, accent: 'text-[var(--color-text-muted)]' },
   ] as const), [quickViewLabels])
   const creationViewOptions = quickLists.filter(list => list.id !== 'logbook')
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]
@@ -1098,6 +1149,7 @@ export default function TasksPage() {
       updateTaskDraft('due_at', normalized)
       const nextView = determineViewFromDate(normalized, todayISO, taskDraft.view)
       updateTaskDraft('view', nextView)
+      applyQuickViewLabels(nextView)
       updateTaskDraft('status', nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
     } else if (datePickerTarget === 'edit') {
       setEditingDueAt(normalized)
@@ -1173,6 +1225,7 @@ export default function TasksPage() {
                 ...prev,
                 view,
                 due_at: defaultDueForView(view, todayISO, tomorrowISO),
+                labelIds: getDraftLabelIdsForView(view, prev.labelIds),
               }
             : prev
         )
@@ -1784,7 +1837,7 @@ export default function TasksPage() {
       areaId: appliedAreaId || null,
       projectId: targetProjectId || null,
       due_at: defaultDueForView(view, todayISO, tomorrowISO),
-      labelIds: [],
+      labelIds: getDraftLabelIdsForView(view, []),
     }))
   }
 
@@ -2147,17 +2200,15 @@ export default function TasksPage() {
     if (isQuickViewContext && isLoading && filteredTasks.length === 0 && !hasDraft) {
       return (
         <div className="az-card overflow-hidden">
-          <div className="p-10 text-center text-slate-500">Cargando tareas...</div>
+          <div className="p-10 text-center text-[var(--color-text-muted)]">Cargando tareas...</div>
         </div>
       )
     }
     if (isQuickViewContext && filteredTasks.length === 0 && !hasDraft) {
       return (
         <div className="az-card overflow-hidden">
-          <div className="p-10 text-center text-slate-500">
-            {filteredViewActive
-              ? 'No hay tareas que coincidan con tu vista actual.'
-              : 'No hay tareas todavía. ¡Crea la primera!'}
+          <div className="p-10 text-center text-[var(--color-text-muted)]">
+            {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
           </div>
         </div>
       )
@@ -2236,7 +2287,7 @@ export default function TasksPage() {
     updateTaskDraft('view', defaultView)
     updateTaskDraft('status', defaultView === 'someday' ? 'snoozed' : 'open')
     updateTaskDraft('due_at', defaultDue)
-    setTaskLabels([])
+    setTaskLabels(getDraftLabelIdsForView(defaultView, []))
     setInlineLabelName('')
     setShowDesktopDraft(true)
   }
@@ -2286,6 +2337,7 @@ export default function TasksPage() {
               onSaveProjectDraft={handleSaveMobileDraftProject}
               onSelectProject={handleOpenMobileProject}
               onOpenSettings={handleOpenSettings}
+              onOpenHelp={handleOpenHelp}
             />
           </div>
         </div>
@@ -2326,7 +2378,7 @@ export default function TasksPage() {
       {useMobileExperience ? (
         <>
           <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
-            <div className="glass-panel p-4 sm:p-5">
+            <div className="glass-panel p-4 sm:p-6">
               <MobileTasksPane
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -2390,6 +2442,7 @@ export default function TasksPage() {
                     onCreateProject={handleCreateProjectFromSidebar}
                     onCreateArea={handleCreateAreaFromSidebar}
                     onOpenSettings={handleOpenSettings}
+                    onOpenHelp={handleOpenHelp}
                     onReorderProjects={handleReorderProjects}
                   />
                 </div>
@@ -2409,7 +2462,7 @@ export default function TasksPage() {
                     <button
                       type="button"
                       onClick={() => setShowAssistantChat(true)}
-                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-white/60 border border-[var(--color-border)] text-[var(--on-surface)] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
+                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--on-surface)] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
                     >
                       Chat IA (crear tareas)
                     </button>

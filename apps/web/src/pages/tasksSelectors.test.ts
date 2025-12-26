@@ -36,6 +36,8 @@ describe('tasksSelectors', () => {
   it('derives task view from task fields', () => {
     expect(getTaskView({ ...baseTask, status: 'done' }, todayISO)).toBe('logbook')
     expect(getTaskView({ ...baseTask, status: 'snoozed' }, todayISO)).toBe('someday')
+    expect(getTaskView({ ...baseTask, labels: [{ id: 'l1', name: 'Waiting', color: null }] }, todayISO)).toBe('waiting')
+    expect(getTaskView({ ...baseTask, labels: [{ id: 'l2', name: 'Referencia', color: null }] }, todayISO)).toBe('reference')
     expect(getTaskView({ ...baseTask, due_at: '2024-05-09' }, todayISO)).toBe('today')
     expect(getTaskView({ ...baseTask, due_at: '2024-05-12' }, todayISO)).toBe('upcoming')
     expect(getTaskView({ ...baseTask, project_id: 'p1' }, todayISO)).toBe('anytime')

@@ -42,9 +42,9 @@ export default function AreaBoard({
 
   return (
     <div className="az-card overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--color-border)]">
+      <div className="flex items-center justify-between px-6 py-6 border-b border-[var(--color-border)]">
         <div>
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Área</p>
+          <p className="text-sm font-semibold text-[var(--color-text-muted)]">Área</p>
           <h2 className="text-lg font-semibold text-[var(--on-surface)]">{areaName}</h2>
           <p className="text-sm text-[var(--color-text-muted)]">
             {projectCount} proyecto{projectCount === 1 ? '' : 's'}
@@ -56,13 +56,13 @@ export default function AreaBoard({
       </div>
       <div className="divide-y divide-[var(--color-border)]">
         {projects.map(project => (
-          <section key={project.id} className="px-6 py-5 space-y-3">
+          <section key={project.id} className="px-6 py-6 space-y-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Proyecto</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Proyecto</p>
               <button
                 type="button"
                 onClick={() => onSelectProject(project.id)}
-                className="text-base font-semibold text-[var(--on-surface)] hover:underline text-left"
+                className="min-h-[44px] text-base font-semibold text-[var(--on-surface)] hover:underline text-left"
               >
                 {project.name}
               </button>
@@ -71,18 +71,18 @@ export default function AreaBoard({
           </section>
         ))}
         {openLoose.length > 0 && (
-          <section className="px-6 py-5">
+          <section className="px-6 py-6">
             {renderTaskList(openLoose)}
           </section>
         )}
         {showCompletedTasks && completedTasks.length > 0 && (
-          <section className="px-6 py-5 space-y-3">
-            <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Completadas</p>
+          <section className="px-6 py-6 space-y-3">
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Completadas</p>
             {renderTaskList(completedTasks)}
           </section>
         )}
         {!hasAnyList && (
-          <section className="px-6 py-5">
+          <section className="px-6 py-6">
             {renderTaskList([])}
           </section>
         )}

@@ -28,17 +28,17 @@ export default function MobileHeader({
 }: MobileHeaderProps) {
   const { t } = useTranslations()
   return (
-    <header className="space-y-5">
+    <header className="space-y-6">
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="text-2xl text-[var(--on-surface)] pl-1"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl text-[var(--on-surface)]"
           aria-label="Volver"
         >
           ←
         </button>
         <div className="flex-1 text-center">
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
+          <p className="text-sm font-semibold text-[var(--color-text-muted)]">
             {isProjectView ? t('mobile.project') : selectedArea ? t('mobile.area') : isSearchView ? t('view.search') : t('mobile.view')}
           </p>
           <p className="text-2xl font-semibold text-[var(--on-surface)]">
@@ -60,7 +60,7 @@ export default function MobileHeader({
         </div>
       </div>
       {(isProjectView || selectedArea) && (
-        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-5 py-4 space-y-2">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-6 py-4 space-y-2">
           {isProjectView ? (
             <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
               <span>{t('mobile.pending')}: {filteredTaskCount - completedCount}</span>
@@ -70,7 +70,7 @@ export default function MobileHeader({
             </div>
           ) : (
             <>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">{t('mobile.area')}</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('mobile.area')}</p>
               <p className="text-lg font-semibold text-[var(--on-surface)]">
                 {completedCount}/{filteredTaskCount} {t('mobile.completed')}
               </p>

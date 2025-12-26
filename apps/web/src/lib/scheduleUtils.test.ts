@@ -16,7 +16,7 @@ describe('scheduleUtils', () => {
     })
 
     it('returns null for other views', () => {
-      const others: QuickViewId[] = ['inbox', 'anytime', 'someday', 'logbook']
+      const others: QuickViewId[] = ['inbox', 'anytime', 'waiting', 'someday', 'reference', 'logbook']
       others.forEach(view => {
         expect(defaultDueForView(view, today, tomorrow)).toBeNull()
       })
@@ -29,7 +29,7 @@ describe('scheduleUtils', () => {
     })
 
     it('returns open for other views', () => {
-      ;['inbox', 'today', 'upcoming', 'anytime', 'logbook'].forEach(view => {
+      ;['inbox', 'today', 'upcoming', 'anytime', 'waiting', 'reference', 'logbook'].forEach(view => {
         expect(deriveStatusFromView(view as QuickViewId)).toBe('open')
       })
     })
@@ -39,6 +39,8 @@ describe('scheduleUtils', () => {
     it('returns fallback when no date', () => {
       expect(determineViewFromDate(null, today, 'inbox')).toBe('anytime')
       expect(determineViewFromDate(null, today, 'someday')).toBe('someday')
+      expect(determineViewFromDate(null, today, 'waiting')).toBe('waiting')
+      expect(determineViewFromDate(null, today, 'reference')).toBe('reference')
     })
 
     it('returns today for past or current date', () => {

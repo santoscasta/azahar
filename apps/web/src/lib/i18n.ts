@@ -18,7 +18,9 @@ type TranslationKey =
   | 'settings.views.today'
   | 'settings.views.upcoming'
   | 'settings.views.anytime'
+  | 'settings.views.waiting'
   | 'settings.views.someday'
+  | 'settings.views.reference'
   | 'settings.views.logbook'
   | 'settings.completedContexts.title'
   | 'settings.completedContexts.description'
@@ -37,6 +39,7 @@ type TranslationKey =
   | 'sidebar.brand'
   | 'sidebar.workspace'
   | 'sidebar.settings'
+  | 'sidebar.help'
   | 'sidebar.logout'
   | 'sidebar.inProgress'
   | 'sidebar.tasks'
@@ -64,6 +67,19 @@ type TranslationKey =
   | 'gtd.focus.empty'
   | 'gtd.engage'
   | 'gtd.engage.subtitle'
+  | 'help.title'
+  | 'help.subtitle'
+  | 'help.intro'
+  | 'help.back'
+  | 'help.settings'
+  | 'help.principles.title'
+  | 'help.usage.title'
+  | 'help.usage.capture'
+  | 'help.usage.organize'
+  | 'help.usage.context'
+  | 'help.usage.review'
+  | 'help.views.title'
+  | 'help.footer'
   | 'gtd.quickCapture.title'
   | 'gtd.quickCapture.subtitle'
   | 'gtd.quickCapture.placeholder'
@@ -91,6 +107,8 @@ type TranslationKey =
   | 'gtd.markDone'
   | 'gtd.markOpen'
   | 'gtd.empty'
+  | 'tasks.empty'
+  | 'tasks.empty.filtered'
   | 'gtd.due'
   | 'auth.title.login'
   | 'auth.title.signup'
@@ -129,14 +147,18 @@ type TranslationKey =
   | 'view.today'
   | 'view.upcoming'
   | 'view.anytime'
+  | 'view.waiting'
   | 'view.someday'
+  | 'view.reference'
   | 'view.logbook'
   | 'view.search'
   | 'view.desc.inbox'
   | 'view.desc.today'
   | 'view.desc.upcoming'
   | 'view.desc.anytime'
+  | 'view.desc.waiting'
   | 'view.desc.someday'
+  | 'view.desc.reference'
   | 'view.desc.logbook'
   | 'view.desc.search'
 
@@ -159,7 +181,9 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'settings.views.today': 'Tareas para hoy o atrasadas',
     'settings.views.upcoming': 'Próximos días/semanas',
     'settings.views.anytime': 'Sin fecha, cuando quieras',
+    'settings.views.waiting': 'En espera / dependencias',
     'settings.views.someday': 'Algún día, ideas aparcadas',
+    'settings.views.reference': 'Referencia y archivo',
     'settings.views.logbook': 'Historial de completadas',
     'settings.completedContexts.title': 'Mostrar completadas en proyectos/áreas',
     'settings.completedContexts.description': 'Incluye una sección “Completadas” en vistas de proyecto y área.',
@@ -178,6 +202,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.brand': 'Azahar',
     'sidebar.workspace': 'Workspace',
     'sidebar.settings': 'Ajustes',
+    'sidebar.help': 'Ayuda',
     'sidebar.logout': 'Salir',
     'sidebar.inProgress': 'En progreso',
     'sidebar.tasks': 'tareas',
@@ -205,6 +230,19 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.focus.empty': 'Sin tareas aquí. Elige algo del tablero o captura una nueva.',
     'gtd.engage': 'Enganchar',
     'gtd.engage.subtitle': 'Cierra ciclos',
+    'help.title': 'Ayuda GTD',
+    'help.subtitle': 'GTD + Azahar',
+    'help.intro': 'Guía rápida para capturar, decidir y ejecutar sin perder contexto.',
+    'help.back': 'Volver a la app',
+    'help.settings': 'Ajustes',
+    'help.principles.title': 'Los 5 pasos de GTD',
+    'help.usage.title': 'Cómo usar Azahar',
+    'help.usage.capture': 'Captura todo en Inbox y decide después.',
+    'help.usage.organize': 'Organiza en áreas y proyectos con próximos pasos claros.',
+    'help.usage.context': 'Etiqueta por contexto para agrupar tareas similares.',
+    'help.usage.review': 'Revisa a diario y haz una revisión semanal para mantener el sistema limpio.',
+    'help.views.title': 'Vistas rápidas',
+    'help.footer': 'Azahar mantiene tu sistema ligero: captura rápido, decide con calma.',
     'gtd.quickCapture.title': 'Captura rápida',
     'gtd.quickCapture.subtitle': 'Inspírate en Things: escribe primero, ordena después.',
     'gtd.quickCapture.placeholder': 'Captura en un solo campo: “Enviar briefing a Juan mañana”',
@@ -232,6 +270,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.markDone': 'Marcar como hecha',
     'gtd.markOpen': 'Reabrir',
     'gtd.empty': 'Nada aquí todavía. Respira, prioriza o captura algo nuevo.',
+    'tasks.empty': 'No hay tareas todavía. Captura la primera cuando quieras.',
+    'tasks.empty.filtered': 'No hay tareas que coincidan con esta vista. Puedes ajustar los filtros cuando quieras.',
     'gtd.due': 'Vence',
     'auth.title.login': 'Inicia sesión',
     'auth.title.signup': 'Crea tu cuenta',
@@ -270,14 +310,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.today': 'Hoy',
     'view.upcoming': 'Próximas',
     'view.anytime': 'Cualquier momento',
+    'view.waiting': 'En espera',
     'view.someday': 'Algún día',
+    'view.reference': 'Referencia',
     'view.logbook': 'Registro',
     'view.search': 'Búsqueda',
     'view.desc.inbox': 'Captura ideas y tareas que aún no tienen hogar.',
     'view.desc.today': 'Todo lo que vence hoy y lo que se quedó atrás.',
     'view.desc.upcoming': 'Lo que está planificado para los próximos días y semanas.',
     'view.desc.anytime': 'Tareas sin fecha que podrás programar después.',
+    'view.desc.waiting': 'Pendientes de respuesta o dependencias externas.',
     'view.desc.someday': 'Ideas para más adelante, sin presión.',
+    'view.desc.reference': 'Material de consulta sin acción inmediata.',
     'view.desc.logbook': 'Un registro de todo lo que has terminado.',
     'view.desc.search': 'Resultados en todas las vistas (completadas sólo si lo tienes activado).',
   },
@@ -299,7 +343,9 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'settings.views.today': 'Due today or overdue',
     'settings.views.upcoming': 'Next days/weeks',
     'settings.views.anytime': 'No date, whenever',
+    'settings.views.waiting': 'Waiting for / dependencies',
     'settings.views.someday': 'Someday, parked ideas',
+    'settings.views.reference': 'Reference and archive',
     'settings.views.logbook': 'History of done tasks',
     'settings.completedContexts.title': 'Show completed in projects/areas',
     'settings.completedContexts.description': 'Adds a “Completed” section in project and area views.',
@@ -318,6 +364,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.brand': 'Azahar',
     'sidebar.workspace': 'Workspace',
     'sidebar.settings': 'Settings',
+    'sidebar.help': 'Help',
     'sidebar.logout': 'Log out',
     'sidebar.inProgress': 'In progress',
     'sidebar.tasks': 'tasks',
@@ -345,6 +392,19 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.focus.empty': 'Nothing here. Pick from the board or capture something new.',
     'gtd.engage': 'Engage',
     'gtd.engage.subtitle': 'Close loops',
+    'help.title': 'GTD Help',
+    'help.subtitle': 'GTD + Azahar',
+    'help.intro': 'A quick guide to capture, clarify, and execute without losing context.',
+    'help.back': 'Back to app',
+    'help.settings': 'Settings',
+    'help.principles.title': 'The 5 steps of GTD',
+    'help.usage.title': 'How to use Azahar',
+    'help.usage.capture': 'Capture everything in Inbox and decide later.',
+    'help.usage.organize': 'Organize into areas and projects with clear next actions.',
+    'help.usage.context': 'Use labels for context to batch similar tasks.',
+    'help.usage.review': 'Review daily and run a weekly review to keep the system clean.',
+    'help.views.title': 'Quick views',
+    'help.footer': 'Azahar keeps your system light: capture fast, decide calmly.',
     'gtd.quickCapture.title': 'Quick capture',
     'gtd.quickCapture.subtitle': 'Inspired by Things: write first, sort later.',
     'gtd.quickCapture.placeholder': 'Capture in one field: “Send briefing to Sarah tomorrow”',
@@ -372,6 +432,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.markDone': 'Mark done',
     'gtd.markOpen': 'Reopen',
     'gtd.empty': 'Nothing here yet. Breathe, prioritize, or capture something new.',
+    'tasks.empty': 'No tasks yet. Capture the first one whenever you are ready.',
+    'tasks.empty.filtered': 'No tasks match this view. You can adjust the filters anytime.',
     'gtd.due': 'Due',
     'auth.title.login': 'Sign in',
     'auth.title.signup': 'Create your account',
@@ -410,14 +472,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.today': 'Today',
     'view.upcoming': 'Upcoming',
     'view.anytime': 'Anytime',
+    'view.waiting': 'Waiting',
     'view.someday': 'Someday',
+    'view.reference': 'Reference',
     'view.logbook': 'Logbook',
     'view.search': 'Search',
     'view.desc.inbox': 'Capture ideas and tasks that still need a home.',
     'view.desc.today': 'Everything due today plus anything that slipped through.',
     'view.desc.upcoming': 'What is planned for the next days and weeks.',
     'view.desc.anytime': 'Tasks without a date live here until you schedule them.',
+    'view.desc.waiting': 'Waiting on replies or external dependencies.',
     'view.desc.someday': 'A parking lot for ideas you want to revisit later.',
+    'view.desc.reference': 'Reference material with no immediate action.',
     'view.desc.logbook': 'A record of everything you have finished.',
     'view.desc.search': 'Results across all lists (done items only if enabled).',
   },

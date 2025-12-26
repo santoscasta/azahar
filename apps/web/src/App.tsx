@@ -7,6 +7,7 @@ import { supabase, getCurrentUser } from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import TasksPage from './pages/TasksPage'
 import SettingsPage from './pages/SettingsPage'
+import HelpPage from './pages/HelpPage'
 import { translate, type Language } from './lib/i18n'
 import {
   applyThemeToDocument,
@@ -70,7 +71,32 @@ export default function App() {
 
     applySettings()
     const unsubscribe = subscribeToSettings(applySettings)
-    return unsubscribe
+    const prefersDark = typeof window !== 'undefined'
+      ? window.matchMedia?.('(prefers-color-scheme: dark)')
+      : null
+    const handleSystemThemeChange = () => {
+      const settings = loadSettings()
+      if (settings.theme !== 'system') return
+      applyThemeToDocument(resolveThemePreference('system'))
+    }
+
+    if (prefersDark) {
+      if ('addEventListener' in prefersDark) {
+        prefersDark.addEventListener('change', handleSystemThemeChange)
+      } else {
+        prefersDark.addListener(handleSystemThemeChange)
+      }
+    }
+
+    return () => {
+      unsubscribe()
+      if (!prefersDark) return
+      if ('removeEventListener' in prefersDark) {
+        prefersDark.removeEventListener('change', handleSystemThemeChange)
+      } else {
+        prefersDark.removeListener(handleSystemThemeChange)
+      }
+    }
   }, [])
 
   const i18n = useMemo(() => ({
@@ -113,6 +139,14 @@ export default function App() {
                 )}
               />
             )}
+            <Route
+              path="/help"
+              element={(
+                <ProtectedRoute>
+                  <HelpPage />
+                </ProtectedRoute>
+              )}
+            />
             <Route path="/" element={<Navigate to="/app" replace />} />
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Routes>

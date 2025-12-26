@@ -4,6 +4,7 @@ import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { Project, Area } from '../../lib/supabase.js'
 import { useTranslations } from '../../App.js'
 import settingsIcon from '../../assets/icons/settings.svg'
+import helpIcon from '../../assets/icons/help.svg'
 import AreaIcon from '../icons/AreaIcon.js'
 import ProjectIcon from '../icons/ProjectIcon.js'
 import AzaharLogo from './AzaharLogo.js'
@@ -45,22 +46,23 @@ export interface DesktopSidebarProps {
   onCreateProject: () => void
   onCreateArea: () => void
   onOpenSettings: () => void
+  onOpenHelp: () => void
   onReorderProjects: (payload: ProjectReorderPayload) => void
 }
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
   if (!total && !overdue) return null
   const badgeClass =
-    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-full px-2 text-[11px] font-semibold'
+    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-full px-2 text-[11px] font-semibold border border-[var(--color-border)] bg-[var(--color-surface-elevated)]'
   return (
     <div className="flex items-center gap-1">
       {overdue ? (
-        <span className={`${badgeClass} bg-[var(--color-accent-200)] text-[var(--color-accent-600)]`}>
+        <span className={`${badgeClass} text-[var(--color-done-500)]`}>
           {overdue}
         </span>
       ) : null}
       {total ? (
-        <span className={`${badgeClass} bg-[var(--color-border-subtle)] text-[var(--color-text-muted)]`}>
+        <span className={`${badgeClass} text-[var(--color-text-muted)]`}>
           {total}
         </span>
       ) : null}
@@ -89,6 +91,7 @@ export function DesktopSidebar({
   onCreateProject,
   onCreateArea,
   onOpenSettings,
+  onOpenHelp,
   onReorderProjects,
 }: DesktopSidebarProps) {
   const { t } = useTranslations()
@@ -244,19 +247,19 @@ export function DesktopSidebar({
   }
 
   return (
-    <aside className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_50px_rgba(45,37,32,0.06)] flex flex-col h-full text-[var(--on-surface)]">
-      <div className="px-5 pt-6 pb-4 border-b border-[var(--color-border)] flex items-center justify-between">
+    <aside className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_50px_rgba(45,37,32,0.06)] flex flex-col h-full text-[var(--on-surface)]">
+      <div className="px-6 pt-6 pb-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <AzaharLogo />
           <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-[var(--color-text-muted)]">{t('sidebar.brand')}</p>
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('sidebar.brand')}</p>
             <p className="text-lg font-semibold">{t('sidebar.workspace')}</p>
           </div>
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--color-text-muted)] mb-2">{t('sidebar.focus')}</p>
+          <p className="text-sm font-semibold text-[var(--color-text-muted)] mb-2">{t('sidebar.focus')}</p>
           <ul className="space-y-1">
             {quickLists.map(view => {
               const total = quickViewStats[view.id]
@@ -269,7 +272,7 @@ export function DesktopSidebar({
                     onClick={() => onSelectQuickView(view.id)}
                     className={`w-full min-h-[48px] flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
                       isActive
-                        ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                        ? 'bg-[var(--color-primary-600)] text-[var(--on-primary)] shadow-md'
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     }`}
                   >
@@ -366,7 +369,7 @@ export function DesktopSidebar({
                     onDrop={(event) => handleProjectDrop(event, project.id, null)}
                     className={`w-full min-h-[48px] flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
                       isActive
-                        ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                        ? 'bg-[var(--color-primary-600)] text-[var(--on-primary)] shadow-md'
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     } ${
                       draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
@@ -390,7 +393,7 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onToggleNewListMenu}
-          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary-600)] text-white py-2 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
+          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] py-2 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
         >
           +
           <span>Nueva lista</span>
@@ -398,31 +401,39 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
+          className="h-12 w-12 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
           aria-label={t('sidebar.settings')}
         >
           <img src={settingsIcon} alt="" className="h-5 w-5" />
         </button>
+        <button
+          type="button"
+          onClick={onOpenHelp}
+          className="h-12 w-12 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
+          aria-label={t('sidebar.help')}
+        >
+          <img src={helpIcon} alt="" className="h-5 w-5" />
+        </button>
         {showNewListMenu && (
-          <div className="absolute left-6 right-6 bottom-20 bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-3xl p-4 space-y-4 shadow-[0_20px_50px_rgba(45,37,32,0.18)] border border-[var(--color-border)]">
+          <div className="absolute left-6 right-6 bottom-20 bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-2xl p-4 space-y-4 shadow-[0_20px_50px_rgba(45,37,32,0.18)] border border-[var(--color-border)]">
             <button
               type="button"
               onClick={onCreateProject}
-              className="w-full text-left flex flex-col gap-1"
+              className="w-full min-h-[44px] text-left flex flex-col gap-1 py-2"
             >
               <span className="text-sm font-semibold flex items-center gap-2">
-                <span className="text-blue-300">🌀</span> Nuevo proyecto
+                <span className="text-[var(--color-primary-600)]">🌀</span> Nuevo proyecto
               </span>
               <span className="text-xs text-[var(--color-text-subtle)]">Define un objetivo y avanza tarea a tarea.</span>
             </button>
-            <div className="h-px bg-[#4A4340]" />
+            <div className="h-px bg-[var(--color-border)]" />
             <button
               type="button"
               onClick={onCreateArea}
-              className="w-full text-left flex flex-col gap-1"
+              className="w-full min-h-[44px] text-left flex flex-col gap-1 py-2"
             >
               <span className="text-sm font-semibold flex items-center gap-2">
-                <span className="text-emerald-300">🧩</span> Nueva área
+                <span className="text-[var(--color-accent-600)]">🧩</span> Nueva área
               </span>
               <span className="text-xs text-[var(--color-text-subtle)]">Agrupa proyectos por responsabilidades.</span>
             </button>

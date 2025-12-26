@@ -24,7 +24,7 @@ export function determineViewFromDate(
   fallback: QuickViewId = 'inbox'
 ): QuickViewId {
   if (!value) {
-    return fallback === 'someday' ? 'someday' : 'anytime'
+    return fallback === 'someday' || fallback === 'waiting' || fallback === 'reference' ? fallback : 'anytime'
   }
   if (value <= todayISO) {
     return 'today'

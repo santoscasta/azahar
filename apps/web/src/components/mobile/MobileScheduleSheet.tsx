@@ -18,33 +18,35 @@ export function MobileScheduleSheet({
     { id: 'today', label: 'Hoy', icon: '⭐' },
     { id: 'upcoming', label: 'Programadas', icon: '📆' },
     { id: 'anytime', label: 'En cualquier momento', icon: '🌤️' },
+    { id: 'waiting', label: 'En espera', icon: '⏳' },
     { id: 'someday', label: 'Algún día', icon: '📦' },
+    { id: 'reference', label: 'Referencia', icon: '📚' },
     { id: 'inbox', label: 'Entrada', icon: '📥' },
   ]
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
       <div
-        className="absolute inset-x-4 bottom-6 bg-slate-900 text-white rounded-[32px] p-5 space-y-4 shadow-2xl"
+        className="absolute inset-x-4 bottom-6 bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-semibold">¿Cuándo?</span>
-          <button type="button" onClick={onClose} className="text-2xl">
-            ✕
-          </button>
-        </div>
-        {options.map(option => (
-          <button
+      <div className="flex items-center justify-between">
+        <span className="text-lg font-semibold">¿Cuándo?</span>
+        <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl">
+          ✕
+        </button>
+      </div>
+      {options.map(option => (
+        <button
             key={option.id}
             type="button"
             onClick={() => {
               onSelect(option.id)
               onClose()
             }}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-left ${
-              view === option.id ? 'bg-slate-800' : ''
-            }`}
-          >
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left ${
+            view === option.id ? 'bg-[var(--color-primary-100)]' : 'hover:bg-[var(--color-surface-elevated)]'
+          }`}
+        >
             <span>{option.icon}</span>
             <span>{option.label}</span>
           </button>

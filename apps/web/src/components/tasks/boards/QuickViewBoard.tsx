@@ -22,7 +22,7 @@ export default function QuickViewBoard({
 }: QuickViewBoardProps) {
   if (groups.length === 0) {
     return (
-      <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5 space-y-3">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 space-y-3">
         {renderTaskList([])}
       </div>
     )
@@ -33,15 +33,15 @@ export default function QuickViewBoard({
       {groups.map(group => (
         <section
           key={group.areaId || 'none'}
-          className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5 space-y-5"
+          className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 space-y-6"
         >
           {group.area && (
             <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Área</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Área</p>
               <button
                 type="button"
                 onClick={() => onSelectArea(group.areaId!)}
-                className="text-base font-semibold text-[var(--on-surface)] hover:underline text-left"
+                className="min-h-[44px] text-base font-semibold text-[var(--on-surface)] hover:underline text-left"
               >
                 {group.area.name}
               </button>
@@ -50,7 +50,7 @@ export default function QuickViewBoard({
               </p>
             </div>
           )}
-          <div className="space-y-5">
+          <div className="space-y-6">
             {Array.from(group.projects.entries()).map(([projectId, { tasks }], index) => (
               <div key={projectId || `project-${index}`} className="space-y-3">
                 {renderTaskList(tasks)}
@@ -58,7 +58,7 @@ export default function QuickViewBoard({
             ))}
             {group.standalone.length > 0 && (
               <article className="space-y-3">
-                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tareas sueltas</p>
+                <p className="text-sm font-semibold text-[var(--color-text-muted)]">Tareas sueltas</p>
                 {renderTaskList(group.standalone)}
               </article>
             )}

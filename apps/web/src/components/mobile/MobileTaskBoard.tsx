@@ -14,7 +14,7 @@ export default function MobileTaskBoard({ taskList, canShowMore, onShowMore }: M
         <button
           type="button"
           onClick={onShowMore}
-          className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-sm font-semibold text-slate-600"
+          className="w-full min-h-[44px] px-4 py-3 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
         >
           Mostrar más
         </button>

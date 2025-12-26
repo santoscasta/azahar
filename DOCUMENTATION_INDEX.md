@@ -1,7 +1,7 @@
 # 📚 Índice de Documentación - AZAHAR
 
 **Actualizado:** 13 de noviembre de 2025, 9:20 AM  
-**Total:** 10 archivos de documentación (61 KB)
+**Total:** 11 archivos de documentación (66 KB)
 
 ---
 
@@ -45,6 +45,7 @@
 |---------|--------|----------|
 | `DAY2_CHANGES.md` | 5.4 KB | Cambios técnicos línea por línea |
 | `DAY1_DELIVERABLES.md` | 16 KB | Lo que se entregó en Día 1 |
+| `docs/backend-recommendations.md` | 4.6 KB | Propuesta de backend y API (vNext) |
 
 ### 🧪 Testing
 | Archivo | Tamaño | Propósito |
@@ -132,6 +133,7 @@ Revisar archivos en: ls -la
 │   ├── pages/TasksPage.tsx .......... ← Agregar Proyectos & Etiquetas (Día 3)
 │   └── lib/supabase.ts .............. ← Agregar funciones nuevas (Día 3)
 │
+├── 📄 docs/backend-recommendations.md  ................. Propuesta backend (vNext)
 └── 📝 docs/schema.sql ................ Schema de BD
 ```
 
@@ -154,7 +156,7 @@ Día 2 (Hoy):
 ├── PROJECT_STATUS.md (7.9 KB) - Status general
 └── START_HERE.md (6.6 KB) - Punto de entrada
 
-Total: 61 KB de documentación (¡Muy bien documentado!)
+Total: 66 KB de documentación (¡Muy bien documentado!)
 ```
 
 ---

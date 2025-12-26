@@ -124,7 +124,7 @@ export interface TaskChecklistItem {
   created_at: string
 }
 
-export type TaskQuickView = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'someday' | 'logbook'
+export type TaskQuickView = 'inbox' | 'today' | 'upcoming' | 'anytime' | 'waiting' | 'someday' | 'reference' | 'logbook'
 
 export interface Task {
   id: string

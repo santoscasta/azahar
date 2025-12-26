@@ -127,7 +127,7 @@ export function DesktopDraftCard({
         }
         commitDraft()
       }}
-      className="rounded-2xl border border-[var(--color-border)] bg-white text-[var(--on-surface)] shadow-[0_18px_40px_rgba(45,37,32,0.12)] p-5 space-y-4"
+      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--on-surface)] shadow-[0_18px_40px_rgba(45,37,32,0.12)] p-6 space-y-4"
     >
       <div className="flex gap-4">
         <span className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-lg border border-[var(--color-border)] text-transparent">
@@ -150,7 +150,7 @@ export function DesktopDraftCard({
             className="w-full bg-transparent text-sm text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] outline-none resize-none"
           />
           <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)] pt-1 flex-wrap gap-3">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-primary-100)] border border-[var(--color-border)] font-semibold text-[var(--color-primary-800)]">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] font-semibold text-[var(--color-text-muted)]">
               <span className="text-lg">⭐</span>
               {viewLabel}
             </span>
@@ -158,7 +158,7 @@ export function DesktopDraftCard({
               <button
                 type="button"
                 onClick={onOpenLabels}
-                className="h-9 w-9 rounded-full border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-primary-600)]"
+                className="h-11 w-11 rounded-xl border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-primary-600)]"
                 aria-label="Etiquetas"
               >
                 🏷
@@ -166,7 +166,7 @@ export function DesktopDraftCard({
               <button
                 type="button"
                 onClick={onCyclePriority}
-                className="h-9 px-3 rounded-full border border-[var(--color-border)] text-xs font-semibold hover:border-[var(--color-primary-600)]"
+                className="min-h-[44px] px-3 rounded-xl border border-[var(--color-border)] text-xs font-semibold hover:border-[var(--color-primary-600)]"
                 aria-label="Prioridad"
               >
                 {priorityBadge[draft.priority]}
@@ -174,7 +174,7 @@ export function DesktopDraftCard({
               <button
                 type="button"
                 onClick={onRequestDueDate}
-                className="h-9 px-3 rounded-full border border-[var(--color-border)] inline-flex items-center gap-2 hover:border-[var(--color-primary-600)]"
+                className="min-h-[44px] px-3 rounded-xl border border-[var(--color-border)] inline-flex items-center gap-2 hover:border-[var(--color-primary-600)]"
               >
                 <CalendarIcon className="h-4 w-4" />
                 {dueLabel}
@@ -189,7 +189,7 @@ export function DesktopDraftCard({
                 hasCommittedRef.current = true
                 onCancel()
               }}
-              className="text-[var(--color-primary-700)] hover:text-[var(--color-primary-800)] font-semibold"
+              className="text-[var(--color-text-muted)] hover:text-[var(--on-surface)] font-semibold"
             >
               Cancelar
             </button>

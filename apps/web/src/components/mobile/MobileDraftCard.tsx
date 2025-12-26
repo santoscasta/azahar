@@ -30,7 +30,7 @@ export function MobileDraftCard({
 }: MobileDraftCardProps) {
   return (
     <div
-      className="rounded-3xl border p-4 space-y-3"
+      className="rounded-2xl border p-4 space-y-3"
       style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
     >
       <div>
@@ -39,7 +39,7 @@ export function MobileDraftCard({
           value={draft.title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Nueva tarea"
-          className="w-full bg-transparent text-lg font-semibold text-slate-900 placeholder-[var(--color-text-subtle)] outline-none"
+          className="w-full bg-transparent text-lg font-semibold text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none"
         />
         <textarea
           value={draft.notes}
@@ -53,12 +53,12 @@ export function MobileDraftCard({
         <button
           type="button"
           onClick={onSchedulePress}
-          className="text-sm font-semibold text-white rounded-full px-3 py-1"
+          className="min-h-[44px] text-sm font-semibold text-[var(--on-primary)] rounded-xl px-4 py-2"
           style={{ backgroundColor: 'var(--color-primary-600)' }}
         >
           {scheduleLabel}
         </button>
-        <div className="flex items-center gap-3 text-slate-500 text-xl">
+        <div className="flex items-center gap-3 text-[var(--color-text-muted)] text-xl">
           <button type="button" onClick={onLabelsPress} aria-label="Etiquetas">
             🏷
           </button>
@@ -81,7 +81,7 @@ export function MobileDraftCard({
               <span
                 key={label.id}
                 className="px-2 py-1 rounded-full text-xs"
-                style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}
+                style={{ backgroundColor: 'var(--color-surface-elevated)', color: 'var(--color-text-muted)' }}
               >
                 {label.name}
               </span>
@@ -90,24 +90,24 @@ export function MobileDraftCard({
         </div>
       )}
       {draft.due_at && (
-        <p className="text-xs text-slate-500">Plazo: {draft.due_at}</p>
+        <p className="text-xs text-[var(--color-text-muted)]">Plazo: {draft.due_at}</p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
           <span
             className="inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold border"
-            style={{ backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-700)', borderColor: 'var(--color-border)' }}
+            style={{ backgroundColor: 'var(--color-surface-elevated)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}
           >
             <span aria-hidden>✓</span>
             Autoguardado
           </span>
-          <span className="hidden sm:inline text-[var(--color-primary-700)]">Marca "Listo" cuando quieras crearla.</span>
+          <span className="hidden sm:inline text-[var(--color-text-muted)]">Marca "Listo" cuando quieras crearla.</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="h-10 w-10 rounded-full border text-lg text-slate-500 hover:text-[var(--color-primary-700)] hover:border-[var(--color-primary-600)]"
+            className="h-11 w-11 rounded-xl border text-lg text-[var(--color-text-muted)] hover:text-[var(--on-surface)] hover:border-[var(--color-primary-600)]"
             style={{ borderColor: 'var(--color-border)' }}
             aria-label="Descartar borrador"
           >
@@ -117,7 +117,7 @@ export function MobileDraftCard({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold shadow-sm disabled:opacity-60"
+            className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--on-primary)] text-sm font-semibold shadow-sm disabled:opacity-60"
             style={{ backgroundColor: 'var(--color-primary-600)' }}
             aria-label="Crear tarea"
           >

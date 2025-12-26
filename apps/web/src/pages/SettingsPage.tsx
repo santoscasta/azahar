@@ -33,7 +33,9 @@ export default function SettingsPage() {
     today: translate(settings.language, 'view.today'),
     upcoming: translate(settings.language, 'view.upcoming'),
     anytime: translate(settings.language, 'view.anytime'),
+    waiting: translate(settings.language, 'view.waiting'),
     someday: translate(settings.language, 'view.someday'),
+    reference: translate(settings.language, 'view.reference'),
     logbook: translate(settings.language, 'view.logbook'),
   }), [settings.language])
 
@@ -60,33 +62,33 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
-        <header className="rounded-[32px] border border-[var(--color-border)] bg-white shadow px-8 py-6 space-y-2">
+        <header className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-8 py-6 space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{t('settings.title')}</p>
-              <h1 className="text-3xl font-semibold text-slate-900">{t('settings.title')}</h1>
-              <p className="text-sm text-slate-500">{t('settings.subtitle')}</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('settings.title')}</p>
+              <h1 className="text-[26px] font-bold text-[var(--on-surface)]">{t('settings.title')}</h1>
+              <p className="text-sm text-[var(--color-text-muted)]">{t('settings.subtitle')}</p>
             </div>
             <button
               type="button"
               onClick={() => navigate('/app')}
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 border border-[var(--color-border)] hover:border-[var(--color-primary-300)]"
+              className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-primary-300)]"
             >
               {t('settings.back')}
             </button>
           </div>
         </header>
 
-        <section className="rounded-3xl border border-[var(--color-border)] bg-white shadow px-8 py-6 space-y-6">
+        <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-8 py-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-800">{t('settings.theme')}</p>
-              <p className="text-xs text-slate-500">{t('settings.themeHint')}</p>
+              <p className="text-lg font-semibold text-[var(--on-surface)]">{t('settings.theme')}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t('settings.themeHint')}</p>
             </div>
             <select
               value={settings.theme}
               onChange={(event) => setSettings(prev => ({ ...prev, theme: event.target.value as ThemeOption }))}
-              className="px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+              className="min-h-[44px] px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
             >
               <option value="system">{t('settings.theme.option.system')} ({themeLabel})</option>
               <option value="light">{t('settings.theme.option.light')}</option>
@@ -96,30 +98,30 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-800">{t('settings.language')}</p>
-              <p className="text-xs text-slate-500">{t('settings.languageHint')}</p>
+              <p className="text-lg font-semibold text-[var(--on-surface)]">{t('settings.language')}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t('settings.languageHint')}</p>
             </div>
             <select
               value={settings.language}
               onChange={(event) => setSettings(prev => ({ ...prev, language: event.target.value as Language }))}
-              className="px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
-          >
-            <option value="es">Español</option>
-            <option value="en">English</option>
-          </select>
-        </div>
+              className="min-h-[44px] px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+            >
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+          </div>
 
           <div className="pt-4 border-t border-[var(--color-border)] space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-slate-800">{t('settings.views.title')}</p>
-                <p className="text-xs text-slate-500">{t('settings.views.subtitle')}</p>
+                <p className="text-lg font-semibold text-[var(--on-surface)]">{t('settings.views.title')}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{t('settings.views.subtitle')}</p>
               </div>
               {settings.customViewNames ? (
                 <button
                   type="button"
                   onClick={() => setSettings(prev => ({ ...prev, customViewNames: undefined }))}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 border border-[var(--color-border)] hover:border-[var(--color-primary-300)]"
+                  className="min-h-[44px] px-3 py-2 rounded-xl text-xs font-semibold text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-primary-300)]"
                 >
                   {t('settings.reset')}
                 </button>
@@ -131,14 +133,16 @@ export default function SettingsPage() {
                 { id: 'today', hint: t('settings.views.today') },
                 { id: 'upcoming', hint: t('settings.views.upcoming') },
                 { id: 'anytime', hint: t('settings.views.anytime') },
+                { id: 'waiting', hint: t('settings.views.waiting') },
                 { id: 'someday', hint: t('settings.views.someday') },
+                { id: 'reference', hint: t('settings.views.reference') },
                 { id: 'logbook', hint: t('settings.views.logbook') },
               ] as const).map(view => (
-                <label key={view.id} className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_92%,#fff_8%)] px-4 py-3 space-y-2 shadow-sm">
+                <label key={view.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 space-y-2 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{defaultViewNames[view.id]}</p>
-                      <p className="text-xs text-slate-500">{view.hint}</p>
+                      <p className="text-xs font-semibold text-[var(--color-text-muted)]">{defaultViewNames[view.id]}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">{view.hint}</p>
                     </div>
                     {settings.customViewNames?.[view.id] ? (
                       <button
@@ -148,7 +152,7 @@ export default function SettingsPage() {
                           delete next[view.id]
                           return { ...prev, customViewNames: Object.keys(next).length ? next : undefined }
                         })}
-                        className="text-xs text-slate-500 hover:text-slate-700"
+                        className="h-11 w-11 flex items-center justify-center rounded-xl text-lg text-[var(--color-text-muted)] hover:text-[var(--on-surface)] hover:bg-[var(--color-surface-elevated)]"
                         aria-label="Reset nombre de vista"
                       >
                         ×
@@ -176,7 +180,7 @@ export default function SettingsPage() {
                       }
                       return { ...prev, customViewNames: Object.keys(next).length ? next : undefined }
                     })}
-                    className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none"
+                    className="w-full min-h-[44px] rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--on-surface)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                   />
                 </label>
               ))}
@@ -185,10 +189,10 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-800">{t('settings.completedContexts.title')}</p>
-              <p className="text-xs text-slate-500">{t('settings.completedContexts.description')}</p>
+              <p className="text-lg font-semibold text-[var(--on-surface)]">{t('settings.completedContexts.title')}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t('settings.completedContexts.description')}</p>
             </div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--on-surface)]">
               <input
                 type="checkbox"
                 checked={settings.showCompletedInContexts}
@@ -202,23 +206,23 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setSettings(defaultSettings)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 border border-[var(--color-border)] hover:border-[var(--color-primary-300)]"
+              className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-primary-300)]"
             >
               {t('settings.reset')}
             </button>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[var(--color-border)] bg-white shadow px-8 py-6 flex items-center justify-between">
+        <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-8 py-6 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-800">{t('settings.account')}</p>
-            <p className="text-xs text-slate-500">{t('settings.accountHint')}</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">{t('settings.account')}</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{t('settings.accountHint')}</p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
-            className="h-12 w-12 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)] disabled:opacity-60"
+            className="h-12 w-12 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)] disabled:opacity-60"
             aria-label={t('settings.logout.aria')}
           >
             <svg
@@ -227,7 +231,7 @@ export default function SettingsPage() {
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5"
               stroke="currentColor"
-              strokeWidth="1.6"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >

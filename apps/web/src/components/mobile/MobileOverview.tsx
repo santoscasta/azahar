@@ -4,6 +4,7 @@ import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import searchIcon from '../../assets/icons/search.svg'
 import AreaIcon from '../icons/AreaIcon.js'
 import ProjectIcon from '../icons/ProjectIcon.js'
+import { useTranslations } from '../../App.js'
 
 interface DraftArea {
   name: string
@@ -46,6 +47,7 @@ interface MobileOverviewProps {
   onSaveProjectDraft: () => void
   onSelectProject: (projectId: string) => void
   onOpenSettings: () => void
+  onOpenHelp: () => void
 }
 
 export function MobileOverview({
@@ -74,7 +76,9 @@ export function MobileOverview({
   onSaveProjectDraft,
   onSelectProject,
   onOpenSettings,
+  onOpenHelp,
 }: MobileOverviewProps) {
+  const { t } = useTranslations()
   return (
     <div className="space-y-6 pb-28">
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
@@ -88,11 +92,11 @@ export function MobileOverview({
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Búsqueda rápida"
-          className="w-full pl-10 pr-14 py-3 rounded-3xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-accent-200)] focus:border-[var(--color-accent-500)] outline-none bg-[var(--color-surface)]"
+          className="w-full min-h-[44px] pl-10 pr-14 py-3 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
+      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
         {quickLists.map(view => (
           <button
             key={`mobile-${view.id}`}
@@ -100,14 +104,14 @@ export function MobileOverview({
             className="w-full min-h-[52px] flex items-center justify-between px-4 py-4 text-left"
           >
             <span className="flex items-center gap-3">
-              <span className="h-10 w-10 rounded-2xl bg-[var(--color-primary-100)] flex items-center justify-center">
+              <span className="h-11 w-11 rounded-xl bg-[var(--color-primary-100)] flex items-center justify-center">
                 <img src={view.icon} alt="" className="h-6 w-6" />
               </span>
               <span className="text-base font-medium text-[var(--on-surface)]">{view.label}</span>
             </span>
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               {quickViewStats[view.id] > 0 && (
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-accent-200)] px-2 text-[11px] font-semibold text-[var(--color-accent-600)]">
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 text-[11px] font-semibold text-[var(--color-accent-500)]">
                   {quickViewStats[view.id]}
                 </span>
               )}
@@ -117,8 +121,8 @@ export function MobileOverview({
         ))}
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
+      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 space-y-3">
+        <div className="flex items-center justify-between text-sm font-semibold text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2">
             <AreaIcon className="h-4 w-4" />
             <span className="sr-only">Áreas</span>
@@ -138,14 +142,14 @@ export function MobileOverview({
               <button
                 type="button"
                 onClick={onCancelAreaDraft}
-                className="px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
+                className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={onSaveAreaDraft}
-                className="px-3 py-1 rounded-full bg-[var(--color-primary-600)] text-white text-xs"
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-xs"
               >
                 OK
               </button>
@@ -156,7 +160,7 @@ export function MobileOverview({
           {areas.slice(0, 4).map(area => (
             <button
               key={`mobile-area-${area.id}`}
-              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
+              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectArea(area.id)}
             >
               <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
@@ -169,8 +173,8 @@ export function MobileOverview({
         </div>
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] p-4 space-y-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
+      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 space-y-3">
+        <div className="flex items-center justify-between text-sm font-semibold text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2">
             <ProjectIcon className="h-4 w-4" />
             <span className="sr-only">Proyectos</span>
@@ -190,14 +194,14 @@ export function MobileOverview({
               <button
                 type="button"
                 onClick={onCancelProjectDraft}
-                className="px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
+                className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={onSaveProjectDraft}
-                className="px-3 py-1 rounded-full bg-[var(--color-primary-600)] text-white text-xs"
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-xs"
               >
                 OK
               </button>
@@ -208,7 +212,7 @@ export function MobileOverview({
           {projects.slice(0, 4).map(project => (
             <button
               key={`mobile-project-${project.id}`}
-              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-2xl border border-transparent hover:border-[var(--color-border)]"
+              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-xl border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectProject(project.id)}
             >
               <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
@@ -221,16 +225,20 @@ export function MobileOverview({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-slate-400 px-2">
+      <div className="flex items-center justify-between text-[var(--color-text-muted)] px-2">
         <button
           type="button"
           onClick={onOpenSettings}
-          className="text-sm flex items-center gap-2 text-[var(--on-surface)]"
+          className="min-h-[44px] text-sm flex items-center gap-2 text-[var(--on-surface)]"
         >
-          ⚙ <span>Ajustes</span>
+          ⚙ <span>{t('settings.title')}</span>
         </button>
-        <button className="text-sm flex items-center gap-2">
-          ❓<span>Ayuda</span>
+        <button
+          type="button"
+          onClick={onOpenHelp}
+          className="min-h-[44px] text-sm flex items-center gap-2 text-[var(--color-text-muted)]"
+        >
+          ❓<span>{t('sidebar.help')}</span>
         </button>
       </div>
     </div>

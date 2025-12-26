@@ -38,20 +38,20 @@ export default function MoveTaskSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
-        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[32px] p-5 space-y-5 shadow-2xl border border-[var(--color-border)]">
+        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-6 shadow-2xl border border-[var(--color-border)]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Mover tarea</p>
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Mover tarea</p>
             <p className="text-lg font-semibold text-[var(--on-surface)]">{task?.title || 'Selecciona destino'}</p>
           </div>
           <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
             <section>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)] mb-2">General</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)] mb-2">General</p>
               <button
                 type="button"
                 onClick={() => handleSelection(null, null)}
-                className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                 disabled={isProcessing}
               >
                 <span>Inbox</span>
@@ -63,7 +63,7 @@ export default function MoveTaskSheet({
                 <button
                   type="button"
                   onClick={() => handleSelection(area.id, null)}
-                  className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                  className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                   disabled={isProcessing}
                 >
                   <span>{area.name}</span>
@@ -74,7 +74,7 @@ export default function MoveTaskSheet({
                     key={project.id}
                     type="button"
                     onClick={() => handleSelection(project.area_id || null, project.id)}
-                    className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                    className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                     disabled={isProcessing}
                   >
                     <span className="pl-4">{project.name}</span>
@@ -85,13 +85,13 @@ export default function MoveTaskSheet({
             ))}
             {groupedProjects.none && groupedProjects.none.length > 0 && (
               <section className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Proyectos sin área</p>
+                <p className="text-sm font-semibold text-[var(--color-text-muted)]">Proyectos sin área</p>
                 {groupedProjects.none.map(project => (
                   <button
                     key={project.id}
                     type="button"
                     onClick={() => handleSelection(null, project.id)}
-                    className="w-full flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                    className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                     disabled={isProcessing}
                   >
                     <span>{project.name}</span>
@@ -105,7 +105,7 @@ export default function MoveTaskSheet({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-full border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+              className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
             >
               Cancelar
             </button>

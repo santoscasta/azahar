@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode, KeyboardEvent } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
+import { getSoftLabelStyle } from '../../lib/colorUtils.js'
+import { useTranslations } from '../../App.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
 
 type Priority = 0 | 1 | 2 | 3
@@ -100,6 +102,7 @@ export default function TaskList({
   showDraftCard,
   autoSaveOnBlur = false,
 }: TaskListProps) {
+  const { t } = useTranslations()
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
   const hasDraft = showDraftCard && renderDraftCard
@@ -134,7 +137,7 @@ export default function TaskList({
     const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
     return (
       <div className={emptyClass}>
-        {filteredViewActive ? 'No hay tareas que coincidan con tu vista actual.' : 'No hay tareas todavía. ¡Crea la primera!'}
+        {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
       </div>
     )
   }
@@ -250,8 +253,8 @@ export default function TaskList({
           const isContextView = !!contextProjectId || !!contextAreaId
           const baseLiClass =
             variant === 'mobile'
-              ? 'p-4 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm transition-colors'
-              : 'group px-6 py-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:border-[var(--color-primary-600)] hover:shadow-[0_10px_28px_rgba(45,37,32,0.08)] transition-all'
+              ? 'p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm transition-colors'
+              : 'group px-6 py-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:border-[var(--color-accent-500)] hover:shadow-[0_10px_28px_rgba(45,37,32,0.08)] transition-all'
           const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
           const metaClass =
             variant === 'mobile'
@@ -259,7 +262,7 @@ export default function TaskList({
               : 'flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-muted)]'
           const checkboxClass =
             variant === 'mobile'
-              ? `relative mt-1 h-7 w-7 rounded-2xl border-2 flex items-center justify-center overflow-visible transition ${
+              ? `relative h-7 w-7 rounded-full border-2 flex items-center justify-center overflow-visible transition ${
                   task.status === 'done'
                     ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
                     : 'border-[var(--color-border)] text-transparent'
@@ -267,7 +270,7 @@ export default function TaskList({
               : `relative h-6 w-6 rounded-full border-2 flex items-center justify-center overflow-visible transition ${
                   task.status === 'done'
                     ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-                    : 'border-[var(--color-border)] hover:border-[var(--color-primary-600)] text-transparent'
+                    : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
                 }`
           const compactActivationProps =
             !isEditing && variant === 'mobile'
@@ -370,7 +373,7 @@ export default function TaskList({
                       autoSaveTriggerRef.current = true
                       onSaveEdit(event)
                     }}
-                    className="space-y-3 p-4 bg-[var(--color-primary-100)] rounded-2xl border border-[var(--color-border)]"
+                    className="space-y-3 p-4 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent-500)]"
                   >
                     <input
                       type="text"
@@ -425,17 +428,17 @@ export default function TaskList({
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-muted)]">
                       {editingArea && (
-                        <span className="px-3 py-1 rounded-full bg-[var(--color-primary-100)] text-[var(--color-primary-700)] border border-[var(--color-border)]">
+                        <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
                           Área: {editingArea.name}
                         </span>
                       )}
                       {editingProject && (
-                        <span className="px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-accent-300)_60%,var(--color-bg)_40%)] text-[var(--on-surface)] border border-[var(--color-border)]">
+                        <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
                           Proyecto: {editingProject.name}
                         </span>
                       )}
                       {editingHeading && (
-                        <span className="px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-primary-300)_40%,white_60%)] text-[var(--color-primary-700)] border border-[var(--color-border)]">
+                        <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
                           Sección: {editingHeading.name}
                         </span>
                       )}
@@ -452,7 +455,7 @@ export default function TaskList({
                     <button
                       type="button"
                       onClick={() => onOpenMoveSheet(task)}
-                      className="flex items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
+                      className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
                     >
                       <span className="text-lg">→</span>
                       <span>Mover</span>
@@ -461,7 +464,7 @@ export default function TaskList({
                       type="button"
                       onClick={() => onDeleteTask(task.id)}
                       disabled={deletePending}
-                      className="flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 hover:border-rose-400 disabled:opacity-50"
+                      className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-danger-500)] px-4 py-2 text-sm font-semibold text-[var(--color-danger-500)] hover:opacity-80 disabled:opacity-50"
                     >
                       <span>🗑</span>
                       <span>Papelera</span>
@@ -469,7 +472,7 @@ export default function TaskList({
                     <button
                       type="button"
                       onClick={() => onOpenOverflowMenu(task)}
-                      className="flex items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+                      className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
                     >
                       <span>…</span>
                     </button>
@@ -486,16 +489,18 @@ export default function TaskList({
                       onToggleTask(task.id)
                     }}
                     disabled={togglePending}
-                    className={`${checkboxClass} disabled:opacity-50`}
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center group disabled:opacity-50"
                     aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
                   >
-                    {celebratingTaskId === task.id ? (
-                      <>
-                        <span className="az-complete-ring" aria-hidden />
-                        <span className="az-complete-spark" aria-hidden />
-                      </>
-                    ) : null}
-                    {task.status === 'done' ? checkboxIcon : null}
+                    <span className={checkboxClass}>
+                      {celebratingTaskId === task.id ? (
+                        <>
+                          <span className="az-complete-ring" aria-hidden />
+                          <span className="az-complete-spark" aria-hidden />
+                        </>
+                      ) : null}
+                      {task.status === 'done' ? checkboxIcon : null}
+                    </span>
                   </button>
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -531,16 +536,18 @@ export default function TaskList({
                       onToggleTask(task.id)
                     }}
                     disabled={togglePending}
-                    className={`${checkboxClass} disabled:opacity-50`}
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center group disabled:opacity-50"
                     aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
                   >
-                    {celebratingTaskId === task.id ? (
-                      <>
-                        <span className="az-complete-ring" aria-hidden />
-                        <span className="az-complete-spark" aria-hidden />
-                      </>
-                    ) : null}
-                    {task.status === 'done' ? checkboxIcon : null}
+                    <span className={checkboxClass}>
+                      {celebratingTaskId === task.id ? (
+                        <>
+                          <span className="az-complete-ring" aria-hidden />
+                          <span className="az-complete-spark" aria-hidden />
+                        </>
+                      ) : null}
+                      {task.status === 'done' ? checkboxIcon : null}
+                    </span>
                   </button>
                   <div className="flex-1 min-w-0 space-y-2">
                     <div
@@ -559,22 +566,22 @@ export default function TaskList({
                     {plainNotes && <p className="text-sm text-[var(--color-text-muted)]">{plainNotes}</p>}
                     <div className={metaClass}>
                       {isContextView && taskProject && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-100)] text-[var(--color-primary-700)]">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
                           {taskProject.name}
                         </span>
                       )}
                       {isContextView && !taskProject && taskArea && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-accent-300)_70%,var(--color-bg)_30%)] text-[var(--on-surface)]">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
                           {taskArea.name}
                         </span>
                       )}
                       {taskHeading && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-primary-300)_50%,white_50%)] text-[var(--color-primary-700)]">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
                           {taskHeading.name}
                         </span>
                       )}
                       {task.due_at && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-primary-300)] text-[var(--color-primary-700)] inline-flex items-center gap-1.5">
+                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] inline-flex items-center gap-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
                           {new Date(task.due_at).toLocaleDateString('es-ES')}
                         </span>
@@ -583,7 +590,7 @@ export default function TaskList({
                     {task.labels && task.labels.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {task.labels.map(label => (
-                          <span key={label.id} className="az-pill">
+                          <span key={label.id} className="az-pill" style={getSoftLabelStyle(label.color)}>
                             {label.name}
                           </span>
                         ))}
@@ -600,24 +607,30 @@ export default function TaskList({
                                   event.stopPropagation()
                                   onToggleCollapsedChecklist(task.id, item.id, item.completed)
                                 }}
-                                className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                                  item.completed
-                                    ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-                                    : 'border-[var(--color-border)] text-transparent'
-                                }`}
+                                className="min-h-[44px] min-w-[44px] flex items-center justify-center"
                                 aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completada'}
                               >
-                                ✓
+                                <span
+                                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                    item.completed
+                                      ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
+                                      : 'border-[var(--color-border)] text-transparent'
+                                  }`}
+                                >
+                                  ✓
+                                </span>
                               </button>
                             ) : (
-                              <span
-                                className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                                  item.completed
-                                    ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-                                    : 'border-[var(--color-border)] text-transparent'
-                                }`}
-                              >
-                                ✓
+                              <span className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                                <span
+                                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                                    item.completed
+                                      ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
+                                      : 'border-[var(--color-border)] text-transparent'
+                                  }`}
+                                >
+                                  ✓
+                                </span>
                               </span>
                             )}
                             <span className={item.completed ? 'line-through text-[var(--color-text-subtle)]' : ''}>{item.text}</span>
