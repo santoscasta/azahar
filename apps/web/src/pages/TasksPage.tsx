@@ -44,6 +44,7 @@ import {
 import { defaultDueForView, determineViewFromDate } from '../lib/scheduleUtils.js'
 import { deserializeChecklistNotes, generateChecklistId } from '../lib/checklistNotes.js'
 import { loadSettings, subscribeToSettings, type SettingsState } from '../lib/settingsStore.js'
+import { formatISODate, parseISODate } from '../lib/dateUtils.js'
 import { useTaskCreation } from '../hooks/useTaskCreation.js'
 import { useProjectCreation } from '../hooks/useProjectCreation.js'
 import { useAreaCreation } from '../hooks/useAreaCreation.js'
@@ -59,6 +60,7 @@ import NewProjectModal from '../components/tasks/NewProjectModal.js'
 import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
 import ActiveFilterChips from '../components/tasks/ActiveFilterChips.js'
 import ErrorBanner from '../components/tasks/ErrorBanner.js'
+import StatusBanner from '../components/tasks/StatusBanner.js'
 import TaskCreationModal from '../components/tasks/TaskCreationModal.js'
 import TaskDatePickerOverlay from '../components/tasks/TaskDatePickerOverlay.js'
 import LabelSheet from '../components/tasks/LabelSheet.js'
@@ -109,6 +111,7 @@ export default function TasksPage() {
   } = useTaskCreation()
   const { language, t } = useTranslations()
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [editingNotes, setEditingNotes] = useState('')
@@ -179,6 +182,7 @@ export default function TasksPage() {
   const [showAssistantChat, setShowAssistantChat] = useState(false)
   const [showDesktopDraft, setShowDesktopDraft] = useState(false)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftProjectRef = useRef<HTMLInputElement | null>(null)
@@ -209,6 +213,19 @@ export default function TasksPage() {
   const hasPendingSync = pendingMutations > 0 && !isOnline
   const normalizedSearch = searchQuery.trim()
   const sortedLabelIds = useMemo(() => [...selectedLabelIds].sort(), [selectedLabelIds])
+  const assistantEnabled = Boolean(
+    (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_OPENAI_API_KEY
+  )
+
+  const pushSuccessMessage = useCallback((message: string) => {
+    setSuccessMessage(message)
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current)
+    }
+    successTimeoutRef.current = setTimeout(() => {
+      setSuccessMessage('')
+    }, 3200)
+  }, [])
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasks = [], isLoading } = useQuery({
@@ -284,6 +301,20 @@ export default function TasksPage() {
   }, [])
 
   useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!assistantEnabled && showAssistantChat) {
+      setShowAssistantChat(false)
+    }
+  }, [assistantEnabled, showAssistantChat])
+
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return
     }
@@ -331,10 +362,7 @@ export default function TasksPage() {
   }, [mobileDraftArea])
 
   const todayISO = useMemo(() => {
-    const now = new Date()
-    const month = `${now.getMonth() + 1}`.padStart(2, '0')
-    const day = `${now.getDate()}`.padStart(2, '0')
-    return `${now.getFullYear()}-${month}-${day}`
+    return formatISODate(new Date())
   }, [])
 
   useEffect(() => {
@@ -356,13 +384,39 @@ export default function TasksPage() {
     () => buildQuickViewStats(tasks, todayISO),
     [tasks, todayISO]
   )
+  const searchResults = useMemo(() => {
+    if (!normalizedSearch) {
+      return tasks
+    }
+    const query = normalizedSearch.toLowerCase()
+    return tasks.filter(task => {
+      const titleMatch = task.title.toLowerCase().includes(query)
+      const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
+      const projectName = task.project_id
+        ? projects.find(project => project.id === task.project_id)?.name.toLowerCase()
+        : ''
+      const projectMatch = projectName ? projectName.includes(query) : false
+      return titleMatch || notesMatch || projectMatch
+    })
+  }, [normalizedSearch, projects, tasks])
   const isSearchMode = isSearchFocused || normalizedSearch.length > 0
   const filteredTasks = useMemo(() => {
     if (isSearchMode) {
-      return showCompletedInContext ? tasks : tasks.filter(task => task.status !== 'done')
+      const base = searchResults
+      return showCompletedInContext ? base : base.filter(task => task.status !== 'done')
     }
     return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap)
-  }, [isSearchMode, showCompletedInContext, tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap])
+  }, [
+    isSearchMode,
+    showCompletedInContext,
+    searchResults,
+    tasks,
+    activeQuickView,
+    todayISO,
+    selectedProjectId,
+    selectedAreaId,
+    projectMap,
+  ])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false
@@ -426,12 +480,10 @@ export default function TasksPage() {
   }, [tasks, todayISO, projectMap])
 
   const tomorrowISO = useMemo(() => {
-    const todayDate = new Date(todayISO)
+    const todayDate = parseISODate(todayISO) ?? new Date()
     const tomorrow = new Date(todayDate)
     tomorrow.setDate(todayDate.getDate() + 1)
-    const month = `${tomorrow.getMonth() + 1}`.padStart(2, '0')
-    const day = `${tomorrow.getDate()}`.padStart(2, '0')
-    return `${tomorrow.getFullYear()}-${month}-${day}`
+    return formatISODate(tomorrow)
   }, [todayISO])
   const applyViewPreset = (view: QuickViewId) => {
     updateTaskDraft('view', view)
@@ -1057,20 +1109,13 @@ export default function TasksPage() {
   }, [selectedProjectId, showQuickHeadingForm])
 
   const suggestionResults = useMemo(() => {
-    if (!searchQuery.trim()) {
+    if (!normalizedSearch) {
       return []
     }
-    const query = searchQuery.toLowerCase()
-    return tasks
-      .filter(task => {
-        const titleMatch = task.title.toLowerCase().includes(query)
-        const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
-        return titleMatch || notesMatch
-      })
-      .slice(0, 6)
-  }, [searchQuery, tasks])
+    return searchResults.slice(0, 6)
+  }, [normalizedSearch, searchResults])
 
-  const showSuggestionPanel = isSearchFocused && searchQuery.trim().length > 0
+  const showSuggestionPanel = isSearchFocused && normalizedSearch.length > 0
 
   const handleSearchFocus = () => {
     if (searchBlurTimeout.current) {
@@ -1112,8 +1157,8 @@ export default function TasksPage() {
     if (!value) {
       return 'Sin fecha'
     }
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) {
+    const date = parseISODate(value)
+    if (!date || Number.isNaN(date.getTime())) {
       return 'Sin fecha'
     }
     return date.toLocaleDateString('es-ES', {
@@ -1485,27 +1530,37 @@ export default function TasksPage() {
   const updateTaskMutation = useMutation({
     mutationKey: ['mutations', 'tasks', 'update'],
     networkMode: 'online',
-    mutationFn: async (taskId: string) => {
-      const resolvedTitle = editingTitle.trim() ? editingTitle : 'Nueva tarea'
-      const updated = await updateTask(taskId, {
+    mutationFn: async (payload: {
+      taskId: string
+      title: string
+      notes: string
+      priority: Priority
+      dueAt: string
+      projectId: string | null
+      areaId: string | null
+      headingId: string | null
+      checklist: EditingChecklistItem[]
+    }) => {
+      const resolvedTitle = payload.title.trim() ? payload.title : 'Nueva tarea'
+      const updated = await updateTask(payload.taskId, {
         title: resolvedTitle,
-        notes: editingNotes,
-        priority: editingPriority,
-        due_at: editingDueAt || null,
-        project_id: editingProjectId || null,
-        area_id: editingAreaId || null,
-        heading_id: editingHeadingId || null,
+        notes: payload.notes,
+        priority: payload.priority,
+        due_at: payload.dueAt || null,
+        project_id: payload.projectId || null,
+        area_id: payload.areaId || null,
+        heading_id: payload.headingId || null,
       })
       if (!updated.success) {
         return updated
       }
-      const checklistPayload = editingChecklist.map((item, index) => ({
+      const checklistPayload = payload.checklist.map((item, index) => ({
         id: item.persisted ? item.id : undefined,
         text: item.text,
         completed: item.completed,
         sort_order: item.sortOrder ?? index,
       }))
-      const synced = await syncTaskChecklist(taskId, checklistPayload)
+      const synced = await syncTaskChecklist(payload.taskId, checklistPayload)
       if (!synced.success) {
         return { success: false, error: synced.error }
       }
@@ -1545,6 +1600,17 @@ export default function TasksPage() {
     onSuccess: (result, variables) => {
       if (result.success) {
         setError('')
+        const destinationProject = variables.projectId
+          ? projects.find(project => project.id === variables.projectId)
+          : null
+        const destinationArea = variables.areaId ? areas.find(area => area.id === variables.areaId) : null
+        if (destinationProject) {
+          pushSuccessMessage(`Tarea movida a ${destinationProject.name}`)
+        } else if (destinationArea) {
+          pushSuccessMessage(`Tarea movida a ${destinationArea.name}`)
+        } else {
+          pushSuccessMessage('Tarea movida')
+        }
         if (editingId === variables.taskId) {
           setEditingAreaId(variables.areaId)
           setEditingProjectId(variables.projectId)
@@ -1569,6 +1635,10 @@ export default function TasksPage() {
     onSuccess: (result) => {
       if (result.success) {
         setError('')
+        const statusLabel = result.task?.status === 'done'
+          ? 'Tarea marcada como completada'
+          : 'Tarea marcada como pendiente'
+        pushSuccessMessage(statusLabel)
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
       } else {
         setError(result.error || 'Error al cambiar estado')
@@ -1863,8 +1933,18 @@ export default function TasksPage() {
       setError('El título no puede estar vacío')
       return
     }
+    const basePayload = buildMobileTaskPayload(mobileDraftTask)
+    const targetProjectId = basePayload.project_id ?? selectedProjectId ?? null
+    const targetAreaId =
+      basePayload.area_id ??
+      selectedAreaId ??
+      (targetProjectId ? projects.find(project => project.id === targetProjectId)?.area_id || null : null)
     addTaskMutation.mutate(
-      buildMobileTaskPayload(mobileDraftTask),
+      {
+        ...basePayload,
+        project_id: targetProjectId,
+        area_id: targetAreaId,
+      },
       {
         onSuccess: () => {
           updateMobileDraft(() => null)
@@ -1890,14 +1970,19 @@ export default function TasksPage() {
       setError('El título no puede estar vacío')
       return
     }
+    const targetProjectId = taskDraft.projectId ?? selectedProjectId ?? null
+    const targetAreaId =
+      taskDraft.areaId ??
+      selectedAreaId ??
+      (targetProjectId ? projects.find(project => project.id === targetProjectId)?.area_id || null : null)
     addTaskMutation.mutate({
       title: taskDraft.title,
       notes: taskDraft.notes,
       priority: taskDraft.priority,
       due_at: taskDraft.due_at,
       status: taskDraft.status,
-      project_id: taskDraft.projectId,
-      area_id: taskDraft.areaId,
+      project_id: targetProjectId,
+      area_id: targetAreaId,
       heading_id: taskDraft.headingId,
       labelIds: taskDraft.labelIds,
     }, {
@@ -1943,7 +2028,17 @@ export default function TasksPage() {
       event.preventDefault()
     }
     if (editingId) {
-      updateTaskMutation.mutate(editingId)
+      updateTaskMutation.mutate({
+        taskId: editingId,
+        title: editingTitle,
+        notes: editingNotes,
+        priority: editingPriority,
+        dueAt: editingDueAt,
+        projectId: editingProjectId,
+        areaId: editingAreaId,
+        headingId: editingHeadingId,
+        checklist: editingChecklist,
+      })
       return true
     }
     return false
@@ -2400,6 +2495,7 @@ export default function TasksPage() {
                 compactFilters={isMobileDetail}
                 onRemoveFilter={handleRemoveFilter}
                 errorMessage={error}
+                successMessage={successMessage}
                 renderTaskBoard={renderMobileTaskBoard}
                 renderDraftCard={renderMobileDraftTaskCard}
                 showDraft={showMobileHome && !!mobileDraftTask}
@@ -2458,15 +2554,17 @@ export default function TasksPage() {
                     onClear={handleClearSearch}
                     onSelectSuggestion={handleSuggestionSelect}
                   />
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setShowAssistantChat(true)}
-                      className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--on-surface)] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
-                    >
-                      Chat IA (crear tareas)
-                    </button>
-                  </div>
+                  {assistantEnabled && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowAssistantChat(true)}
+                        className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--on-surface)] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
+                      >
+                        Chat IA (crear tareas)
+                      </button>
+                    </div>
+                  )}
                   <DesktopContextHeader
                     label={contextLabel}
                     title={contextTitle}
@@ -2484,6 +2582,7 @@ export default function TasksPage() {
                     compact={false}
                     onRemove={handleRemoveFilter}
                   />
+                  <StatusBanner message={successMessage} />
                   <ErrorBanner message={error} />
                   {!isOnline && <ErrorBanner message={t('status.offline')} />}
                   {hasPendingSync && <ErrorBanner message={t('status.pendingSync')} />}
@@ -2536,10 +2635,12 @@ export default function TasksPage() {
       {renderPriorityMenu()}
       {renderOverflowMenu()}
       {renderLabelSheet()}
-      <AssistantChat
-        open={showAssistantChat}
-        onClose={() => setShowAssistantChat(false)}
-      />
+      {assistantEnabled && (
+        <AssistantChat
+          open={showAssistantChat}
+          onClose={() => setShowAssistantChat(false)}
+        />
+      )}
       <TaskDatePickerOverlay
         target={datePickerTarget}
         month={datePickerMonth}

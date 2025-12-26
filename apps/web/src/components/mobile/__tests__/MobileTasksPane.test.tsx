@@ -37,6 +37,7 @@ describe('MobileTasksPane', () => {
         compactFilters={false}
         onRemoveFilter={onRemoveFilter}
         errorMessage="Error test"
+        successMessage="Listo"
         renderTaskBoard={renderTaskBoard}
         renderDraftCard={renderDraftCard}
         showDraft

@@ -1,4 +1,5 @@
 import type { Task, Project, Label, Area, TaskQuickView } from '../lib/supabase.js'
+import { normalizeISODate } from '../lib/dateUtils.js'
 
 export type QuickViewId = TaskQuickView
 
@@ -40,12 +41,7 @@ const resolveLabelQuickView = (task: Task): QuickViewId | null => {
 }
 
 export function normalizeDate(value?: string | null): string | null {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return null
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${date.getFullYear()}-${month}-${day}`
+  return normalizeISODate(value)
 }
 
 export function buildQuickViewStats(tasks: Task[], todayISO: string) {
