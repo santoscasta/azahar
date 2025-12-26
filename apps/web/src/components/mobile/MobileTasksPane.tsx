@@ -6,6 +6,7 @@ import MobileSearchBar from './MobileSearchBar.js'
 import MobileHeader from './MobileHeader.js'
 import ActiveFilterChips from '../tasks/ActiveFilterChips.js'
 import ErrorBanner from '../tasks/ErrorBanner.js'
+import StatusBanner from '../tasks/StatusBanner.js'
 
 interface MobileTasksPaneProps {
   searchQuery: string
@@ -28,6 +29,7 @@ interface MobileTasksPaneProps {
   compactFilters: boolean
   onRemoveFilter: (filter: ActiveFilterDescriptor) => void
   errorMessage: string
+  successMessage: string
   renderTaskBoard: () => ReactNode
   renderDraftCard?: () => ReactNode
   showDraft: boolean
@@ -55,6 +57,7 @@ export default function MobileTasksPane({
   compactFilters,
   onRemoveFilter,
   errorMessage,
+  successMessage,
   renderTaskBoard,
   renderDraftCard,
   showDraft,
@@ -95,6 +98,7 @@ export default function MobileTasksPane({
       )}
       renderError={() => (
         <>
+          <StatusBanner message={successMessage} />
           <ErrorBanner message={errorMessage} />
           {pendingSync && <ErrorBanner message="Hay cambios pendientes por sincronizar." />}
         </>
