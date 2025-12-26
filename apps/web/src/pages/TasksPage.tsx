@@ -154,9 +154,10 @@ export default function TasksPage() {
   const [headingEditingName, setHeadingEditingName] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [forceMobileView, setForceMobileView] = useState(false)
   // Force mobile viewports to use the desktop experience.
   const forceDesktopOnMobile = false
-  const useMobileExperience = isMobile && !forceDesktopOnMobile
+  const useMobileExperience = (isMobile || forceMobileView) && !forceDesktopOnMobile
   const [showMobileHome, setShowMobileHome] = useState(true)
   const [mobileProjectFocusId, setMobileProjectFocusId] = useState<string | null>(null)
   const [mobileTaskLimit, setMobileTaskLimit] = useState(6)
@@ -321,8 +322,9 @@ export default function TasksPage() {
     }
     const mediaQuery = window.matchMedia('(max-width: 768px)')
     const updateMatches = (matches: boolean) => {
+      const shouldUseMobile = (matches || forceMobileView) && !forceDesktopOnMobile
       setIsMobile(matches)
-      if (matches && !forceDesktopOnMobile) {
+      if (shouldUseMobile) {
         setShowMobileHome(true)
       } else {
         setShowMobileHome(false)
@@ -342,7 +344,7 @@ export default function TasksPage() {
     }
     mediaQuery.addListener(listener)
     return () => mediaQuery.removeListener(listener)
-  }, [])
+  }, [forceMobileView])
 
   useEffect(() => {
     if (mobileDraftTaskTitleRef.current && useMobileExperience && mobileDraftTask) {
@@ -370,6 +372,7 @@ export default function TasksPage() {
     const applySettings = (state: SettingsState) => {
       setShowCompletedInContext(state.showCompletedInContexts)
       setCustomViewNames(state.customViewNames ?? {})
+      setForceMobileView(state.forceMobileView)
     }
 
     applySettings(loadSettings())

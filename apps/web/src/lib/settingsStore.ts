@@ -8,6 +8,7 @@ export interface SettingsState {
   theme: ThemeOption
   language: Language
   showCompletedInContexts: boolean
+  forceMobileView: boolean
   customViewNames?: Partial<Record<QuickViewId, string>>
 }
 
@@ -19,6 +20,7 @@ export const defaultSettings: SettingsState = {
   theme: 'system',
   language: 'es',
   showCompletedInContexts: true,
+  forceMobileView: false,
 }
 
 const isClient = typeof window !== 'undefined'
@@ -49,6 +51,9 @@ const sanitizeSettings = (raw: Partial<SettingsState> | null | undefined): Setti
   showCompletedInContexts: typeof raw?.showCompletedInContexts === 'boolean'
     ? raw.showCompletedInContexts
     : defaultSettings.showCompletedInContexts,
+  forceMobileView: typeof raw?.forceMobileView === 'boolean'
+    ? raw.forceMobileView
+    : defaultSettings.forceMobileView,
   customViewNames: sanitizeCustomViewNames(raw?.customViewNames),
   version: 1,
 })
