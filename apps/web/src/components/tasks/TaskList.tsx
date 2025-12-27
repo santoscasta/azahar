@@ -529,9 +529,9 @@ export default function TaskList({
                       {task.status === 'done' ? checkboxIcon : null}
                     </span>
                   </button>
-                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                  <div className="flex-1 min-w-0 flex items-center gap-4 flex-nowrap">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-nowrap">
                         <p
                           className={`${titleClass} ${
                             task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
@@ -562,7 +562,7 @@ export default function TaskList({
                       ) : null}
                     </div>
                     {metaItems.length > 0 && (
-                      <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-nowrap overflow-hidden min-w-0">
+                      <div className="ml-auto flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-nowrap overflow-hidden min-w-0">
                         {metaItems}
                       </div>
                     )}
