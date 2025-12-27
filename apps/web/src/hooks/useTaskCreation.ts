@@ -48,7 +48,16 @@ export function useTaskCreation(initialView: QuickViewId = 'inbox') {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [mobileDraftTask, setMobileDraftTask] = useState<MobileTaskDraft | null>(() => {
     const persisted = loadDraft<MobileTaskDraft>('azahar:draft:mobile-task')
-    return persisted ?? null
+    if (!persisted) return null
+    return {
+      title: typeof persisted.title === 'string' ? persisted.title : '',
+      notes: typeof persisted.notes === 'string' ? persisted.notes : '',
+      view: persisted.view ?? 'inbox',
+      areaId: persisted.areaId ?? null,
+      projectId: persisted.projectId ?? null,
+      due_at: persisted.due_at ?? null,
+      labelIds: Array.isArray(persisted.labelIds) ? persisted.labelIds : [],
+    }
   })
 
   const updateTaskDraft = useCallback(<K extends keyof TaskCreationDraft>(key: K, value: TaskCreationDraft[K]) => {
