@@ -291,16 +291,13 @@ export default function TaskList({
                     : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
                 }`
           const compactActivationProps =
-            !isEditing && variant === 'mobile'
+            !isEditing && variant === 'desktop'
               ? {
-                  onClick: () => onStartEdit(task),
+                  onDoubleClick: () => onStartEdit(task),
                 }
-              : !isEditing && variant === 'desktop'
-                ? {
-                    onDoubleClick: () => onStartEdit(task),
-                  }
-                : {}
-          const useInlineLayout = variant === 'desktop'
+              : {}
+          const useInlineLayout = true
+          const showInlineMeta = variant === 'desktop'
           const checklistCompleted = checklistItems.filter(item => item.completed).length
           const checklistSummary = checklistItems.length > 0 ? `${checklistCompleted}/${checklistItems.length}` : null
           const labelsSummary =
@@ -312,7 +309,7 @@ export default function TaskList({
           })
           const metaItems: ReactNode[] = []
 
-          if (useInlineLayout) {
+          if (useInlineLayout && showInlineMeta) {
             if (!isContextView && (taskProject || taskArea)) {
               metaItems.push(
                 <span key="context" className="min-w-0 truncate max-w-[12rem]">
