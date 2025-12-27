@@ -9,15 +9,22 @@ export function formatISODate(date: Date) {
 
 export function parseISODate(value: string): Date | null {
   if (!value) return null
-  const directValue = ISO_DATE_REGEX.test(value) ? value : value.slice(0, 10)
+  if (ISO_DATE_REGEX.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day)
+  }
+  const parsed = new Date(value)
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed
+  }
+  const directValue = value.slice(0, 10)
   if (ISO_DATE_REGEX.test(directValue)) {
     const [year, month, day] = directValue.split('-').map(Number)
     if (!year || !month || !day) return null
     return new Date(year, month - 1, day)
   }
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return null
-  return parsed
+  return null
 }
 
 export function normalizeISODate(value?: string | null): string | null {

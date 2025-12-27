@@ -1655,6 +1655,27 @@ export default function TasksPage() {
       }
       return updated
     },
+    onMutate: async (variables) => {
+      const resolvedTitle = variables.title.trim() ? variables.title.trim() : 'Nueva tarea'
+      const previous = queryClient.getQueriesData<Task[]>({ queryKey: ['tasks'] })
+      queryClient.setQueriesData({ queryKey: ['tasks'] }, (old: Task[] | undefined) => {
+        if (!old) return old
+        return old.map(task => {
+          if (task.id !== variables.taskId) return task
+          return {
+            ...task,
+            title: resolvedTitle,
+            notes: variables.notes,
+            priority: variables.priority,
+            due_at: variables.dueAt || null,
+            project_id: variables.projectId,
+            area_id: variables.areaId,
+            heading_id: variables.headingId,
+          }
+        })
+      })
+      return { previous }
+    },
     onSuccess: (result, variables) => {
       if (result.success) {
         const resolvedTitle = variables.title.trim() ? variables.title.trim() : 'Nueva tarea'
@@ -1696,7 +1717,12 @@ export default function TasksPage() {
         setError(result.error || 'Error al actualizar tarea')
       }
     },
-    onError: () => {
+    onError: (_err, _variables, context) => {
+      if (context?.previous) {
+        context.previous.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data)
+        })
+      }
       setError('Error inesperado al actualizar tarea')
     },
   })
