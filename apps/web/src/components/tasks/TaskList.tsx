@@ -291,16 +291,13 @@ export default function TaskList({
                     : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
                 }`
           const compactActivationProps =
-            !isEditing && variant === 'mobile'
+            !isEditing && variant === 'desktop'
               ? {
-                  onClick: () => onStartEdit(task),
+                  onDoubleClick: () => onStartEdit(task),
                 }
-              : !isEditing && variant === 'desktop'
-                ? {
-                    onDoubleClick: () => onStartEdit(task),
-                  }
-                : {}
-          const useInlineLayout = variant === 'desktop'
+              : {}
+          const useInlineLayout = true
+          const showInlineMeta = variant === 'desktop'
           const checklistCompleted = checklistItems.filter(item => item.completed).length
           const checklistSummary = checklistItems.length > 0 ? `${checklistCompleted}/${checklistItems.length}` : null
           const labelsSummary =
@@ -312,7 +309,7 @@ export default function TaskList({
           })
           const metaItems: ReactNode[] = []
 
-          if (useInlineLayout) {
+          if (useInlineLayout && showInlineMeta) {
             if (!isContextView && (taskProject || taskArea)) {
               metaItems.push(
                 <span key="context" className="min-w-0 truncate max-w-[12rem]">
@@ -529,9 +526,9 @@ export default function TaskList({
                       {task.status === 'done' ? checkboxIcon : null}
                     </span>
                   </button>
-                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                  <div className="flex-1 min-w-0 flex items-center gap-4 flex-nowrap">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-nowrap">
                         <p
                           className={`${titleClass} ${
                             task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
@@ -562,7 +559,7 @@ export default function TaskList({
                       ) : null}
                     </div>
                     {metaItems.length > 0 && (
-                      <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-nowrap overflow-hidden min-w-0">
+                      <div className="ml-auto flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-nowrap overflow-hidden min-w-0">
                         {metaItems}
                       </div>
                     )}
