@@ -105,7 +105,6 @@ export default function TaskList({
   const { t } = useTranslations()
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const hasDraft = showDraftCard && renderDraftCard
 
   const triggerCompletionCelebration = (taskId: string) => {
@@ -225,18 +224,6 @@ export default function TaskList({
     </svg>
   )
 
-  const toggleNotes = (taskId: string) => {
-    setExpandedNotes((current) => {
-      const next = new Set(current)
-      if (next.has(taskId)) {
-        next.delete(taskId)
-      } else {
-        next.add(taskId)
-      }
-      return next
-    })
-  }
-
   return (
     <>
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
@@ -271,8 +258,14 @@ export default function TaskList({
           const isContextView = !!contextProjectId || !!contextAreaId
           const baseLiClass =
             variant === 'mobile'
-              ? 'p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm transition-colors'
-              : 'group px-6 py-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:border-[var(--color-accent-500)] hover:shadow-[0_10px_28px_rgba(45,37,32,0.08)] transition-all'
+              ? `p-4 rounded-2xl border ${
+                  task.status === 'done' ? 'border-transparent bg-transparent shadow-none' : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm'
+                } transition-colors`
+              : `group px-6 py-6 rounded-2xl border ${
+                  task.status === 'done'
+                    ? 'border-transparent bg-transparent shadow-none'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:border-[var(--color-accent-500)] hover:shadow-[0_10px_28px_rgba(45,37,32,0.08)]'
+                } transition-all`
           const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
           const metaClass =
             variant === 'mobile'
@@ -290,12 +283,11 @@ export default function TaskList({
                     ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
                     : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
                 }`
-          const compactActivationProps =
-            !isEditing && variant === 'desktop'
-              ? {
-                  onDoubleClick: () => onStartEdit(task),
-                }
-              : {}
+          const compactActivationProps = !isEditing
+            ? {
+                onClick: () => onStartEdit(task),
+              }
+            : {}
           const useInlineLayout = true
           const showInlineMeta = variant === 'desktop'
           const checklistCompleted = checklistItems.filter(item => item.completed).length
@@ -366,9 +358,6 @@ export default function TaskList({
               </span>
             )
           }
-          const canToggleNotes = !!plainNotes
-          const notesExpanded = expandedNotes.has(task.id)
-
           return (
             <li key={task.id} className={baseLiClass} {...compactActivationProps}>
               {isEditing ? (
@@ -496,14 +485,7 @@ export default function TaskList({
                   </div>
                 </div>
               ) : useInlineLayout ? (
-                <div
-                  className={`flex items-center gap-2 ${canToggleNotes ? 'cursor-pointer' : ''}`}
-                  onClick={() => {
-                    if (canToggleNotes) {
-                      toggleNotes(task.id)
-                    }
-                  }}
-                >
+                <div className="flex items-center gap-2 cursor-pointer">
                   <button
                     onClick={(event) => {
                       event.stopPropagation()
@@ -553,9 +535,6 @@ export default function TaskList({
                       ) : null}
                       {isContextView && !taskProject && taskArea ? (
                         <p className="text-sm text-[var(--color-text-muted)] truncate">Área: {taskArea.name}</p>
-                      ) : null}
-                      {plainNotes && notesExpanded ? (
-                        <p className="text-sm text-[var(--color-text-muted)] mt-1">{plainNotes}</p>
                       ) : null}
                     </div>
                     {metaItems.length > 0 && (
