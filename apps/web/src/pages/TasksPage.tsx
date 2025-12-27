@@ -1285,7 +1285,16 @@ export default function TasksPage() {
     } else if (datePickerTarget === 'edit') {
       setEditingDueAt(normalized)
     } else if (datePickerTarget === 'draft') {
-      updateMobileDraft(prev => (prev ? { ...prev, due_at: normalized || null } : prev))
+      updateMobileDraft(prev => {
+        if (!prev) return prev
+        const nextView = determineViewFromDate(normalized, todayISO, prev.view)
+        return {
+          ...prev,
+          due_at: normalized || null,
+          view: nextView,
+          labelIds: getDraftLabelIdsForView(nextView, prev.labelIds),
+        }
+      })
     }
     setDatePickerTarget(null)
   }
@@ -2033,6 +2042,7 @@ export default function TasksPage() {
     view: QuickViewId,
     overrides?: { areaId?: string | null; projectId?: string | null; stayHome?: boolean }
   ) => {
+    const normalizedView = view === 'logbook' ? 'inbox' : view
     const targetProjectId = overrides?.projectId ?? selectedProjectId ?? null
     const appliedAreaId =
       overrides?.areaId ??
@@ -2044,11 +2054,11 @@ export default function TasksPage() {
     updateMobileDraft(() => ({
       title: '',
       notes: '',
-      view,
+      view: normalizedView,
       areaId: appliedAreaId || null,
       projectId: targetProjectId || null,
-      due_at: defaultDueForView(view, todayISO, tomorrowISO),
-      labelIds: getDraftLabelIdsForView(view, []),
+      due_at: defaultDueForView(normalizedView, todayISO, tomorrowISO),
+      labelIds: getDraftLabelIdsForView(normalizedView, []),
     }))
   }
 
@@ -2074,7 +2084,12 @@ export default function TasksPage() {
       setError('El título no puede estar vacío')
       return
     }
-    const basePayload = buildMobileTaskPayload(mobileDraftTask)
+    const normalizedView = mobileDraftTask.view === 'logbook' ? 'inbox' : mobileDraftTask.view
+    const basePayload = buildMobileTaskPayload({
+      ...mobileDraftTask,
+      view: normalizedView,
+      labelIds: getDraftLabelIdsForView(normalizedView, mobileDraftTask.labelIds),
+    })
     const targetProjectId = basePayload.project_id ?? selectedProjectId ?? null
     const targetAreaId =
       basePayload.area_id ??
