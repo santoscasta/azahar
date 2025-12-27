@@ -105,6 +105,7 @@ export default function TaskList({
   const { t } = useTranslations()
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const hasDraft = showDraftCard && renderDraftCard
 
   const triggerCompletionCelebration = (taskId: string) => {
@@ -218,6 +219,23 @@ export default function TaskList({
       />
     </svg>
   )
+  const noteIcon = (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+      <path d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V8.5a1 1 0 00-.293-.707l-4.5-4.5A1 1 0 0011.5 3H5zm6 1.414L15.586 9H12a1 1 0 01-1-1V4.414z" />
+    </svg>
+  )
+
+  const toggleNotes = (taskId: string) => {
+    setExpandedNotes((current) => {
+      const next = new Set(current)
+      if (next.has(taskId)) {
+        next.delete(taskId)
+      } else {
+        next.add(taskId)
+      }
+      return next
+    })
+  }
 
   return (
     <>
@@ -351,6 +369,8 @@ export default function TaskList({
               </span>
             )
           }
+          const canToggleNotes = !!plainNotes
+          const notesExpanded = expandedNotes.has(task.id)
 
           return (
             <li key={task.id} className={baseLiClass} {...compactActivationProps}>
@@ -479,7 +499,14 @@ export default function TaskList({
                   </div>
                 </div>
               ) : useInlineLayout ? (
-                <div className="flex items-center gap-2">
+                <div
+                  className={`flex items-center gap-2 ${canToggleNotes ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (canToggleNotes) {
+                      toggleNotes(task.id)
+                    }
+                  }}
+                >
                   <button
                     onClick={(event) => {
                       event.stopPropagation()
@@ -502,21 +529,37 @@ export default function TaskList({
                       {task.status === 'done' ? checkboxIcon : null}
                     </span>
                   </button>
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <p
-                        className={`${titleClass} ${
-                          task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
-                        } truncate flex-1 min-w-0`}
-                      >
-                        {task.title}
-                      </p>
-                      {task.pinned ? <span className="text-base" aria-label="Tarea fijada">📌</span> : null}
-                      {plainNotes && (
-                        <span className="text-sm text-[var(--color-text-muted)] truncate max-w-[12rem] min-w-0">
-                          - {plainNotes}
-                        </span>
-                      )}
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p
+                          className={`${titleClass} ${
+                            task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
+                          } truncate flex-1 min-w-0`}
+                        >
+                          {task.title}
+                        </p>
+                        {task.pinned ? <span className="text-base" aria-label="Tarea fijada">📌</span> : null}
+                        {plainNotes ? (
+                          <span className="text-[var(--color-text-muted)]" aria-label="Tiene notas">
+                            {noteIcon}
+                          </span>
+                        ) : null}
+                      </div>
+                      {!isContextView && (taskProject || taskArea) ? (
+                        <p className="text-sm text-[var(--color-text-muted)] truncate">
+                          {taskProject?.name || taskArea?.name}
+                        </p>
+                      ) : null}
+                      {isContextView && taskProject ? (
+                        <p className="text-sm text-[var(--color-text-muted)] truncate">Proyecto: {taskProject.name}</p>
+                      ) : null}
+                      {isContextView && !taskProject && taskArea ? (
+                        <p className="text-sm text-[var(--color-text-muted)] truncate">Área: {taskArea.name}</p>
+                      ) : null}
+                      {plainNotes && notesExpanded ? (
+                        <p className="text-sm text-[var(--color-text-muted)] mt-1">{plainNotes}</p>
+                      ) : null}
                     </div>
                     {metaItems.length > 0 && (
                       <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-nowrap overflow-hidden min-w-0">
