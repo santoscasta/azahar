@@ -1223,7 +1223,7 @@ export default function TasksPage() {
   }
 
   const handleSuggestionSelect = (task: Task) => {
-    setSearchQuery(task.title)
+    setSearchQuery(task.title ?? '')
     setActiveQuickView('inbox')
     setSelectedProjectId(task.project_id || null)
     setSelectedAreaId(task.area_id || null)
