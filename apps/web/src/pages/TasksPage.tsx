@@ -416,7 +416,7 @@ export default function TasksPage() {
     }
     const query = normalizedSearch.toLowerCase()
     return tasks.filter(task => {
-      const titleMatch = task.title.toLowerCase().includes(query)
+      const titleMatch = (task.title ?? '').toLowerCase().includes(query)
       const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
       const projectName = task.project_id
         ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
@@ -428,13 +428,11 @@ export default function TasksPage() {
   const isSearchMode = isSearchFocused || normalizedSearch.length > 0
   const filteredTasks = useMemo(() => {
     if (isSearchMode) {
-      const base = searchResults
-      return showCompletedInContext ? base : base.filter(task => task.status !== 'done')
+      return searchResults.filter(task => task.status !== 'done')
     }
     return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap)
   }, [
     isSearchMode,
-    showCompletedInContext,
     searchResults,
     tasks,
     activeQuickView,
@@ -1223,7 +1221,7 @@ export default function TasksPage() {
   }
 
   const handleSuggestionSelect = (task: Task) => {
-    setSearchQuery(task.title)
+    setSearchQuery(task.title ?? '')
     setActiveQuickView('inbox')
     setSelectedProjectId(task.project_id || null)
     setSelectedAreaId(task.area_id || null)
@@ -2153,7 +2151,7 @@ export default function TasksPage() {
 
   const handleEditTask = (task: Task) => {
     setEditingId(task.id)
-    setEditingTitle(task.title)
+    setEditingTitle(task.title ?? '')
     const legacy = deserializeChecklistNotes(task.notes)
     const checklistSource =
       task.checklist_items && task.checklist_items.length > 0
