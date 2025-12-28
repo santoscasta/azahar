@@ -2151,7 +2151,7 @@ export default function TasksPage() {
 
   const handleEditTask = (task: Task) => {
     setEditingId(task.id)
-    setEditingTitle(task.title)
+    setEditingTitle(task.title ?? '')
     const legacy = deserializeChecklistNotes(task.notes)
     const checklistSource =
       task.checklist_items && task.checklist_items.length > 0
