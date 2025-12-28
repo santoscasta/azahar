@@ -213,7 +213,7 @@ export default function TasksPage() {
     predicate: (mutation) => mutation.state.status === 'pending',
   })
   const hasPendingSync = pendingMutations > 0 && !isOnline
-  const normalizedSearch = searchQuery.trim()
+  const normalizedSearch = typeof searchQuery === 'string' ? searchQuery.trim() : ''
   const sortedLabelIds = useMemo(() => [...selectedLabelIds].sort(), [selectedLabelIds])
   const assistantEnabled = Boolean(
     (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_OPENAI_API_KEY
@@ -416,12 +416,13 @@ export default function TasksPage() {
     }
     const query = normalizedSearch.toLowerCase()
     return tasks.filter(task => {
-      const titleMatch = (task.title ?? '').toLowerCase().includes(query)
-      const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
-      const projectName = task.project_id
-        ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
-        : ''
-      const projectMatch = projectName ? projectName.includes(query) : false
+      const titleValue = typeof task.title === 'string' ? task.title : ''
+      const notesValue = typeof task.notes === 'string' ? task.notes : ''
+      const project = task.project_id ? projects.find(project => project.id === task.project_id) : undefined
+      const projectNameValue = typeof project?.name === 'string' ? project.name : ''
+      const titleMatch = titleValue.toLowerCase().includes(query)
+      const notesMatch = notesValue.toLowerCase().includes(query)
+      const projectMatch = projectNameValue ? projectNameValue.toLowerCase().includes(query) : false
       return titleMatch || notesMatch || projectMatch
     })
   }, [normalizedSearch, projects, tasks])
@@ -1223,7 +1224,7 @@ export default function TasksPage() {
   }
 
   const handleSuggestionSelect = (task: Task) => {
-    setSearchQuery(task.title ?? '')
+    setSearchQuery(typeof task.title === 'string' ? task.title : '')
     setActiveQuickView('inbox')
     setSelectedProjectId(task.project_id || null)
     setSelectedAreaId(task.area_id || null)
