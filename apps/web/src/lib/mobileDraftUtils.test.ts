@@ -20,6 +20,7 @@ describe('buildMobileTaskPayload', () => {
       due_at: '2025-02-01',
       project_id: 'project-1',
       area_id: 'area-1',
+      quick_view: 'someday',
       labelIds: ['a', 'b'],
     })
   })

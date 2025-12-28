@@ -52,6 +52,7 @@ describe('Mobile draft flow', () => {
       due_at: '2025-03-01',
       project_id: null,
       area_id: null,
+      quick_view: 'today',
       labelIds: [],
     })
   })

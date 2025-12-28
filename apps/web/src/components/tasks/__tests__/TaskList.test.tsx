@@ -100,7 +100,7 @@ describe('TaskList', () => {
     fireEvent.click(screen.getByLabelText('Marcar como completada'))
     expect(onToggle).toHaveBeenCalledWith('task-1')
 
-    fireEvent.doubleClick(screen.getByText('Demo Task'))
+    fireEvent.click(screen.getByText('Demo Task'))
     expect(onStartEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'task-1' }))
   })
 

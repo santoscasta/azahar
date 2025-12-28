@@ -270,7 +270,24 @@ stable
 as $$
   with base as (
     select
-      t.*,
+      t.id,
+      t.user_id,
+      t.project_id,
+      t.area_id,
+      t.heading_id,
+      t.title,
+      t.notes,
+      t.status,
+      t.priority,
+      t.due_at,
+      t.start_at,
+      t.repeat_rrule,
+      t.reminder_at,
+      t.updated_at,
+      t.created_at,
+      t.completed_at,
+      t.pinned,
+      t.client_mutation_id,
       case
         when t.status = 'done' then 'logbook'
         when t.status = 'snoozed' then 'someday'

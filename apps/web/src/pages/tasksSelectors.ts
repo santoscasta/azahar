@@ -110,6 +110,10 @@ export function getTaskView(task: Task, todayISO: string): QuickViewId {
     return 'upcoming'
   }
 
+  if (!task.project_id && !task.area_id) {
+    return 'inbox'
+  }
+
   return 'anytime'
 }
 

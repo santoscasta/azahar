@@ -10,9 +10,32 @@ import { useConnectivity } from '../hooks/useConnectivity'
 // Mock Supabase API
 vi.mock('../lib/supabase', () => ({
     searchTasks: vi.fn().mockResolvedValue({
-        success: true, tasks: [
-            { id: '1', title: 'Desktop Task 1', status: 'open', due_at: null, priority: 0, user_id: 'u1', created_at: '2023-01-01' }
-        ]
+        success: true,
+        tasks: [
+            {
+                id: '1',
+                title: 'Desktop Task 1',
+                status: 'open',
+                due_at: null,
+                priority: 0,
+                user_id: 'u1',
+                created_at: '2023-01-01T00:00:00.000Z',
+                updated_at: '2023-01-01T00:00:00.000Z',
+                notes: null,
+                project_id: null,
+                area_id: null,
+                heading_id: null,
+                start_at: null,
+                repeat_rrule: null,
+                reminder_at: null,
+                completed_at: null,
+                labels: [],
+                pinned: false,
+                checklist_items: [],
+                quick_view: 'inbox',
+                client_mutation_id: null,
+            },
+        ],
     }),
     addTask: vi.fn().mockResolvedValue({ success: true }),
     signOut: vi.fn().mockResolvedValue({ success: true }),
@@ -20,9 +43,18 @@ vi.mock('../lib/supabase', () => ({
     toggleTaskStatus: vi.fn(),
     deleteTask: vi.fn(),
     getProjects: vi.fn().mockResolvedValue({
-        success: true, projects: [
-            { id: 'p1', name: 'Project Alpha', color: '#000', user_id: 'u1' }
-        ]
+        success: true,
+        projects: [
+            {
+                id: 'p1',
+                name: 'Project Alpha',
+                color: '#000',
+                user_id: 'u1',
+                sort_order: 0,
+                created_at: '2023-01-01T00:00:00.000Z',
+                area_id: null,
+            },
+        ],
     }),
     addProject: vi.fn(),
     getLabels: vi.fn().mockResolvedValue({ success: true, labels: [] }),
