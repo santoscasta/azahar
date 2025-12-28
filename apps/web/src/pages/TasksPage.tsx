@@ -416,13 +416,22 @@ export default function TasksPage() {
     }
     const query = normalizedSearch.toLowerCase()
     return tasks.filter(task => {
-      const titleMatch = (task.title ?? '').toLowerCase().includes(query)
-      const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
-      const projectName = task.project_id
-        ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
-        : ''
-      const projectMatch = projectName ? projectName.includes(query) : false
-      return titleMatch || notesMatch || projectMatch
+      try {
+        const titleMatch = (task.title ?? '').toLowerCase().includes(query)
+        const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
+        const projectName = task.project_id
+          ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
+          : ''
+        const projectMatch = projectName ? projectName.includes(query) : false
+        return titleMatch || notesMatch || projectMatch
+      } catch (error) {
+        console.error('Search filter error', {
+          error,
+          task,
+          normalizedSearch,
+        })
+        return false
+      }
     })
   }, [normalizedSearch, projects, tasks])
   const isSearchMode = isSearchFocused || normalizedSearch.length > 0
