@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage'
 import TasksPage from './pages/TasksPage'
 import SettingsPage from './pages/SettingsPage'
 import HelpPage from './pages/HelpPage'
+import ErrorBoundary from './components/ErrorBoundary'
 import { translate, type Language } from './lib/i18n'
 import {
   applyThemeToDocument,
@@ -108,10 +109,11 @@ export default function App() {
   }
 
   return (
-    <LanguageContext.Provider value={i18n}>
-      <Provider>
-        <Router>
-          <Routes>
+    <ErrorBoundary>
+      <LanguageContext.Provider value={i18n}>
+        <Provider>
+          <Router future={{ v7_relativeSplatPath: true }}>
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/app"
@@ -145,5 +147,6 @@ export default function App() {
         </Router>
       </Provider>
     </LanguageContext.Provider>
+    </ErrorBoundary>
   )
 }

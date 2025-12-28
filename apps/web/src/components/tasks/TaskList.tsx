@@ -105,44 +105,10 @@ export default function TaskList({
   const { t } = useTranslations()
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
+  const editingContainerRef = useRef<HTMLDivElement | null>(null)
+  const autoSaveTriggerRef = useRef(false)
   const hasDraft = showDraftCard && renderDraftCard
 
-  const triggerCompletionCelebration = (taskId: string) => {
-    if (celebrationTimeoutRef.current) {
-      window.clearTimeout(celebrationTimeoutRef.current)
-    }
-    setCelebratingTaskId(taskId)
-    celebrationTimeoutRef.current = window.setTimeout(() => {
-      setCelebratingTaskId((current) => (current === taskId ? null : current))
-    }, 700)
-  }
-
-  useEffect(() => {
-    return () => {
-      if (celebrationTimeoutRef.current) {
-        window.clearTimeout(celebrationTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
-    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
-    return <div className={loadingClass}>Cargando tareas...</div>
-  }
-
-  if (tasks.length === 0 && !hasDraft) {
-    if (!showEmptyState) {
-      return null
-    }
-    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
-    return (
-      <div className={emptyClass}>
-        {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
-      </div>
-    )
-  }
-
-  const editingContainerRef = useRef<HTMLDivElement | null>(null)
   const {
     id: editingId,
     title: editingTitle,
@@ -162,7 +128,23 @@ export default function TaskList({
     setHeadingId: _setEditingHeadingId,
   } = editingHandlers
 
-  const autoSaveTriggerRef = useRef(false)
+  const triggerCompletionCelebration = (taskId: string) => {
+    if (celebrationTimeoutRef.current) {
+      window.clearTimeout(celebrationTimeoutRef.current)
+    }
+    setCelebratingTaskId(taskId)
+    celebrationTimeoutRef.current = window.setTimeout(() => {
+      setCelebratingTaskId((current) => (current === taskId ? null : current))
+    }, 700)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimeoutRef.current) {
+        window.clearTimeout(celebrationTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const triggerAutoSave = () => {
     if (autoSaveTriggerRef.current) {
@@ -208,6 +190,23 @@ export default function TaskList({
       document.removeEventListener('pointerdown', handlePointerDown, true)
     }
   }, [editingId, autoSaveOnBlur, triggerAutoSave])
+
+  if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
+    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
+    return <div className={loadingClass}>Cargando tareas...</div>
+  }
+
+  if (tasks.length === 0 && !hasDraft) {
+    if (!showEmptyState) {
+      return null
+    }
+    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
+    return (
+      <div className={emptyClass}>
+        {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
+      </div>
+    )
+  }
 
   const checkboxIcon = (
     <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">

@@ -417,12 +417,17 @@ export default function TasksPage() {
     const query = normalizedSearch.toLowerCase()
     return tasks.filter(task => {
       try {
-        const titleMatch = (task.title ?? '').toLowerCase().includes(query)
-        const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
+        // Safely handle null/undefined values
+        const title = String(task.title ?? '').toLowerCase()
+        const notes = task.notes ? String(task.notes).toLowerCase() : ''
         const projectName = task.project_id
-          ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
+          ? String(projects.find(project => project.id === task.project_id)?.name ?? '').toLowerCase()
           : ''
-        const projectMatch = projectName ? projectName.includes(query) : false
+        
+        const titleMatch = title.includes(query)
+        const notesMatch = notes.includes(query)
+        const projectMatch = projectName.includes(query)
+        
         return titleMatch || notesMatch || projectMatch
       } catch (error) {
         console.error('Search filter error', {
@@ -430,7 +435,8 @@ export default function TasksPage() {
           task,
           normalizedSearch,
         })
-        return false
+        // Return true on error to avoid losing tasks - better to show more than to show nothing
+        return true
       }
     })
   }, [normalizedSearch, projects, tasks])

@@ -64,6 +64,9 @@ alter table tasks
 alter table tasks
   add column if not exists pinned boolean default false;
 
+alter table tasks
+  add column if not exists quick_view text;
+
 -- Tabla: task_checklist_items
 create table if not exists task_checklist_items (
   id uuid primary key default gen_random_uuid(),
