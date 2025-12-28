@@ -416,7 +416,7 @@ export default function TasksPage() {
     }
     const query = normalizedSearch.toLowerCase()
     return tasks.filter(task => {
-      const titleMatch = task.title.toLowerCase().includes(query)
+      const titleMatch = (task.title ?? '').toLowerCase().includes(query)
       const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
       const projectName = task.project_id
         ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
