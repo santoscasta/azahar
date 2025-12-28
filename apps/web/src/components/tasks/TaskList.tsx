@@ -125,23 +125,6 @@ export default function TaskList({
     }
   }, [])
 
-  if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
-    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
-    return <div className={loadingClass}>Cargando tareas...</div>
-  }
-
-  if (tasks.length === 0 && !hasDraft) {
-    if (!showEmptyState) {
-      return null
-    }
-    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
-    return (
-      <div className={emptyClass}>
-        {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
-      </div>
-    )
-  }
-
   const editingContainerRef = useRef<HTMLDivElement | null>(null)
   const {
     id: editingId,
@@ -164,6 +147,27 @@ export default function TaskList({
 
   const autoSaveTriggerRef = useRef(false)
 
+  useEffect(() => {
+    autoSaveTriggerRef.current = false
+  }, [editingId, editingTitle, editingNotes, editingPriority, editingDueAt, editingProjectId, editingAreaId, editingHeadingId])
+
+  if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
+    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
+    return <div className={loadingClass}>Cargando tareas...</div>
+  }
+
+  if (tasks.length === 0 && !hasDraft) {
+    if (!showEmptyState) {
+      return null
+    }
+    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
+    return (
+      <div className={emptyClass}>
+        {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
+      </div>
+    )
+  }
+
   const triggerAutoSave = () => {
     if (autoSaveTriggerRef.current) {
       return
@@ -175,9 +179,6 @@ export default function TaskList({
     }
   }
 
-  useEffect(() => {
-    autoSaveTriggerRef.current = false
-  }, [editingId, editingTitle, editingNotes, editingPriority, editingDueAt, editingProjectId, editingAreaId, editingHeadingId])
 
   const handleEditKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
