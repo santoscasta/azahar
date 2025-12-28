@@ -416,25 +416,32 @@ export default function TasksPage() {
     }
     const query = normalizedSearch.toLowerCase()
     return tasks.filter(task => {
-      const titleMatch = task.title.toLowerCase().includes(query)
-      const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
-      const projectName = task.project_id
-        ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
-        : ''
-      const projectMatch = projectName ? projectName.includes(query) : false
-      return titleMatch || notesMatch || projectMatch
+      try {
+        const titleMatch = (task.title ?? '').toLowerCase().includes(query)
+        const notesMatch = task.notes ? task.notes.toLowerCase().includes(query) : false
+        const projectName = task.project_id
+          ? projects.find(project => project.id === task.project_id)?.name?.toLowerCase() ?? ''
+          : ''
+        const projectMatch = projectName ? projectName.includes(query) : false
+        return titleMatch || notesMatch || projectMatch
+      } catch (error) {
+        console.error('Search filter error', {
+          error,
+          task,
+          normalizedSearch,
+        })
+        return false
+      }
     })
   }, [normalizedSearch, projects, tasks])
   const isSearchMode = isSearchFocused || normalizedSearch.length > 0
   const filteredTasks = useMemo(() => {
     if (isSearchMode) {
-      const base = searchResults
-      return showCompletedInContext ? base : base.filter(task => task.status !== 'done')
+      return searchResults.filter(task => task.status !== 'done')
     }
     return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap)
   }, [
     isSearchMode,
-    showCompletedInContext,
     searchResults,
     tasks,
     activeQuickView,
@@ -1223,7 +1230,7 @@ export default function TasksPage() {
   }
 
   const handleSuggestionSelect = (task: Task) => {
-    setSearchQuery(task.title)
+    setSearchQuery(task.title ?? '')
     setActiveQuickView('inbox')
     setSelectedProjectId(task.project_id || null)
     setSelectedAreaId(task.area_id || null)

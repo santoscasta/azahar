@@ -278,6 +278,7 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
 
     const tasks = (data as SearchTasksRow[] | null | undefined)?.map((task) => ({
       ...task,
+      title: typeof task.title === 'string' ? task.title : '',
       labels: task.labels ?? [],
       checklist_items: task.checklist_items ?? [],
     })) as Task[]
