@@ -96,9 +96,25 @@ export function MobileOverview({
           value={searchQuery}
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Búsqueda rápida"
+          placeholder={t('mobile.search.placeholder')}
           className="w-full min-h-[44px] pl-10 pr-14 py-3 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="min-h-[44px] flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--on-surface)] flex items-center justify-center gap-2"
+        >
+          ⚙ <span>{t('settings.title')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenHelp}
+          className="min-h-[44px] flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-text-muted)] flex items-center justify-center gap-2"
+        >
+          ❓ <span>{t('sidebar.help')}</span>
+        </button>
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
@@ -138,7 +154,7 @@ export function MobileOverview({
               onClick={() => setShowAllAreas(prev => !prev)}
               className="min-h-[44px] px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
             >
-              {showAllAreas ? 'Ocultar' : 'Ver todo'}
+              {showAllAreas ? t('actions.hide') : t('actions.showAll')}
             </button>
           )}
         </div>
@@ -158,14 +174,14 @@ export function MobileOverview({
                 onClick={onCancelAreaDraft}
                 className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
-                Cancelar
+                {t('actions.cancel')}
               </button>
               <button
                 type="button"
                 onClick={onSaveAreaDraft}
                 className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-xs"
               >
-                OK
+                {t('actions.ok')}
               </button>
             </div>
           </div>
@@ -199,7 +215,7 @@ export function MobileOverview({
               onClick={() => setShowAllProjects(prev => !prev)}
               className="min-h-[44px] px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
             >
-              {showAllProjects ? 'Ocultar' : 'Ver todo'}
+              {showAllProjects ? t('actions.hide') : t('actions.showAll')}
             </button>
           )}
         </div>
@@ -219,14 +235,14 @@ export function MobileOverview({
                 onClick={onCancelProjectDraft}
                 className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
-                Cancelar
+                {t('actions.cancel')}
               </button>
               <button
                 type="button"
                 onClick={onSaveProjectDraft}
                 className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-xs"
               >
-                OK
+                {t('actions.ok')}
               </button>
             </div>
           </div>
@@ -248,22 +264,6 @@ export function MobileOverview({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-[var(--color-text-muted)] px-2">
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="min-h-[44px] text-sm flex items-center gap-2 text-[var(--on-surface)]"
-        >
-          ⚙ <span>{t('settings.title')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={onOpenHelp}
-          className="min-h-[44px] text-sm flex items-center gap-2 text-[var(--color-text-muted)]"
-        >
-          ❓<span>{t('sidebar.help')}</span>
-        </button>
-      </div>
     </div>
   )
 }

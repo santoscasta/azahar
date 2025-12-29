@@ -7,6 +7,7 @@ interface DesktopDraftCardProps {
   draft: TaskCreationDraft
   viewLabel: string
   dueLabel: string
+  labelCount: number
   onSubmit: (event?: FormEvent<HTMLFormElement>) => void
   onCancel: () => void
   onTitleChange: (value: string) => void
@@ -28,6 +29,7 @@ export function DesktopDraftCard({
   draft,
   viewLabel,
   dueLabel,
+  labelCount,
   onSubmit,
   onCancel,
   onTitleChange,
@@ -158,10 +160,15 @@ export function DesktopDraftCard({
               <button
                 type="button"
                 onClick={onOpenLabels}
-                className="h-11 w-11 rounded-xl border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-primary-600)]"
+                className="relative h-11 w-11 rounded-xl border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-primary-600)]"
                 aria-label="Etiquetas"
               >
                 🏷
+                {labelCount > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1 text-[10px] font-semibold text-[var(--color-primary-700)]">
+                    {labelCount}
+                  </span>
+                )}
               </button>
               <button
                 type="button"

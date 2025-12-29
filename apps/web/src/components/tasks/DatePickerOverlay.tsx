@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { formatISODate, parseISODate } from '../../lib/dateUtils.js'
+import { useTranslations } from '../../App.js'
 
 type PickerMode = 'new' | 'edit' | 'draft'
 
@@ -35,6 +36,7 @@ export default function DatePickerOverlay({
     return null
   }
 
+  const { t } = useTranslations()
   const [pendingDate, setPendingDate] = useState(selectedDate)
 
   useEffect(() => {
@@ -56,16 +58,20 @@ export default function DatePickerOverlay({
   const nextWeekISO = formatISODate(nextWeekDate)
 
   const quickOptions = [
-    { id: 'today', label: 'Hoy', value: todayISO },
-    { id: 'tomorrow', label: 'Mañana', value: tomorrowISO },
-    { id: 'weekend', label: 'Este fin', value: weekendISO },
-    { id: 'nextweek', label: 'Próxima semana', value: nextWeekISO },
-    { id: 'clear', label: 'Sin fecha', value: '' },
+    { id: 'today', label: t('datePicker.option.today'), value: todayISO },
+    { id: 'tomorrow', label: t('datePicker.option.tomorrow'), value: tomorrowISO },
+    { id: 'weekend', label: t('datePicker.option.weekend'), value: weekendISO },
+    { id: 'nextweek', label: t('datePicker.option.nextWeek'), value: nextWeekISO },
+    { id: 'clear', label: t('datePicker.option.clear'), value: '' },
   ]
 
   const calendarDays = buildCalendarDays(month, todayISO, selectedDate)
   const headerLabel =
-    mode === 'new' ? 'Fecha para nueva tarea' : mode === 'edit' ? 'Actualizar vencimiento' : 'Plazo'
+    mode === 'new'
+      ? t('datePicker.title.new')
+      : mode === 'edit'
+        ? t('datePicker.title.edit')
+        : t('datePicker.title.draft')
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation()
@@ -75,7 +81,7 @@ export default function DatePickerOverlay({
     ? selectedDateLabel
     : pendingDate
       ? formatDateLabel(pendingDate)
-      : 'Sin fecha'
+      : t('datePicker.none')
 
   const handleApply = () => {
     onSelectDate(pendingDate || null)
@@ -132,7 +138,7 @@ export default function DatePickerOverlay({
               type="button"
               onClick={() => onMonthChange(-1)}
               className="h-11 w-11 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)] flex items-center justify-center"
-              aria-label="Mes anterior"
+              aria-label={t('datePicker.prevMonth')}
             >
               ←
             </button>
@@ -143,7 +149,7 @@ export default function DatePickerOverlay({
               type="button"
               onClick={() => onMonthChange(1)}
               className="h-11 w-11 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)] flex items-center justify-center"
-              aria-label="Mes siguiente"
+              aria-label={t('datePicker.nextMonth')}
             >
               →
             </button>
@@ -177,18 +183,18 @@ export default function DatePickerOverlay({
           </div>
           <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
             <span>
-              {pendingDate ? `Seleccionada: ${currentSelectionLabel}` : 'Sin fecha asignada'}
+              {pendingDate ? `${t('datePicker.selected')}: ${currentSelectionLabel}` : t('datePicker.noDateAssigned')}
             </span>
             <button
               type="button"
               onClick={() => setPendingDate('')}
               className="text-[var(--color-primary-600)] font-semibold"
             >
-              Limpiar
+              {t('actions.clear')}
             </button>
           </div>
           <p className="text-xs text-[var(--color-text-muted)]">
-            Confirma la fecha con el botón aplicar para guardar el cambio.
+            {t('datePicker.hint')}
           </p>
           <div className="flex justify-end gap-2 pt-1 text-sm">
             <button
@@ -196,14 +202,14 @@ export default function DatePickerOverlay({
               onClick={handleCancel}
               className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] font-semibold hover:border-[var(--color-primary-400)]"
             >
-              Cancelar
+              {t('actions.cancel')}
             </button>
             <button
               type="button"
               onClick={handleApply}
               className="min-h-[44px] px-6 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] font-semibold shadow-sm"
             >
-              Aplicar fecha
+              {t('datePicker.apply')}
             </button>
           </div>
         </div>

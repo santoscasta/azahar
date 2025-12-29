@@ -1,4 +1,5 @@
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
+import { useTranslations } from '../../App.js'
 
 interface MobileScheduleSheetProps {
   open: boolean
@@ -14,14 +15,15 @@ export function MobileScheduleSheet({
   onSelect,
 }: MobileScheduleSheetProps) {
   if (!open) return null
+  const { t } = useTranslations()
   const options: { id: QuickViewId; label: string; icon: string }[] = [
-    { id: 'today', label: 'Hoy', icon: '⭐' },
-    { id: 'upcoming', label: 'Programadas', icon: '📆' },
-    { id: 'anytime', label: 'En cualquier momento', icon: '🌤️' },
-    { id: 'waiting', label: 'En espera', icon: '⏳' },
-    { id: 'someday', label: 'Algún día', icon: '📦' },
-    { id: 'reference', label: 'Referencia', icon: '📚' },
-    { id: 'inbox', label: 'Entrada', icon: '📥' },
+    { id: 'today', label: t('view.today'), icon: '⭐' },
+    { id: 'upcoming', label: t('view.upcoming'), icon: '📆' },
+    { id: 'anytime', label: t('view.anytime'), icon: '🌤️' },
+    { id: 'waiting', label: t('view.waiting'), icon: '⏳' },
+    { id: 'someday', label: t('view.someday'), icon: '📦' },
+    { id: 'reference', label: t('view.reference'), icon: '📚' },
+    { id: 'inbox', label: t('view.inbox'), icon: '📥' },
   ]
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
@@ -30,7 +32,7 @@ export function MobileScheduleSheet({
         onClick={(event) => event.stopPropagation()}
       >
       <div className="flex items-center justify-between">
-        <span className="text-lg font-semibold">¿Cuándo?</span>
+        <span className="text-lg font-semibold">{t('schedule.title')}</span>
         <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl">
           ✕
         </button>

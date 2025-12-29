@@ -339,6 +339,12 @@ export default function TasksPage() {
   }, [assistantEnabled, showAssistantChat])
 
   useEffect(() => {
+    if (showProjectModal) {
+      queryClient.invalidateQueries({ queryKey: ['areas'] })
+    }
+  }, [showProjectModal, queryClient])
+
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return
     }
@@ -767,6 +773,10 @@ export default function TasksPage() {
     togglePinMutation.mutate({ taskId: overflowTask.id, pinned: !overflowTask.pinned })
   }
 
+  const handleApplyQuickView = (task: Task, view: 'waiting' | 'someday' | 'reference') => {
+    applyQuickViewMutation.mutate({ task, view })
+  }
+
   const handleOpenMoveSheet = (task: Task) => {
     setMoveSheetTaskId(task.id)
   }
@@ -857,6 +867,8 @@ export default function TasksPage() {
       onOpenMoveSheet={handleOpenMoveSheet}
       onOpenOverflowMenu={(task) => handleOpenOverflowMenu(task.id)}
       onToggleCollapsedChecklist={handleToggleCollapsedChecklist}
+      onApplyQuickView={handleApplyQuickView}
+      quickViewPending={applyQuickViewMutation.isPending}
       formatDateLabel={formatDateForLabel}
       renderDraftCard={options.renderDraftCard}
       showDraftCard={options.showDraftCard}
@@ -1423,18 +1435,42 @@ export default function TasksPage() {
     />
   )
 
-  const renderOverflowMenu = () => (
-    <TaskOverflowMenu
-      open={overflowTaskId !== null}
-      task={overflowTask}
-      isDuplicating={duplicateTaskMutation.isPending}
-      isPinning={togglePinMutation.isPending}
-      onTogglePin={handleTogglePinnedTask}
-      onDuplicate={handleDuplicateTask}
-      onCopyLink={handleCopyTaskLink}
-      onClose={handleCloseOverflowMenu}
-    />
-  )
+  const renderOverflowMenu = () => {
+    const waitingActive = overflowTask
+      ? (overflowTask.labels || []).some(label => getLabelQuickView(label.name) === 'waiting')
+      : false
+    const referenceActive = overflowTask
+      ? (overflowTask.labels || []).some(label => getLabelQuickView(label.name) === 'reference')
+      : false
+    const somedayActive = overflowTask?.status === 'snoozed'
+    const quickViewActions: Array<{ id: 'waiting' | 'someday' | 'reference'; label: string; active: boolean }> = overflowTask
+      ? [
+          { id: 'waiting', label: quickViewLabels.waiting, active: waitingActive },
+          { id: 'someday', label: quickViewLabels.someday, active: somedayActive },
+          { id: 'reference', label: quickViewLabels.reference, active: referenceActive },
+        ]
+      : []
+
+    return (
+      <TaskOverflowMenu
+        open={overflowTaskId !== null}
+        task={overflowTask}
+        isDuplicating={duplicateTaskMutation.isPending}
+        isPinning={togglePinMutation.isPending}
+        isApplyingQuickView={applyQuickViewMutation.isPending}
+        quickViewActions={quickViewActions}
+        onApplyQuickView={(view) => {
+          if (overflowTask) {
+            handleApplyQuickView(overflowTask, view)
+          }
+        }}
+        onTogglePin={handleTogglePinnedTask}
+        onDuplicate={handleDuplicateTask}
+        onCopyLink={handleCopyTaskLink}
+        onClose={handleCloseOverflowMenu}
+      />
+    )
+  }
 
   const renderMoveSheet = () => (
     <MoveTaskSheet
@@ -1454,6 +1490,7 @@ export default function TasksPage() {
         draft={taskDraft}
         viewLabel={quickViewLabels[taskDraft.view]}
         dueLabel={formatDateForLabel(taskDraft.due_at)}
+        labelCount={taskDraft.labelIds.length}
         onSubmit={handleAddTask}
         onCancel={handleCancelDesktopDraft}
         onTitleChange={(value) => updateTaskDraft('title', value)}
@@ -1634,6 +1671,92 @@ export default function TasksPage() {
     },
     onError: () => {
       setError('Error inesperado al eliminar etiqueta')
+    },
+  })
+
+  const resolveQuickViewLabel = useCallback(
+    async (view: 'waiting' | 'reference') => {
+      const existing = labels.find(label => getLabelQuickView(label.name) === view)
+      if (existing) {
+        return existing
+      }
+      const fallbackName = view === 'waiting'
+        ? translate(language, 'view.waiting')
+        : translate(language, 'view.reference')
+      const result = await addLabel(fallbackName)
+      if (result.success && result.label) {
+        queryClient.invalidateQueries({ queryKey: ['labels'] })
+        return result.label
+      }
+      return null
+    },
+    [labels, language, queryClient]
+  )
+
+  const applyQuickViewMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'quickView'],
+    networkMode: 'online',
+    mutationFn: async (payload: { task: Task; view: 'waiting' | 'someday' | 'reference' }) => {
+      const { task, view } = payload
+      const updates: Partial<Task> = {}
+      if (view === 'someday') {
+        updates.status = 'snoozed'
+        updates.due_at = null
+      } else {
+        updates.status = 'open'
+      }
+      const updated = await updateTask(task.id, updates)
+      if (!updated.success) {
+        return updated
+      }
+
+      const labelViews = (task.labels || [])
+        .map(label => ({ id: label.id, view: getLabelQuickView(label.name) }))
+        .filter(label => label.view === 'waiting' || label.view === 'reference')
+
+      const shouldRemove = (labelView: 'waiting' | 'reference') => {
+        if (view === 'waiting') return labelView === 'reference'
+        if (view === 'reference') return labelView === 'waiting'
+        return true
+      }
+
+      const removeIds = labelViews.filter(label => shouldRemove(label.view as 'waiting' | 'reference')).map(label => label.id)
+      if (removeIds.length > 0) {
+        const removals = await Promise.all(removeIds.map(labelId => removeTaskLabel(task.id, labelId)))
+        const failedRemoval = removals.find(result => !result.success)
+        if (failedRemoval) {
+          return { success: false, error: failedRemoval.error || 'Error al actualizar etiquetas' }
+        }
+      }
+
+      if (view === 'waiting' || view === 'reference') {
+        const label = await resolveQuickViewLabel(view)
+        if (!label) {
+          return { success: false, error: 'No se pudo crear la etiqueta necesaria' }
+        }
+        const added = await addTaskLabel(task.id, label.id)
+        if (!added.success) {
+          return { success: false, error: added.error || 'Error al actualizar etiquetas' }
+        }
+      }
+
+      return updated
+    },
+    onSuccess: (result, payload) => {
+      if (result.success) {
+        setError('')
+        if (payload.view === 'someday' && editingId === payload.task.id) {
+          setEditingDueAt('')
+        }
+        setOverflowTaskId(null)
+        pushSuccessMessage(`${t('task.quickView.title')} ${quickViewLabels[payload.view]}`)
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al actualizar la vista rápida')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al actualizar la vista rápida')
     },
   })
 

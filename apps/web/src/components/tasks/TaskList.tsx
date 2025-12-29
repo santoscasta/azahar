@@ -5,6 +5,7 @@ import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
 import { getSoftLabelStyle } from '../../lib/colorUtils.js'
 import { useTranslations } from '../../App.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
+import { getLabelQuickView } from '../../pages/tasksSelectors.js'
 
 type Priority = 0 | 1 | 2 | 3
 
@@ -56,6 +57,8 @@ interface TaskListProps {
   onOpenMoveSheet: (task: Task) => void
   onOpenOverflowMenu: (task: Task) => void
   onToggleCollapsedChecklist: (taskId: string, itemId: string, completed: boolean) => void
+  onApplyQuickView?: (task: Task, view: 'waiting' | 'someday' | 'reference') => void
+  quickViewPending?: boolean
   formatDateLabel: (value: string) => string
   renderDraftCard?: () => ReactNode
   showDraftCard?: boolean
@@ -97,6 +100,8 @@ export default function TaskList({
   onOpenMoveSheet,
   onOpenOverflowMenu,
   onToggleCollapsedChecklist,
+  onApplyQuickView,
+  quickViewPending,
   formatDateLabel,
   renderDraftCard,
   showDraftCard,
@@ -293,6 +298,10 @@ export default function TaskList({
           const checklistSummary = checklistItems.length > 0 ? `${checklistCompleted}/${checklistItems.length}` : null
           const labelsSummary =
             task.labels && task.labels.length > 0 ? task.labels.map(label => label.name).join(', ') : null
+          const waitingActive = (task.labels || []).some(label => getLabelQuickView(label.name) === 'waiting')
+          const referenceActive = (task.labels || []).some(label => getLabelQuickView(label.name) === 'reference')
+          const somedayActive = task.status === 'snoozed'
+          const labelCount = task.labels?.length ?? 0
           const createdLabel = new Date(task.created_at).toLocaleDateString('es-ES', {
             year: 'numeric',
             month: 'short',
@@ -311,21 +320,21 @@ export default function TaskList({
             if (isContextView && taskProject) {
               metaItems.push(
                 <span key="context-project" className="min-w-0 truncate max-w-[12rem]">
-                  Proyecto: {taskProject.name}
+                  {t('context.label.project')}: {taskProject.name}
                 </span>
               )
             }
             if (isContextView && !taskProject && taskArea) {
               metaItems.push(
                 <span key="context-area" className="min-w-0 truncate max-w-[12rem]">
-                  Área: {taskArea.name}
+                  {t('context.label.area')}: {taskArea.name}
                 </span>
               )
             }
             if (taskHeading) {
               metaItems.push(
                 <span key="heading" className="min-w-0 truncate max-w-[12rem]">
-                  Sección: {taskHeading.name}
+                  {t('context.label.section')}: {taskHeading.name}
                 </span>
               )
             }
@@ -340,20 +349,20 @@ export default function TaskList({
             if (labelsSummary) {
               metaItems.push(
                 <span key="labels" className="min-w-0 truncate max-w-[14rem]">
-                  Etiquetas: {labelsSummary}
+                  {t('task.labels')}: {labelsSummary}
                 </span>
               )
             }
             if (checklistSummary) {
               metaItems.push(
                 <span key="checklist" className="min-w-0 whitespace-nowrap">
-                  Checklist: {checklistSummary}
+                  {t('task.checklist')}: {checklistSummary}
                 </span>
               )
             }
             metaItems.push(
               <span key="created" className="min-w-0 whitespace-nowrap text-[var(--color-text-subtle)]">
-                Creada {createdLabel}
+                {t('task.created')} {createdLabel}
               </span>
             )
           }
@@ -412,7 +421,12 @@ export default function TaskList({
                         className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>🏷</span>
-                        <span>Etiquetas</span>
+                        <span>{t('task.labels')}</span>
+                        {labelCount > 0 && (
+                          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 text-[11px] font-semibold text-[var(--color-primary-700)]">
+                            {labelCount}
+                          </span>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -420,7 +434,7 @@ export default function TaskList({
                         className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>☑</span>
-                        <span>Checklist</span>
+                        <span>{t('task.checklist')}</span>
                       </button>
                       <button
                         type="button"
@@ -434,21 +448,46 @@ export default function TaskList({
                     <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-muted)]">
                       {editingArea && (
                         <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
-                          Área: {editingArea.name}
+                          {t('context.label.area')}: {editingArea.name}
                         </span>
                       )}
                       {editingProject && (
                         <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
-                          Proyecto: {editingProject.name}
+                          {t('context.label.project')}: {editingProject.name}
                         </span>
                       )}
                       {editingHeading && (
                         <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
-                          Sección: {editingHeading.name}
+                          {t('context.label.section')}: {editingHeading.name}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[var(--color-text-muted)]">Los cambios se guardan automáticamente al salir.</p>
+                    {onApplyQuickView && (
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                        <span className="text-xs font-semibold text-[var(--color-text-muted)]">{t('task.quickView.title')}</span>
+                        {[
+                          { id: 'waiting', label: t('view.waiting'), icon: '⏳', active: waitingActive },
+                          { id: 'someday', label: t('view.someday'), icon: '📦', active: somedayActive },
+                          { id: 'reference', label: t('view.reference'), icon: '📚', active: referenceActive },
+                        ].map(action => (
+                          <button
+                            key={action.id}
+                            type="button"
+                            disabled={quickViewPending}
+                            onClick={() => onApplyQuickView(task, action.id as 'waiting' | 'someday' | 'reference')}
+                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 font-semibold transition ${
+                              action.active
+                                ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-100)] text-[var(--color-primary-700)]'
+                                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]'
+                            }`}
+                          >
+                            <span>{action.icon}</span>
+                            <span>{action.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-[var(--color-text-muted)]">{t('task.autoSaveHint')}</p>
                   </form>
                   <div
                     className={`mt-4 ${
@@ -463,7 +502,7 @@ export default function TaskList({
                       className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
                     >
                       <span className="text-lg">→</span>
-                      <span>Mover</span>
+                      <span>{t('task.move')}</span>
                     </button>
                     <button
                       type="button"
@@ -472,7 +511,7 @@ export default function TaskList({
                       className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-danger-500)] px-4 py-2 text-sm font-semibold text-[var(--color-danger-500)] hover:opacity-80 disabled:opacity-50"
                     >
                       <span>🗑</span>
-                      <span>Papelera</span>
+                      <span>{t('task.trash')}</span>
                     </button>
                     <button
                       type="button"
@@ -530,10 +569,10 @@ export default function TaskList({
                         </p>
                       ) : null}
                       {isContextView && taskProject ? (
-                        <p className="text-sm text-[var(--color-text-muted)] truncate">Proyecto: {taskProject.name}</p>
+                        <p className="text-sm text-[var(--color-text-muted)] truncate">{t('context.label.project')}: {taskProject.name}</p>
                       ) : null}
                       {isContextView && !taskProject && taskArea ? (
-                        <p className="text-sm text-[var(--color-text-muted)] truncate">Área: {taskArea.name}</p>
+                        <p className="text-sm text-[var(--color-text-muted)] truncate">{t('context.label.area')}: {taskArea.name}</p>
                       ) : null}
                     </div>
                     {metaItems.length > 0 && (
@@ -585,17 +624,17 @@ export default function TaskList({
                     <div className={metaClass}>
                       {isContextView && taskProject && (
                         <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
-                          {taskProject.name}
+                          {t('context.label.project')}: {taskProject.name}
                         </span>
                       )}
                       {isContextView && !taskProject && taskArea && (
                         <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
-                          {taskArea.name}
+                          {t('context.label.area')}: {taskArea.name}
                         </span>
                       )}
                       {taskHeading && (
                         <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
-                          {taskHeading.name}
+                          {t('context.label.section')}: {taskHeading.name}
                         </span>
                       )}
                       {task.due_at && (
@@ -657,7 +696,7 @@ export default function TaskList({
                       </ul>
                     )}
                     <div className="text-xs text-[var(--color-text-subtle)]">
-                      Creada el{' '}
+                      {t('task.createdOn')}{' '}
                       {new Date(task.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: 'short',

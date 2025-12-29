@@ -36,6 +36,7 @@ type TranslationKey =
   | 'context.label.view'
   | 'context.label.project'
   | 'context.label.area'
+  | 'context.label.section'
   | 'context.pending'
   | 'context.overdue'
   | 'filters.all'
@@ -147,6 +148,10 @@ type TranslationKey =
   | 'mobile.areaProjects'
   | 'mobile.completed'
   | 'mobile.pending'
+  | 'mobile.nav.home'
+  | 'mobile.nav.search'
+  | 'mobile.nav.new'
+  | 'mobile.nav.newTask'
   | 'view.inbox'
   | 'view.today'
   | 'view.upcoming'
@@ -165,6 +170,60 @@ type TranslationKey =
   | 'view.desc.reference'
   | 'view.desc.logbook'
   | 'view.desc.search'
+  | 'actions.close'
+  | 'actions.cancel'
+  | 'actions.ok'
+  | 'actions.showAll'
+  | 'actions.hide'
+  | 'actions.clear'
+  | 'actions.add'
+  | 'actions.done'
+  | 'schedule.title'
+  | 'mobile.search.placeholder'
+  | 'datePicker.option.today'
+  | 'datePicker.option.tomorrow'
+  | 'datePicker.option.weekend'
+  | 'datePicker.option.nextWeek'
+  | 'datePicker.option.clear'
+  | 'datePicker.title.new'
+  | 'datePicker.title.edit'
+  | 'datePicker.title.draft'
+  | 'datePicker.none'
+  | 'datePicker.prevMonth'
+  | 'datePicker.nextMonth'
+  | 'datePicker.selected'
+  | 'datePicker.noDateAssigned'
+  | 'datePicker.hint'
+  | 'datePicker.apply'
+  | 'task.menu.title'
+  | 'task.menu.pin'
+  | 'task.menu.unpin'
+  | 'task.menu.duplicate'
+  | 'task.menu.copyLink'
+  | 'task.quickView.title'
+  | 'task.loose'
+  | 'task.labels'
+  | 'task.checklist'
+  | 'task.autoSaveHint'
+  | 'task.move'
+  | 'task.trash'
+  | 'task.created'
+  | 'task.createdOn'
+  | 'task.move.title'
+  | 'task.move.subtitle'
+  | 'task.move.section.general'
+  | 'task.move.section.unassigned'
+  | 'project.new.title'
+  | 'project.new.subtitle'
+  | 'project.new.placeholder'
+  | 'project.new.area.none'
+  | 'project.new.area.empty'
+  | 'project.new.create'
+  | 'project.new.saving'
+  | 'labels.title'
+  | 'labels.empty'
+  | 'labels.delete'
+  | 'labels.placeholder'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   es: {
@@ -203,6 +262,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'context.label.view': 'Vista',
     'context.label.project': 'Proyecto',
     'context.label.area': 'Área',
+    'context.label.section': 'Sección',
     'context.pending': 'Pendientes',
     'context.overdue': 'vencida(s)',
     'filters.all': 'Todo',
@@ -314,6 +374,10 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'mobile.areaProjects': 'proyecto(s)',
     'mobile.completed': 'completadas',
     'mobile.pending': 'Pendientes',
+    'mobile.nav.home': 'Inicio',
+    'mobile.nav.search': 'Buscar',
+    'mobile.nav.new': 'Nueva',
+    'mobile.nav.newTask': 'Crear nueva tarea',
     'view.inbox': 'Inbox',
     'view.today': 'Hoy',
     'view.upcoming': 'Próximas',
@@ -332,6 +396,60 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.desc.reference': 'Material de consulta sin acción inmediata.',
     'view.desc.logbook': 'Un registro de todo lo que has terminado.',
     'view.desc.search': 'Resultados en todas las vistas (completadas sólo si lo tienes activado).',
+    'actions.close': 'Cerrar',
+    'actions.cancel': 'Cancelar',
+    'actions.ok': 'OK',
+    'actions.showAll': 'Ver todo',
+    'actions.hide': 'Ocultar',
+    'actions.clear': 'Limpiar',
+    'actions.add': 'Añadir',
+    'actions.done': 'Listo',
+    'schedule.title': '¿Cuándo?',
+    'mobile.search.placeholder': 'Búsqueda rápida',
+    'datePicker.option.today': 'Hoy',
+    'datePicker.option.tomorrow': 'Mañana',
+    'datePicker.option.weekend': 'Este fin',
+    'datePicker.option.nextWeek': 'Próxima semana',
+    'datePicker.option.clear': 'Sin fecha',
+    'datePicker.title.new': 'Fecha para nueva tarea',
+    'datePicker.title.edit': 'Actualizar vencimiento',
+    'datePicker.title.draft': 'Plazo',
+    'datePicker.none': 'Sin fecha',
+    'datePicker.prevMonth': 'Mes anterior',
+    'datePicker.nextMonth': 'Mes siguiente',
+    'datePicker.selected': 'Seleccionada',
+    'datePicker.noDateAssigned': 'Sin fecha asignada',
+    'datePicker.hint': 'Confirma la fecha con el botón aplicar para guardar el cambio.',
+    'datePicker.apply': 'Aplicar fecha',
+    'task.menu.title': 'Acciones',
+    'task.menu.pin': 'Fijar tarea',
+    'task.menu.unpin': 'Quitar fijado',
+    'task.menu.duplicate': 'Duplicar tarea',
+    'task.menu.copyLink': 'Copiar enlace',
+    'task.quickView.title': 'Mover a',
+    'task.loose': 'Tareas sueltas',
+    'task.labels': 'Etiquetas',
+    'task.checklist': 'Checklist',
+    'task.autoSaveHint': 'Los cambios se guardan automáticamente al salir.',
+    'task.move': 'Mover',
+    'task.trash': 'Papelera',
+    'task.created': 'Creada',
+    'task.createdOn': 'Creada el',
+    'task.move.title': 'Mover tarea',
+    'task.move.subtitle': 'Selecciona destino',
+    'task.move.section.general': 'General',
+    'task.move.section.unassigned': 'Proyectos sin área',
+    'project.new.title': 'Nuevo proyecto',
+    'project.new.subtitle': 'Da forma a un objetivo',
+    'project.new.placeholder': 'Nombre del proyecto',
+    'project.new.area.none': 'Sin área',
+    'project.new.area.empty': 'No hay áreas disponibles todavía.',
+    'project.new.create': 'Crear proyecto',
+    'project.new.saving': 'Guardando...',
+    'labels.title': 'Etiquetas',
+    'labels.empty': 'Aún no tienes etiquetas.',
+    'labels.delete': 'Eliminar',
+    'labels.placeholder': 'Nueva etiqueta',
   },
   en: {
     'settings.title': 'Settings',
@@ -369,6 +487,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'context.label.view': 'View',
     'context.label.project': 'Project',
     'context.label.area': 'Area',
+    'context.label.section': 'Section',
     'context.pending': 'Pending',
     'context.overdue': 'overdue',
     'filters.all': 'All',
@@ -480,6 +599,10 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'mobile.areaProjects': 'project(s)',
     'mobile.completed': 'completed',
     'mobile.pending': 'Pending',
+    'mobile.nav.home': 'Home',
+    'mobile.nav.search': 'Search',
+    'mobile.nav.new': 'New',
+    'mobile.nav.newTask': 'Create new task',
     'view.inbox': 'Inbox',
     'view.today': 'Today',
     'view.upcoming': 'Upcoming',
@@ -498,6 +621,60 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.desc.reference': 'Reference material with no immediate action.',
     'view.desc.logbook': 'A record of everything you have finished.',
     'view.desc.search': 'Results across all lists (done items only if enabled).',
+    'actions.close': 'Close',
+    'actions.cancel': 'Cancel',
+    'actions.ok': 'OK',
+    'actions.showAll': 'Show all',
+    'actions.hide': 'Hide',
+    'actions.clear': 'Clear',
+    'actions.add': 'Add',
+    'actions.done': 'Done',
+    'schedule.title': 'When?',
+    'mobile.search.placeholder': 'Quick search',
+    'datePicker.option.today': 'Today',
+    'datePicker.option.tomorrow': 'Tomorrow',
+    'datePicker.option.weekend': 'This weekend',
+    'datePicker.option.nextWeek': 'Next week',
+    'datePicker.option.clear': 'No date',
+    'datePicker.title.new': 'Date for new task',
+    'datePicker.title.edit': 'Update due date',
+    'datePicker.title.draft': 'Due date',
+    'datePicker.none': 'No date',
+    'datePicker.prevMonth': 'Previous month',
+    'datePicker.nextMonth': 'Next month',
+    'datePicker.selected': 'Selected',
+    'datePicker.noDateAssigned': 'No date assigned',
+    'datePicker.hint': 'Confirm the date with the apply button to save the change.',
+    'datePicker.apply': 'Apply date',
+    'task.menu.title': 'Actions',
+    'task.menu.pin': 'Pin task',
+    'task.menu.unpin': 'Unpin task',
+    'task.menu.duplicate': 'Duplicate task',
+    'task.menu.copyLink': 'Copy link',
+    'task.quickView.title': 'Move to',
+    'task.loose': 'Loose tasks',
+    'task.labels': 'Labels',
+    'task.checklist': 'Checklist',
+    'task.autoSaveHint': 'Changes save automatically when you leave.',
+    'task.move': 'Move',
+    'task.trash': 'Trash',
+    'task.created': 'Created',
+    'task.createdOn': 'Created on',
+    'task.move.title': 'Move task',
+    'task.move.subtitle': 'Select destination',
+    'task.move.section.general': 'General',
+    'task.move.section.unassigned': 'Projects without area',
+    'project.new.title': 'New project',
+    'project.new.subtitle': 'Shape a goal',
+    'project.new.placeholder': 'Project name',
+    'project.new.area.none': 'No area',
+    'project.new.area.empty': 'No areas available yet.',
+    'project.new.create': 'Create project',
+    'project.new.saving': 'Saving...',
+    'labels.title': 'Labels',
+    'labels.empty': 'No labels yet.',
+    'labels.delete': 'Delete',
+    'labels.placeholder': 'New label',
   },
 }
 

@@ -181,10 +181,15 @@ export default function TaskCreationModal({
                 <button
                   type="button"
                   onClick={() => setShowDetails(true)}
-                  className="h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] flex items-center justify-center hover:border-[var(--color-primary-400)]"
+                  className="relative h-11 w-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] flex items-center justify-center hover:border-[var(--color-primary-400)]"
                   aria-label="Etiquetas"
                 >
                   🏷
+                  {draft.labelIds.length > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1 text-[10px] font-semibold text-[var(--color-primary-700)]">
+                      {draft.labelIds.length}
+                    </span>
+                  )}
                 </button>
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-sm text-[var(--on-surface)] shadow-[var(--shadow-sm)]">
                   <span className="text-xs font-semibold text-[var(--color-text-muted)]">Prioridad</span>

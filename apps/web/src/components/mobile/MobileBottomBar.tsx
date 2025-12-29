@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import HomeIcon from '../icons/HomeIcon.js'
 import SearchIcon from '../icons/SearchIcon.js'
+import { useTranslations } from '../../App.js'
 
 interface MobileBottomBarProps {
   isHomeActive: boolean
@@ -59,22 +60,23 @@ export default function MobileBottomBar({
   onSearch,
   onNewTask,
 }: MobileBottomBarProps) {
+  const { t } = useTranslations()
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-md px-6 py-3"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
     >
       <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
-        <NavButton label="Inicio" icon={<HomeIcon />} active={isHomeActive} onClick={onHome} />
-        <NavButton label="Buscar" icon={<SearchIcon />} active={isSearchActive} onClick={onSearch} />
+        <NavButton label={t('mobile.nav.home')} icon={<HomeIcon />} active={isHomeActive} onClick={onHome} />
+        <NavButton label={t('mobile.nav.search')} icon={<SearchIcon />} active={isSearchActive} onClick={onSearch} />
         <button
           type="button"
           onClick={onNewTask}
           className="flex-1 max-w-[140px] flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] py-3 text-sm font-semibold shadow-lg transition hover:bg-[var(--color-primary-700)] active:scale-[0.98]"
-          aria-label="Crear nueva tarea"
+          aria-label={t('mobile.nav.newTask')}
         >
           <span className="text-lg leading-none">＋</span>
-          <span>Nueva</span>
+          <span>{t('mobile.nav.new')}</span>
         </button>
       </div>
     </div>

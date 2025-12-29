@@ -1,4 +1,5 @@
 import type { Area, Project, Task } from '../../lib/supabase.js'
+import { useTranslations } from '../../App.js'
 
 interface MoveTaskSheetProps {
   open: boolean
@@ -22,6 +23,7 @@ export default function MoveTaskSheet({
   if (!open) {
     return null
   }
+  const { t } = useTranslations()
 
   const groupedProjects = projects.reduce<Record<string, Project[]>>((acc, project) => {
     const key = project.area_id || 'none'
@@ -42,19 +44,19 @@ export default function MoveTaskSheet({
       <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
         <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-6 shadow-2xl border border-[var(--color-border)]">
           <div>
-            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Mover tarea</p>
-            <p className="text-lg font-semibold text-[var(--on-surface)]">{task?.title || 'Selecciona destino'}</p>
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('task.move.title')}</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">{task?.title || t('task.move.subtitle')}</p>
           </div>
           <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
             <section>
-              <p className="text-sm font-semibold text-[var(--color-text-muted)] mb-2">General</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)] mb-2">{t('task.move.section.general')}</p>
               <button
                 type="button"
                 onClick={() => handleSelection(null, null)}
                 className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                 disabled={isProcessing}
               >
-                <span>Inbox</span>
+                <span>{t('view.inbox')}</span>
                 <span className="text-lg">→</span>
               </button>
             </section>
@@ -85,7 +87,7 @@ export default function MoveTaskSheet({
             ))}
             {groupedProjects.none && groupedProjects.none.length > 0 && (
               <section className="space-y-2">
-                <p className="text-sm font-semibold text-[var(--color-text-muted)]">Proyectos sin área</p>
+                <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('task.move.section.unassigned')}</p>
                 {groupedProjects.none.map(project => (
                   <button
                     key={project.id}
@@ -107,7 +109,7 @@ export default function MoveTaskSheet({
               onClick={onClose}
               className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
             >
-              Cancelar
+              {t('actions.cancel')}
             </button>
           </div>
         </div>

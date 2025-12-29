@@ -1,4 +1,5 @@
 import DatePickerOverlay from './DatePickerOverlay.js'
+import { useTranslations } from '../../App.js'
 
 type DatePickerTarget = 'new' | 'edit' | 'draft' | null
 
@@ -42,8 +43,9 @@ export default function TaskDatePickerOverlay({
   onMonthChange,
   onSelectDate,
 }: TaskDatePickerOverlayProps) {
+  const { t } = useTranslations()
   const selectedDate = resolveDateValue(target, draftDueDate, editingDueDate, mobileDraftDueDate)
-  const selectedDateLabel = selectedDate ? formatDateLabel(selectedDate) : 'Sin fecha'
+  const selectedDateLabel = selectedDate ? formatDateLabel(selectedDate) : t('datePicker.none')
 
   return (
     <DatePickerOverlay
