@@ -959,6 +959,7 @@ export default function TasksPage() {
   const shouldAutoSaveDraft = labelSheetTarget === null && datePickerTarget === null
 
   const handleSelectQuickView = (view: QuickViewId) => {
+    clearSearchState(false)
     setActiveQuickView(view)
     setSelectedProjectId(null)
     setSelectedAreaId(null)
@@ -1059,8 +1060,8 @@ export default function TasksPage() {
   const activeTaskCount = filteredTasks.filter(task => task.status !== 'done').length
   const completedCount = filteredTasks.filter(task => task.status === 'done').length
   const activeFilters = useMemo(
-    () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas),
-    [selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas]
+    () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas, language),
+    [selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas, language]
   )
   const filteredViewActive = isSearchMode
     ? true
@@ -1242,6 +1243,14 @@ export default function TasksPage() {
     }, 120)
   }
 
+  const clearSearchState = useCallback((returnHomeOnMobile = true) => {
+    setSearchQuery('')
+    setIsSearchFocused(false)
+    if (useMobileExperience && returnHomeOnMobile) {
+      setShowMobileHome(true)
+    }
+  }, [useMobileExperience])
+
   const handleMobileHomeSearchFocus = () => {
     setShowMobileHome(false)
     handleSearchFocus()
@@ -1257,11 +1266,7 @@ export default function TasksPage() {
   }
 
   const handleClearSearch = () => {
-    setSearchQuery('')
-    setIsSearchFocused(false)
-    if (useMobileExperience) {
-      setShowMobileHome(true)
-    }
+    clearSearchState()
   }
 
   const formatDateForLabel = (value: string) => {
@@ -2354,6 +2359,7 @@ export default function TasksPage() {
   }
 
   const handleSelectProject = (projectId: string) => {
+    clearSearchState(false)
     if (selectedProjectId === projectId) {
       setSelectedProjectId(null)
       setSelectedAreaId(null)
@@ -2463,6 +2469,7 @@ export default function TasksPage() {
   )
 
   const handleSelectArea = (areaId: string) => {
+    clearSearchState(false)
     if (selectedAreaId === areaId) {
       setSelectedAreaId(null)
     } else {

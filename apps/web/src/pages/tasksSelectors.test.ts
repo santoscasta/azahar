@@ -71,7 +71,7 @@ describe('tasksSelectors', () => {
     const labels: Label[] = [{ id: 'l1', name: 'Importante', color: '#000', user_id: 'u' }]
     const areas: Area[] = [{ id: 'a1', name: 'Área', sort_order: 0, user_id: 'u', created_at: '' }]
 
-    const filters = buildActiveFilters('p1', projects, ['l1'], labels, 'a1', areas)
+    const filters = buildActiveFilters('p1', projects, ['l1'], labels, 'a1', areas, 'es')
     expect(filters.map(filter => filter.type)).toEqual(['area', 'project', 'label'])
   })
 

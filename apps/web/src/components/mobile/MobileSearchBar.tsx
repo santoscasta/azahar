@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import { useTranslations } from '../../App.js'
 
 interface MobileSearchBarProps {
   value: string
@@ -19,6 +20,7 @@ export default function MobileSearchBar({
   onClear,
   onClick,
 }: MobileSearchBarProps) {
+  const { t } = useTranslations()
   return (
     <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow px-4 py-3">
       <div className="relative">
@@ -31,7 +33,7 @@ export default function MobileSearchBar({
           onClick={onClick}
           onBlur={onBlur}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Buscar tareas..."
+          placeholder={t('mobile.search.placeholder')}
           className="w-full min-h-[48px] pl-10 pr-10 py-2.5 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
         {value && (
@@ -40,7 +42,7 @@ export default function MobileSearchBar({
             onMouseDown={(event) => event.preventDefault()}
             onClick={onClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center text-[var(--color-text-subtle)] hover:text-[var(--color-primary-700)]"
-            aria-label="Limpiar búsqueda"
+            aria-label={t('search.clear')}
           >
             ✕
           </button>

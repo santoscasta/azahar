@@ -180,6 +180,12 @@ type TranslationKey =
   | 'actions.done'
   | 'schedule.title'
   | 'mobile.search.placeholder'
+  | 'search.placeholder'
+  | 'search.clear'
+  | 'search.suggestions.title'
+  | 'search.suggestions.empty'
+  | 'search.suggestions.project'
+  | 'search.suggestions.noProject'
   | 'datePicker.option.today'
   | 'datePicker.option.tomorrow'
   | 'datePicker.option.weekend'
@@ -406,6 +412,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.done': 'Listo',
     'schedule.title': '¿Cuándo?',
     'mobile.search.placeholder': 'Búsqueda rápida',
+    'search.placeholder': 'Buscar por título, notas o proyecto...',
+    'search.clear': 'Cerrar búsqueda',
+    'search.suggestions.title': 'Coincidencias',
+    'search.suggestions.empty': 'Sigue escribiendo para encontrar tareas que coincidan con',
+    'search.suggestions.project': 'Proyecto',
+    'search.suggestions.noProject': 'Sin proyecto',
     'datePicker.option.today': 'Hoy',
     'datePicker.option.tomorrow': 'Mañana',
     'datePicker.option.weekend': 'Este fin',
@@ -631,6 +643,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.done': 'Done',
     'schedule.title': 'When?',
     'mobile.search.placeholder': 'Quick search',
+    'search.placeholder': 'Search by title, notes, or project...',
+    'search.clear': 'Close search',
+    'search.suggestions.title': 'Matches',
+    'search.suggestions.empty': 'Keep typing to find tasks that match',
+    'search.suggestions.project': 'Project',
+    'search.suggestions.noProject': 'No project',
     'datePicker.option.today': 'Today',
     'datePicker.option.tomorrow': 'Tomorrow',
     'datePicker.option.weekend': 'This weekend',

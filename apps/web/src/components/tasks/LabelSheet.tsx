@@ -53,13 +53,15 @@ export default function LabelSheet({
                   <button
                     type="button"
                     onClick={() => onToggle(label.id)}
-                    className={`flex-1 text-left px-3 py-2 rounded-xl border ${
+                    aria-pressed={active}
+                    className={`flex-1 flex items-center justify-between text-left px-3 py-2 rounded-xl border ${
                       active
                         ? 'bg-[var(--color-primary-100)] border-[var(--color-primary-200)]'
                         : 'bg-[var(--color-surface-elevated)] border-[var(--color-border)]'
                     }`}
                   >
-                    {label.name}
+                    <span>{label.name}</span>
+                    {active && <span className="text-xs font-semibold text-[var(--color-primary-600)]">✓</span>}
                   </button>
                   <button
                     type="button"

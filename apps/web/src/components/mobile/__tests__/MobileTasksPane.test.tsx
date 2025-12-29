@@ -45,7 +45,7 @@ describe('MobileTasksPane', () => {
       />
     )
 
-    expect(screen.getByPlaceholderText('Buscar tareas...')).toBeDefined()
+    expect(screen.getByPlaceholderText('Búsqueda rápida')).toBeDefined()
     expect(screen.getByText('Inbox')).toBeDefined()
     expect(screen.getByText('Etiqueta')).toBeDefined()
     expect(screen.getByText('Error test')).toBeDefined()

@@ -1,5 +1,6 @@
 import type { Task, Project, Label, Area, TaskQuickView } from '../lib/supabase.js'
 import { normalizeISODate } from '../lib/dateUtils.js'
+import { translate, type Language } from '../lib/i18n.js'
 
 export type QuickViewId = TaskQuickView
 
@@ -123,16 +124,20 @@ export function buildActiveFilters(
   selectedLabelIds: string[],
   labels: Label[],
   selectedAreaId: string | null,
-  areas: Area[]
+  areas: Area[],
+  language: Language
 ): ActiveFilterDescriptor[] {
   const filters: ActiveFilterDescriptor[] = []
+  const areaLabel = translate(language, 'context.label.area')
+  const projectLabel = translate(language, 'context.label.project')
+  const labelsLabel = translate(language, 'task.labels')
 
   if (selectedAreaId) {
     const area = areas.find(item => item.id === selectedAreaId)
     if (area) {
       filters.push({
         key: `area-${area.id}`,
-        label: `Área: ${area.name}`,
+        label: `${areaLabel}: ${area.name}`,
         type: 'area',
         referenceId: area.id,
       })
@@ -144,7 +149,7 @@ export function buildActiveFilters(
     if (project) {
       filters.push({
         key: `project-${project.id}`,
-        label: `Proyecto: ${project.name}`,
+        label: `${projectLabel}: ${project.name}`,
         type: 'project',
         referenceId: project.id,
       })
@@ -156,7 +161,7 @@ export function buildActiveFilters(
     if (!label) return
     filters.push({
       key: `label-${label.id}`,
-      label: `Etiqueta: ${label.name}`,
+      label: `${labelsLabel}: ${label.name}`,
       type: 'label',
       referenceId: label.id,
       color: label.color,
