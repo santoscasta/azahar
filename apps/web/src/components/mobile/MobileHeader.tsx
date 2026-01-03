@@ -3,6 +3,8 @@ import { useTranslations } from '../../App.js'
 
 interface MobileHeaderProps {
   onBack: () => void
+  onToggleSelect: () => void
+  isSelecting: boolean
   isProjectView: boolean
   isSearchView: boolean
   selectedArea: Area | null
@@ -16,6 +18,8 @@ interface MobileHeaderProps {
 
 export default function MobileHeader({
   onBack,
+  onToggleSelect,
+  isSelecting,
   isProjectView,
   isSearchView,
   selectedArea,
@@ -29,7 +33,7 @@ export default function MobileHeader({
   const { t } = useTranslations()
   return (
     <header className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           onClick={onBack}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl text-[var(--on-surface)]"
@@ -38,17 +42,17 @@ export default function MobileHeader({
           ←
         </button>
         <div className="flex-1 text-center">
-          <p className="text-sm font-semibold text-[var(--color-text-muted)]">
+          <p className="az-meta text-[var(--color-text-muted)]">
             {isProjectView ? t('mobile.project') : selectedArea ? t('mobile.area') : isSearchView ? t('view.search') : t('mobile.view')}
           </p>
-          <p className="text-2xl font-semibold text-[var(--on-surface)]">
+          <p className="az-h1 text-[var(--on-surface)]">
             {isProjectView
               ? mobileProject?.name || 'Proyecto'
               : selectedArea
                 ? selectedArea.name
                 : quickViewLabel}
           </p>
-          <p className={`text-sm text-[var(--color-text-muted)] ${isProjectView ? '' : 'capitalize'}`}>
+          <p className={`az-body text-[var(--color-text-muted)] ${isProjectView ? '' : 'capitalize'}`}>
             {isProjectView
               ? `${filteredTaskCount} ${t('mobile.projectTasks')}`
               : selectedArea
@@ -58,9 +62,17 @@ export default function MobileHeader({
                   : friendlyToday || t('mobile.today')}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={onToggleSelect}
+          aria-pressed={isSelecting}
+          className="min-h-[44px] min-w-[72px] px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
+        >
+          {isSelecting ? t('multiSelect.done') : t('multiSelect.select')}
+        </button>
       </div>
       {(isProjectView || selectedArea) && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow px-6 py-4 space-y-2">
+        <div className="rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-4 space-y-2">
           {isProjectView ? (
             <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
               <span>{t('mobile.pending')}: {filteredTaskCount - completedCount}</span>

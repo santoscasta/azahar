@@ -84,6 +84,12 @@ type TranslationKey =
   | 'help.usage.context'
   | 'help.usage.review'
   | 'help.views.title'
+  | 'help.widgets.title'
+  | 'help.widgets.home.title'
+  | 'help.widgets.home.description'
+  | 'help.widgets.home.empty'
+  | 'help.widgets.lock.title'
+  | 'help.widgets.lock.description'
   | 'help.footer'
   | 'gtd.quickCapture.title'
   | 'gtd.quickCapture.subtitle'
@@ -114,6 +120,7 @@ type TranslationKey =
   | 'gtd.empty'
   | 'tasks.empty'
   | 'tasks.empty.filtered'
+  | 'tasks.empty.cta'
   | 'gtd.due'
   | 'auth.title.login'
   | 'auth.title.signup'
@@ -152,6 +159,7 @@ type TranslationKey =
   | 'mobile.nav.search'
   | 'mobile.nav.new'
   | 'mobile.nav.newTask'
+  | 'mobile.upcoming.addAfterToday'
   | 'view.inbox'
   | 'view.today'
   | 'view.upcoming'
@@ -175,10 +183,24 @@ type TranslationKey =
   | 'actions.ok'
   | 'actions.showAll'
   | 'actions.hide'
+  | 'actions.focusMode'
+  | 'actions.showSidebar'
   | 'actions.clear'
   | 'actions.add'
   | 'actions.done'
   | 'schedule.title'
+  | 'multiSelect.select'
+  | 'multiSelect.done'
+  | 'multiSelect.selected'
+  | 'multiSelect.selectTask'
+  | 'multiSelect.deselectTask'
+  | 'multiSelect.actions.move'
+  | 'multiSelect.actions.complete'
+  | 'multiSelect.actions.delete'
+  | 'multiSelect.actions.copy'
+  | 'multiSelect.actions.share'
+  | 'multiSelect.actions.paste'
+  | 'agenda.title'
   | 'mobile.search.placeholder'
   | 'search.placeholder'
   | 'search.clear'
@@ -206,12 +228,20 @@ type TranslationKey =
   | 'task.menu.unpin'
   | 'task.menu.duplicate'
   | 'task.menu.copyLink'
+  | 'task.edit.title'
+  | 'task.edit.titlePlaceholder'
+  | 'task.edit.notesPlaceholder'
+  | 'task.edit.when'
   | 'task.quickView.title'
   | 'task.loose'
   | 'task.labels'
+  | 'task.notes'
   | 'task.checklist'
   | 'task.autoSaveHint'
+  | 'task.archive'
   | 'task.move'
+  | 'task.convert'
+  | 'task.convertedHint'
   | 'task.trash'
   | 'task.created'
   | 'task.createdOn'
@@ -316,6 +346,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'help.usage.context': 'Etiqueta por contexto para agrupar tareas similares.',
     'help.usage.review': 'Revisa a diario y haz una revisión semanal para mantener el sistema limpio.',
     'help.views.title': 'Vistas rápidas',
+    'help.widgets.title': 'Widgets',
+    'help.widgets.home.title': 'Widget en Home',
+    'help.widgets.home.description': 'Muestra Hoy con contador y lista corta. Un toque abre Hoy.',
+    'help.widgets.home.empty': 'Sin tareas para hoy.',
+    'help.widgets.lock.title': 'Widget en Lock Screen',
+    'help.widgets.lock.description': 'Acceso rápido a Hoy desde la pantalla de bloqueo.',
     'help.footer': 'Azahar mantiene tu sistema ligero: captura rápido, decide con calma.',
     'gtd.quickCapture.title': 'Captura rápida',
     'gtd.quickCapture.subtitle': 'Inspírate en Things: escribe primero, ordena después.',
@@ -346,7 +382,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.empty': 'Nada aquí todavía. Respira, prioriza o captura algo nuevo.',
     'tasks.empty': 'No hay tareas todavía. Captura la primera cuando quieras.',
     'tasks.empty.filtered': 'No hay tareas que coincidan con esta vista. Puedes ajustar los filtros cuando quieras.',
-    'gtd.due': 'Vence',
+    'tasks.empty.cta': 'Crear tarea',
+    'gtd.due': 'Fecha límite',
     'auth.title.login': 'Inicia sesión',
     'auth.title.signup': 'Crea tu cuenta',
     'auth.tagline': 'Organiza tus tareas con calma y sin distracciones.',
@@ -384,6 +421,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'mobile.nav.search': 'Buscar',
     'mobile.nav.new': 'Nueva',
     'mobile.nav.newTask': 'Crear nueva tarea',
+    'mobile.upcoming.addAfterToday': 'Crear después de hoy',
     'view.inbox': 'Inbox',
     'view.today': 'Hoy',
     'view.upcoming': 'Próximas',
@@ -407,10 +445,24 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.ok': 'OK',
     'actions.showAll': 'Ver todo',
     'actions.hide': 'Ocultar',
+    'actions.focusMode': 'Modo foco',
+    'actions.showSidebar': 'Mostrar sidebar',
     'actions.clear': 'Limpiar',
     'actions.add': 'Añadir',
     'actions.done': 'Listo',
     'schedule.title': '¿Cuándo?',
+    'multiSelect.select': 'Seleccionar',
+    'multiSelect.done': 'Listo',
+    'multiSelect.selected': 'Seleccionadas',
+    'multiSelect.selectTask': 'Seleccionar tarea',
+    'multiSelect.deselectTask': 'Deseleccionar tarea',
+    'multiSelect.actions.move': 'Mover',
+    'multiSelect.actions.complete': 'Completar',
+    'multiSelect.actions.delete': 'Eliminar',
+    'multiSelect.actions.copy': 'Copiar',
+    'multiSelect.actions.share': 'Compartir',
+    'multiSelect.actions.paste': 'Pegar',
+    'agenda.title': 'Agenda',
     'mobile.search.placeholder': 'Búsqueda rápida',
     'search.placeholder': 'Buscar por título, notas o proyecto...',
     'search.clear': 'Cerrar búsqueda',
@@ -423,27 +475,35 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'datePicker.option.weekend': 'Este fin',
     'datePicker.option.nextWeek': 'Próxima semana',
     'datePicker.option.clear': 'Sin fecha',
-    'datePicker.title.new': 'Fecha para nueva tarea',
-    'datePicker.title.edit': 'Actualizar vencimiento',
-    'datePicker.title.draft': 'Plazo',
+    'datePicker.title.new': 'Cuando para nueva tarea',
+    'datePicker.title.edit': 'Actualizar cuando',
+    'datePicker.title.draft': 'Cuando',
     'datePicker.none': 'Sin fecha',
     'datePicker.prevMonth': 'Mes anterior',
     'datePicker.nextMonth': 'Mes siguiente',
     'datePicker.selected': 'Seleccionada',
     'datePicker.noDateAssigned': 'Sin fecha asignada',
-    'datePicker.hint': 'Confirma la fecha con el botón aplicar para guardar el cambio.',
-    'datePicker.apply': 'Aplicar fecha',
+    'datePicker.hint': 'Confirma el cuando con el botón aplicar para guardar el cambio.',
+    'datePicker.apply': 'Aplicar cuando',
     'task.menu.title': 'Acciones',
     'task.menu.pin': 'Fijar tarea',
     'task.menu.unpin': 'Quitar fijado',
     'task.menu.duplicate': 'Duplicar tarea',
     'task.menu.copyLink': 'Copiar enlace',
+    'task.edit.title': 'Editar tarea',
+    'task.edit.titlePlaceholder': 'Título',
+    'task.edit.notesPlaceholder': 'Notas (Markdown)',
+    'task.edit.when': 'Cuando',
     'task.quickView.title': 'Mover a',
     'task.loose': 'Tareas sueltas',
     'task.labels': 'Etiquetas',
+    'task.notes': 'Notas',
     'task.checklist': 'Checklist',
     'task.autoSaveHint': 'Los cambios se guardan automáticamente al salir.',
+    'task.archive': 'Archivar',
     'task.move': 'Mover',
+    'task.convert': 'Convertir en proyecto',
+    'task.convertedHint': 'Ya pertenece a un proyecto',
     'task.trash': 'Papelera',
     'task.created': 'Creada',
     'task.createdOn': 'Creada el',
@@ -547,6 +607,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'help.usage.context': 'Use labels for context to batch similar tasks.',
     'help.usage.review': 'Review daily and run a weekly review to keep the system clean.',
     'help.views.title': 'Quick views',
+    'help.widgets.title': 'Widgets',
+    'help.widgets.home.title': 'Home widget',
+    'help.widgets.home.description': 'Shows Today with count and a short list. Tap to open Today.',
+    'help.widgets.home.empty': 'No tasks for today yet.',
+    'help.widgets.lock.title': 'Lock screen widget',
+    'help.widgets.lock.description': 'Quick access to Today from the lock screen.',
     'help.footer': 'Azahar keeps your system light: capture fast, decide calmly.',
     'gtd.quickCapture.title': 'Quick capture',
     'gtd.quickCapture.subtitle': 'Inspired by Things: write first, sort later.',
@@ -577,7 +643,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.empty': 'Nothing here yet. Breathe, prioritize, or capture something new.',
     'tasks.empty': 'No tasks yet. Capture the first one whenever you are ready.',
     'tasks.empty.filtered': 'No tasks match this view. You can adjust the filters anytime.',
-    'gtd.due': 'Due',
+    'tasks.empty.cta': 'Create task',
+    'gtd.due': 'Deadline',
     'auth.title.login': 'Sign in',
     'auth.title.signup': 'Create your account',
     'auth.tagline': 'Organize your tasks calmly and without distractions.',
@@ -615,6 +682,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'mobile.nav.search': 'Search',
     'mobile.nav.new': 'New',
     'mobile.nav.newTask': 'Create new task',
+    'mobile.upcoming.addAfterToday': 'Create after today',
     'view.inbox': 'Inbox',
     'view.today': 'Today',
     'view.upcoming': 'Upcoming',
@@ -638,10 +706,24 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.ok': 'OK',
     'actions.showAll': 'Show all',
     'actions.hide': 'Hide',
+    'actions.focusMode': 'Focus mode',
+    'actions.showSidebar': 'Show sidebar',
     'actions.clear': 'Clear',
     'actions.add': 'Add',
     'actions.done': 'Done',
     'schedule.title': 'When?',
+    'multiSelect.select': 'Select',
+    'multiSelect.done': 'Done',
+    'multiSelect.selected': 'Selected',
+    'multiSelect.selectTask': 'Select task',
+    'multiSelect.deselectTask': 'Deselect task',
+    'multiSelect.actions.move': 'Move',
+    'multiSelect.actions.complete': 'Complete',
+    'multiSelect.actions.delete': 'Delete',
+    'multiSelect.actions.copy': 'Copy',
+    'multiSelect.actions.share': 'Share',
+    'multiSelect.actions.paste': 'Paste',
+    'agenda.title': 'Agenda',
     'mobile.search.placeholder': 'Quick search',
     'search.placeholder': 'Search by title, notes, or project...',
     'search.clear': 'Close search',
@@ -654,27 +736,35 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'datePicker.option.weekend': 'This weekend',
     'datePicker.option.nextWeek': 'Next week',
     'datePicker.option.clear': 'No date',
-    'datePicker.title.new': 'Date for new task',
-    'datePicker.title.edit': 'Update due date',
-    'datePicker.title.draft': 'Due date',
+    'datePicker.title.new': 'When for new task',
+    'datePicker.title.edit': 'Update when',
+    'datePicker.title.draft': 'When',
     'datePicker.none': 'No date',
     'datePicker.prevMonth': 'Previous month',
     'datePicker.nextMonth': 'Next month',
     'datePicker.selected': 'Selected',
     'datePicker.noDateAssigned': 'No date assigned',
-    'datePicker.hint': 'Confirm the date with the apply button to save the change.',
-    'datePicker.apply': 'Apply date',
+    'datePicker.hint': 'Confirm the when with the apply button to save the change.',
+    'datePicker.apply': 'Apply when',
     'task.menu.title': 'Actions',
     'task.menu.pin': 'Pin task',
     'task.menu.unpin': 'Unpin task',
     'task.menu.duplicate': 'Duplicate task',
     'task.menu.copyLink': 'Copy link',
+    'task.edit.title': 'Edit task',
+    'task.edit.titlePlaceholder': 'Title',
+    'task.edit.notesPlaceholder': 'Notes (Markdown)',
+    'task.edit.when': 'When',
     'task.quickView.title': 'Move to',
     'task.loose': 'Loose tasks',
     'task.labels': 'Labels',
+    'task.notes': 'Notes',
     'task.checklist': 'Checklist',
     'task.autoSaveHint': 'Changes save automatically when you leave.',
+    'task.archive': 'Archive',
     'task.move': 'Move',
+    'task.convert': 'Convert to project',
+    'task.convertedHint': 'Already belongs to a project',
     'task.trash': 'Trash',
     'task.created': 'Created',
     'task.createdOn': 'Created on',

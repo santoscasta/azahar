@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ReactNode, DragEvent } from 'react'
 import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query'
 import { v4 as uuid } from 'uuid'
 import { useNavigate } from 'react-router-dom'
@@ -55,6 +55,8 @@ import { buildMobileTaskPayload } from '../lib/mobileDraftUtils.js'
 import DesktopSidebar from '../components/sidebar/DesktopSidebar.js'
 import MobileTasksPane from '../components/mobile/MobileTasksPane.js'
 import MobileBottomBar from '../components/mobile/MobileBottomBar.js'
+import MobileFab from '../components/mobile/MobileFab.js'
+import MobileTaskEditSheet from '../components/mobile/MobileTaskEditSheet.js'
 import NewAreaModal from '../components/tasks/NewAreaModal.js'
 import NewProjectModal from '../components/tasks/NewProjectModal.js'
 import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
@@ -65,16 +67,16 @@ import TaskCreationModal from '../components/tasks/TaskCreationModal.js'
 import TaskDatePickerOverlay from '../components/tasks/TaskDatePickerOverlay.js'
 import LabelSheet from '../components/tasks/LabelSheet.js'
 import TaskList from '../components/tasks/TaskList.js'
-import DesktopSearch from '../components/tasks/DesktopSearch.js'
+import AgendaSummary from '../components/tasks/AgendaSummary.js'
 import DesktopContextHeader from '../components/tasks/DesktopContextHeader.js'
 import DesktopDock from '../components/tasks/DesktopDock.js'
+import MultiSelectActionBar from '../components/tasks/MultiSelectActionBar.js'
 import DesktopTaskBoardSwitcher from '../components/tasks/boards/DesktopTaskBoardSwitcher.js'
 import MobileOverview from '../components/mobile/MobileOverview.js'
 import MobileTaskBoard from '../components/mobile/MobileTaskBoard.js'
 import { DesktopDraftCard } from '../components/tasks/DesktopDraftCard.js'
 import MoveTaskSheet from '../components/tasks/MoveTaskSheet.js'
 import ChecklistSheet from '../components/tasks/ChecklistSheet.js'
-import PriorityMenu from '../components/tasks/PriorityMenu.js'
 import TaskOverflowMenu from '../components/tasks/TaskOverflowMenu.js'
 import { useConnectivity } from '../hooks/useConnectivity.js'
 import AssistantChat from '../components/assistant/AssistantChat.js'
@@ -88,6 +90,36 @@ import referenceIcon from '../assets/icons/reference.svg'
 import logbookIcon from '../assets/icons/logbook.svg'
 
 type LabelSheetTarget = { kind: 'draft-task' } | { kind: 'task'; taskId: string } | null
+
+const normalizeLabelName = (value: string) => value.trim().toLowerCase()
+const precreatedLabelNames = new Set([
+  'importante',
+  'important',
+  'pendiente',
+  'pending',
+  'oficina',
+  'office',
+  'casa',
+  'home',
+  'recado',
+  'recados',
+  'errand',
+  'phone',
+  'teléfono',
+  'telefono',
+  'equipo',
+  'team',
+  'familia',
+  'family',
+  'fotografia',
+  'fotografía',
+  'photography',
+  'waiting',
+  'en espera',
+  'espera',
+  'reference',
+  'referencia',
+])
 type Priority = 0 | 1 | 2 | 3
 interface EditingChecklistItem {
   id: string
@@ -162,8 +194,9 @@ export default function TasksPage() {
   const [mobileProjectFocusId, setMobileProjectFocusId] = useState<string | null>(null)
   const [mobileTaskLimit, setMobileTaskLimit] = useState(6)
   const [datePickerTarget, setDatePickerTarget] = useState<'new' | 'edit' | 'draft' | null>(null)
+  const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLElement | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(() => new Date())
-  const [activeProjectFilterChip, setActiveProjectFilterChip] = useState<'all' | 'important' | string>('all')
+  const [activeProjectFilterChip, setActiveProjectFilterChip] = useState<'all' | string>('all')
   const [showNewListMenu, setShowNewListMenu] = useState(false)
   const [showQuickHeadingForm, setShowQuickHeadingForm] = useState(false)
   const [showMobileCreationSheet, setShowMobileCreationSheet] = useState(false)
@@ -176,16 +209,26 @@ export default function TasksPage() {
   const [moveSheetTaskId, setMoveSheetTaskId] = useState<string | null>(null)
   const [editingChecklist, setEditingChecklist] = useState<EditingChecklistItem[]>([])
   const [isChecklistSheetOpen, setChecklistSheetOpen] = useState(false)
-  const [isPriorityMenuOpen, setPriorityMenuOpen] = useState(false)
   const [overflowTaskId, setOverflowTaskId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
   const [showCompletedInContext, setShowCompletedInContext] = useState(true)
   const [customViewNames, setCustomViewNames] = useState<Partial<Record<QuickViewId, string>>>({})
   const [showAssistantChat, setShowAssistantChat] = useState(false)
   const [showDesktopDraft, setShowDesktopDraft] = useState(false)
+  const [isFocusMode, setIsFocusMode] = useState(false)
+  const [upcomingDropTargetId, setUpcomingDropTargetId] = useState<string | null>(null)
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null)
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
+  const [multiSelectMoveOpen, setMultiSelectMoveOpen] = useState(false)
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[] | null>(null)
+  const [batchActionPending, setBatchActionPending] = useState(false)
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
+  const desktopSearchInputRef = useRef<HTMLInputElement | null>(null)
+  const seededImportantLabelRef = useRef(false)
   const mobileDraftTaskTitleRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftProjectRef = useRef<HTMLInputElement | null>(null)
   const mobileDraftAreaRef = useRef<HTMLInputElement | null>(null)
@@ -214,7 +257,13 @@ export default function TasksPage() {
   })
   const hasPendingSync = pendingMutations > 0 && !isOnline
   const normalizedSearch = searchQuery.trim()
-  const sortedLabelIds = useMemo(() => [...selectedLabelIds].sort(), [selectedLabelIds])
+  const activeLabelIds = useMemo(() => {
+    if (!selectedProjectId && !selectedAreaId && activeQuickView === 'upcoming') {
+      return []
+    }
+    return selectedLabelIds.length > 0 ? [selectedLabelIds[0]] : []
+  }, [selectedLabelIds, selectedProjectId, selectedAreaId, activeQuickView])
+  const sortedLabelIds = useMemo(() => [...activeLabelIds].sort(), [activeLabelIds])
   const assistantEnabled = Boolean(
     (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_OPENAI_API_KEY
   )
@@ -227,6 +276,47 @@ export default function TasksPage() {
     successTimeoutRef.current = setTimeout(() => {
       setSuccessMessage('')
     }, 3200)
+  }, [])
+
+  const exitMultiSelect = () => {
+    setIsMultiSelectMode(false)
+    setSelectedTaskIds([])
+    setMultiSelectMoveOpen(false)
+    setBulkDeleteIds(null)
+  }
+
+  const toggleMultiSelectMode = () => {
+    if (isMultiSelectMode) {
+      exitMultiSelect()
+      return
+    }
+    handleCancelEdit()
+    setIsMultiSelectMode(true)
+    setSelectedTaskIds([])
+  }
+
+  const toggleTaskSelection = (taskId: string) => {
+    setSelectedTaskIds(prev =>
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    )
+  }
+
+  const highlightTask = useCallback((taskId: string) => {
+    setHighlightedTaskId(taskId)
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current)
+    }
+    highlightTimeoutRef.current = setTimeout(() => {
+      setHighlightedTaskId(null)
+    }, 1800)
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        const node = document.getElementById(`task-${taskId}`)
+        if (node && typeof node.scrollIntoView === 'function') {
+          node.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }
+      })
+    }
   }, [])
 
   // Consulta para obtener tareas con búsqueda y filtros
@@ -269,6 +359,23 @@ export default function TasksPage() {
     })
     return deduped
   }, [tasksData])
+  const taskById = useMemo(() => {
+    const map = new Map<string, Task>()
+    tasks.forEach(task => map.set(task.id, task))
+    return map
+  }, [tasks])
+  const selectedTasks = useMemo(() => {
+    return selectedTaskIds
+      .map(taskId => taskById.get(taskId))
+      .filter((task): task is Task => !!task)
+  }, [selectedTaskIds, taskById])
+
+  useEffect(() => {
+    if (selectedTaskIds.length === 0) {
+      return
+    }
+    setSelectedTaskIds(prev => prev.filter(taskId => taskById.has(taskId)))
+  }, [taskById])
 
   // Consulta para obtener proyectos
   const { data: projects = [] } = useQuery({
@@ -283,7 +390,7 @@ export default function TasksPage() {
   })
 
   // Consulta para obtener etiquetas
-  const { data: labels = [] } = useQuery({
+  const { data: labels = [], isFetched: labelsFetched } = useQuery({
     queryKey: ['labels'],
     queryFn: async () => {
       const result = await getLabels()
@@ -293,6 +400,32 @@ export default function TasksPage() {
       return result.labels || []
     },
   })
+  const labelUsage = useMemo(() => {
+    const counts = new Map<string, number>()
+    tasks.forEach(task => {
+      ;(task.labels || []).forEach(label => {
+        counts.set(label.id, (counts.get(label.id) || 0) + 1)
+      })
+    })
+    return counts
+  }, [tasks])
+  const orderedLabels = useMemo(() => {
+    return [...labels].sort((a, b) => {
+      const aName = normalizeLabelName(a.name)
+      const bName = normalizeLabelName(b.name)
+      const aPre = precreatedLabelNames.has(aName)
+      const bPre = precreatedLabelNames.has(bName)
+      if (aPre !== bPre) {
+        return aPre ? 1 : -1
+      }
+      const aUsage = labelUsage.get(a.id) || 0
+      const bUsage = labelUsage.get(b.id) || 0
+      if (aUsage !== bUsage) {
+        return bUsage - aUsage
+      }
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    })
+  }, [labels, labelUsage])
 
   const { data: areas = [] } = useQuery({
     queryKey: ['areas'],
@@ -328,6 +461,9 @@ export default function TasksPage() {
     return () => {
       if (successTimeoutRef.current) {
         clearTimeout(successTimeoutRef.current)
+      }
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current)
       }
     }
   }, [])
@@ -412,6 +548,11 @@ export default function TasksPage() {
     projects.forEach(project => map.set(project.id, project))
     return map
   }, [projects])
+  const headingMap = useMemo(() => {
+    const map = new Map<string, ProjectHeading>()
+    projectHeadings.forEach(heading => map.set(heading.id, heading))
+    return map
+  }, [projectHeadings])
   const quickViewStats = useMemo(
     () => buildQuickViewStats(tasks, todayISO),
     [tasks, todayISO]
@@ -447,6 +588,12 @@ export default function TasksPage() {
     })
   }, [normalizedSearch, projects, tasks])
   const isSearchMode = isSearchFocused || normalizedSearch.length > 0
+  useEffect(() => {
+    if (!isMultiSelectMode) {
+      return
+    }
+    exitMultiSelect()
+  }, [activeQuickView, selectedProjectId, selectedAreaId, isSearchMode, showMobileHome])
   const filteredTasks = useMemo(() => {
     if (isSearchMode) {
       return searchResults.filter(task => task.status !== 'done')
@@ -462,6 +609,12 @@ export default function TasksPage() {
     selectedAreaId,
     projectMap,
   ])
+  const selectedTask = useMemo(() => {
+    if (!editingId) {
+      return null
+    }
+    return tasks.find(task => task.id === editingId) || null
+  }, [editingId, tasks])
   const isTaskOverdue = (task: Task) => {
     if (task.status !== 'open' || !task.due_at) {
       return false
@@ -605,11 +758,19 @@ export default function TasksPage() {
     if (event) {
       event.preventDefault()
     }
-    if (!inlineLabelName.trim()) {
+    const trimmed = inlineLabelName.trim()
+    if (!trimmed) {
       setError('El nombre de la etiqueta no puede estar vacío')
       return
     }
-    addInlineLabelMutation.mutate(inlineLabelName.trim())
+    const normalized = normalizeLabelName(trimmed)
+    const existing = labels.find(label => normalizeLabelName(label.name) === normalized)
+    if (existing) {
+      setTaskLabels(prev => (prev.includes(existing.id) ? prev : [...prev, existing.id]))
+      setInlineLabelName('')
+      return
+    }
+    addInlineLabelMutation.mutate(trimmed)
   }
 
   const handleRemoveFilter = (filter: ActiveFilterDescriptor) => {
@@ -630,10 +791,18 @@ export default function TasksPage() {
 
   const handleLabelSheetSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!labelSheetInput.trim()) {
+    const trimmed = labelSheetInput.trim()
+    if (!trimmed) {
       return
     }
-    addLabelMutation.mutate(labelSheetInput.trim(), {
+    const normalized = normalizeLabelName(trimmed)
+    const existing = labels.find(label => normalizeLabelName(label.name) === normalized)
+    if (existing) {
+      setLabelSheetSelection(prev => (prev.includes(existing.id) ? prev : [...prev, existing.id]))
+      setLabelSheetInput('')
+      return
+    }
+    addLabelMutation.mutate(trimmed, {
       onSuccess: (result) => {
         const createdLabel = result.label
         if (result.success && createdLabel) {
@@ -646,7 +815,7 @@ export default function TasksPage() {
     })
   }
 
-  const handleOpenTaskLabelSheet = (task: Task) => {
+  const handleOpenTaskLabelSheet = (task: Task, _anchor?: HTMLElement | null) => {
     setLabelSheetSelection(task.labels?.map(label => label.id) ?? [])
     setLabelSheetTarget({ kind: 'task', taskId: task.id })
   }
@@ -678,7 +847,7 @@ export default function TasksPage() {
     closeLabelSheet()
   }
 
-  const handleOpenChecklistSheet = (taskId: string) => {
+  const handleOpenChecklistSheet = (taskId: string, _anchor?: HTMLElement | null) => {
     if (!editingId || editingId !== taskId) {
       return
     }
@@ -720,16 +889,23 @@ export default function TasksPage() {
     ])
   }
 
-  const handleOpenPriorityMenu = () => {
-    if (!editingId) {
-      return
-    }
-    setPriorityMenuOpen(true)
-  }
-
-  const handleSelectPriority = (value: Priority) => {
-    setEditingPriority(value)
-    setPriorityMenuOpen(false)
+  const handleChecklistReorder = (orderedIds: string[]) => {
+    setEditingChecklist(prev => {
+      const itemMap = new Map(prev.map(item => [item.id, item]))
+      const reordered: EditingChecklistItem[] = []
+      orderedIds.forEach((id, index) => {
+        const item = itemMap.get(id)
+        if (!item) return
+        reordered.push({ ...item, sortOrder: index })
+        itemMap.delete(id)
+      })
+      if (itemMap.size > 0) {
+        itemMap.forEach(item => {
+          reordered.push({ ...item, sortOrder: reordered.length })
+        })
+      }
+      return reordered
+    })
   }
 
   const handleOpenOverflowMenu = (taskId: string) => {
@@ -777,7 +953,21 @@ export default function TasksPage() {
     applyQuickViewMutation.mutate({ task, view })
   }
 
-  const handleOpenMoveSheet = (task: Task) => {
+  const handleArchiveTask = (task: Task) => {
+    if (task.status === 'done' || archiveTaskMutation.isPending) {
+      return
+    }
+    archiveTaskMutation.mutate(task.id)
+  }
+
+  const handleConvertToProject = (task: Task) => {
+    if (task.project_id || convertTaskMutation.isPending) {
+      return
+    }
+    convertTaskMutation.mutate(task)
+  }
+
+  const handleOpenMoveSheet = (task: Task, _anchor?: HTMLElement | null) => {
     setMoveSheetTaskId(task.id)
   }
 
@@ -806,6 +996,171 @@ export default function TasksPage() {
       return
     }
     moveTaskMutation.mutate({ taskId: moveSheetTaskId, ...destination })
+  }
+
+  const handleConfirmMultiMoveDestination = async (destination: { areaId: string | null; projectId: string | null }) => {
+    if (selectedTaskIds.length === 0) {
+      return
+    }
+    setBatchActionPending(true)
+    try {
+      const results = await Promise.all(
+        selectedTaskIds.map(taskId =>
+          updateTask(taskId, {
+            project_id: destination.projectId,
+            area_id: destination.areaId,
+            heading_id: null,
+          })
+        )
+      )
+      const failed = results.find(result => !result.success)
+      if (failed && failed.error) {
+        throw new Error(failed.error)
+      }
+      pushSuccessMessage(`Tareas movidas: ${selectedTaskIds.length}`)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      exitMultiSelect()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al mover tareas')
+    } finally {
+      setBatchActionPending(false)
+      setMultiSelectMoveOpen(false)
+    }
+  }
+
+  const handleBatchComplete = async () => {
+    if (selectedTaskIds.length === 0) {
+      return
+    }
+    setBatchActionPending(true)
+    try {
+      const completedAt = new Date().toISOString()
+      const results = await Promise.all(
+        selectedTaskIds.map(taskId => updateTask(taskId, { status: 'done', completed_at: completedAt }))
+      )
+      const failed = results.find(result => !result.success)
+      if (failed && failed.error) {
+        throw new Error(failed.error)
+      }
+      pushSuccessMessage(`Tareas completadas: ${selectedTaskIds.length}`)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      exitMultiSelect()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al completar tareas')
+    } finally {
+      setBatchActionPending(false)
+    }
+  }
+
+  const handleRequestBulkDelete = () => {
+    if (selectedTaskIds.length === 0) {
+      return
+    }
+    setBulkDeleteIds([...selectedTaskIds])
+  }
+
+  const handleCancelBulkDelete = () => {
+    setBulkDeleteIds(null)
+  }
+
+  const handleConfirmBulkDelete = async () => {
+    if (!bulkDeleteIds || bulkDeleteIds.length === 0) {
+      return
+    }
+    setBatchActionPending(true)
+    try {
+      const results = await Promise.all(bulkDeleteIds.map(taskId => deleteTask(taskId)))
+      const failed = results.find(result => !result.success)
+      if (failed && failed.error) {
+        throw new Error(failed.error)
+      }
+      pushSuccessMessage(`Tareas eliminadas: ${bulkDeleteIds.length}`)
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      exitMultiSelect()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar tareas')
+    } finally {
+      setBatchActionPending(false)
+      setBulkDeleteIds(null)
+    }
+  }
+
+  const buildSelectedTasksText = () => {
+    return selectedTasks.map(task => task.title).join('\n')
+  }
+
+  const handleCopySelectedTasks = async () => {
+    const text = buildSelectedTasksText()
+    if (!text) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      pushSuccessMessage('Tareas copiadas')
+    } catch (_err) {
+      setError('No se pudo copiar al portapapeles')
+    }
+  }
+
+  const handleShareSelectedTasks = async () => {
+    const text = buildSelectedTasksText()
+    if (!text) {
+      return
+    }
+    try {
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        await navigator.share({ title: 'Azahar', text })
+        return
+      }
+      await navigator.clipboard.writeText(text)
+      pushSuccessMessage('Tareas copiadas')
+    } catch (_err) {
+      setError('No se pudo compartir')
+    }
+  }
+
+  const handlePasteTasks = async () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
+      setError('El portapapeles no está disponible')
+      return
+    }
+    try {
+      const text = await navigator.clipboard.readText()
+      const lines = text
+        .split(/\r?\n/)
+        .map(line => line.replace(/^[-*]\s+/, '').trim())
+        .filter(Boolean)
+      if (lines.length === 0) {
+        setError('No hay texto para pegar')
+        return
+      }
+      setBatchActionPending(true)
+      const normalizedView = activeQuickView === 'logbook' ? 'inbox' : activeQuickView
+      const targetProjectId = selectedProjectId || null
+      const targetAreaId =
+        targetProjectId ? projectMap.get(targetProjectId)?.area_id || null : selectedAreaId || null
+      const defaultDue = defaultDueForView(normalizedView, todayISO, tomorrowISO) || null
+      const labelIds = getDraftLabelIdsForView(normalizedView, [])
+      for (const title of lines) {
+        await addTaskMutation.mutateAsync({
+          title,
+          notes: '',
+          priority: 0,
+          due_at: defaultDue,
+          status: normalizedView === 'someday' ? 'snoozed' : 'open',
+          project_id: targetProjectId,
+          area_id: targetAreaId,
+          heading_id: null,
+          quick_view: normalizedView,
+          labelIds,
+        })
+      }
+      pushSuccessMessage(`Tareas creadas: ${lines.length}`)
+    } catch (_err) {
+      setError('No se pudieron crear tareas desde el portapapeles')
+    } finally {
+      setBatchActionPending(false)
+    }
   }
 
   const editingState = {
@@ -837,6 +1192,9 @@ export default function TasksPage() {
       renderDraftCard?: () => ReactNode
       showDraftCard?: boolean
       autoSaveOnBlur?: boolean
+      dragEnabled?: boolean
+      onDragEndTask?: () => void
+      onCreateTask?: () => void
     } = {}
   ) => (
     <TaskList
@@ -860,11 +1218,14 @@ export default function TasksPage() {
       togglePending={toggleTaskMutation.isPending}
       onDeleteTask={handleRequestDeleteTask}
       deletePending={deleteTaskMutation.isPending}
-      onOpenEditDatePicker={() => openDatePicker('edit')}
+      onOpenEditDatePicker={(anchor) => openDatePicker('edit', anchor)}
       onOpenLabelSheet={handleOpenTaskLabelSheet}
-      onOpenChecklist={(task) => handleOpenChecklistSheet(task.id)}
-      onOpenPriorityMenu={handleOpenPriorityMenu}
+      onOpenChecklist={(task, anchor) => handleOpenChecklistSheet(task.id, anchor)}
       onOpenMoveSheet={handleOpenMoveSheet}
+      onArchiveTask={handleArchiveTask}
+      archivePending={archiveTaskMutation.isPending}
+      onConvertToProject={handleConvertToProject}
+      convertPending={convertTaskMutation.isPending}
       onOpenOverflowMenu={(task) => handleOpenOverflowMenu(task.id)}
       onToggleCollapsedChecklist={handleToggleCollapsedChecklist}
       onApplyQuickView={handleApplyQuickView}
@@ -872,7 +1233,14 @@ export default function TasksPage() {
       formatDateLabel={formatDateForLabel}
       renderDraftCard={options.renderDraftCard}
       showDraftCard={options.showDraftCard}
-      autoSaveOnBlur={options.autoSaveOnBlur}
+      autoSaveOnBlur={variant === 'desktop' ? options.autoSaveOnBlur : false}
+      dragEnabled={options.dragEnabled && !isMultiSelectMode}
+      onDragEndTask={options.onDragEndTask}
+      highlightedTaskId={highlightedTaskId}
+      multiSelectMode={isMultiSelectMode}
+      selectedTaskIds={selectedTaskIds}
+      onToggleSelection={toggleTaskSelection}
+      onCreateTask={options.onCreateTask}
     />
   )
 
@@ -948,14 +1316,16 @@ export default function TasksPage() {
   const currentQuickView = quickLists.find(list => list.id === activeQuickView) || quickLists[0]
   const moveSheetTask = moveSheetTaskId ? tasks.find(task => task.id === moveSheetTaskId) ?? null : null
   const overflowTask = overflowTaskId ? tasks.find(task => task.id === overflowTaskId) ?? null : null
+  const editingTask = editingId ? tasks.find(task => task.id === editingId) ?? null : null
   const shouldAutoSaveEdit =
     labelSheetTarget === null &&
     !scheduleSheetOpen &&
     moveSheetTaskId === null &&
+    !multiSelectMoveOpen &&
     !isChecklistSheetOpen &&
-    !isPriorityMenuOpen &&
     overflowTaskId === null &&
-    datePickerTarget === null
+    datePickerTarget === null &&
+    !isMultiSelectMode
   const shouldAutoSaveDraft = labelSheetTarget === null && datePickerTarget === null
 
   const handleSelectQuickView = (view: QuickViewId) => {
@@ -994,7 +1364,7 @@ export default function TasksPage() {
       projects={projects}
       areas={areas}
       headings={projectHeadings}
-      labels={labels}
+      labels={orderedLabels}
       creationViewOptions={creationViewOptions}
       dueDateLabel={formatDateForLabel(taskDraft.due_at)}
       savingTask={addTaskMutation.isPending}
@@ -1003,7 +1373,7 @@ export default function TasksPage() {
       onSubmit={handleAddTask}
       onUpdateDraft={updateTaskDraft}
       onApplyViewPreset={applyViewPreset}
-      onRequestDueDate={() => openDatePicker('new')}
+      onRequestDueDate={(anchor) => openDatePicker('new', anchor)}
       onToggleLabel={toggleNewTaskLabel}
       inlineLabelName={inlineLabelName}
       onInlineLabelNameChange={setInlineLabelName}
@@ -1021,7 +1391,7 @@ export default function TasksPage() {
         onClick={handleCancelDelete}
       >
         <div
-          className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl"
+          className="w-full max-w-md rounded-[var(--radius-container)] bg-[var(--color-surface)] border border-[var(--color-border)] "
           onClick={(event) => event.stopPropagation()}
         >
           <div className="px-6 py-5 border-b border-[var(--color-border)]">
@@ -1036,7 +1406,7 @@ export default function TasksPage() {
               <button
                 type="button"
                 onClick={handleCancelDelete}
-                className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]"
+                className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]"
               >
                 Cancelar
               </button>
@@ -1044,7 +1414,52 @@ export default function TasksPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleteTaskMutation.isPending}
-                className="min-h-[44px] px-5 py-2 rounded-xl bg-[var(--color-danger-500)] text-[var(--on-primary)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                className="min-h-[44px] px-5 py-2 rounded-[var(--radius-card)] bg-[var(--color-danger-500)] text-[var(--on-primary)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderBulkDeleteConfirmation = () => {
+    if (!bulkDeleteIds) {
+      return null
+    }
+    const countLabel = bulkDeleteIds.length === 1 ? '1 tarea' : `${bulkDeleteIds.length} tareas`
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay)] backdrop-blur-sm p-4"
+        onClick={handleCancelBulkDelete}
+      >
+        <div
+          className="w-full max-w-md rounded-[var(--radius-container)] bg-[var(--color-surface)] border border-[var(--color-border)] "
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="px-6 py-5 border-b border-[var(--color-border)]">
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Confirmar eliminación</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">Eliminar tareas</p>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">
+              ¿Seguro que deseas enviar a la papelera {countLabel} seleccionadas?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancelBulkDelete}
+                className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkDelete}
+                disabled={batchActionPending}
+                className="min-h-[44px] px-5 py-2 rounded-[var(--radius-card)] bg-[var(--color-danger-500)] text-[var(--on-primary)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
               >
                 Eliminar
               </button>
@@ -1060,8 +1475,8 @@ export default function TasksPage() {
   const activeTaskCount = filteredTasks.filter(task => task.status !== 'done').length
   const completedCount = filteredTasks.filter(task => task.status === 'done').length
   const activeFilters = useMemo(
-    () => buildActiveFilters(selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas, language),
-    [selectedProjectId, projects, selectedLabelIds, labels, selectedAreaId, areas, language]
+    () => buildActiveFilters(selectedProjectId, projects, activeLabelIds, labels, selectedAreaId, areas, language),
+    [selectedProjectId, projects, activeLabelIds, labels, selectedAreaId, areas, language]
   )
   const filteredViewActive = isSearchMode
     ? true
@@ -1088,6 +1503,115 @@ export default function TasksPage() {
   const isMobileProjectView = isMobileDetail && !!mobileProject
   const visibleMobileTasks = isMobileDetail ? filteredTasks.slice(0, mobileTaskLimit) : filteredTasks
   const canShowMoreMobileTasks = isMobileDetail && mobileTaskLimit < filteredTasks.length
+  const upcomingMobileSections = useMemo(() => {
+    if (!useMobileExperience || activeQuickView !== 'upcoming' || selectedProjectId || selectedAreaId || isSearchMode) {
+      return null
+    }
+    if (visibleMobileTasks.length === 0) {
+      return []
+    }
+    const locale = language === 'en' ? 'en-US' : 'es-ES'
+    const capitalize = (value: string) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value)
+    const todayDate = parseISODate(todayISO) ?? new Date()
+    todayDate.setHours(0, 0, 0, 0)
+    const weekLimit = new Date(todayDate)
+    weekLimit.setDate(todayDate.getDate() + 7)
+
+    const sortedTasks = [...visibleMobileTasks].sort((a, b) => {
+      const aDate = normalizeDate(a.due_at) || ''
+      const bDate = normalizeDate(b.due_at) || ''
+      if (aDate !== bDate) {
+        return aDate.localeCompare(bDate)
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+
+    const dayBuckets = new Map<string, Task[]>()
+    const monthBuckets = new Map<string, Task[]>()
+    const undated: Task[] = []
+
+    sortedTasks.forEach(task => {
+      const normalized = normalizeDate(task.due_at)
+      if (!normalized) {
+        undated.push(task)
+        return
+      }
+      const dueDate = parseISODate(normalized)
+      if (!dueDate || Number.isNaN(dueDate.getTime())) {
+        undated.push(task)
+        return
+      }
+      dueDate.setHours(0, 0, 0, 0)
+      if (dueDate <= weekLimit) {
+        const bucket = dayBuckets.get(normalized) || []
+        bucket.push(task)
+        dayBuckets.set(normalized, bucket)
+        return
+      }
+      const monthKey = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}`
+      const bucket = monthBuckets.get(monthKey) || []
+      bucket.push(task)
+      monthBuckets.set(monthKey, bucket)
+    })
+
+    const sections: Array<{ id: string; label: string; dayNumber?: string; tasks: Task[] }> = []
+    const dayKeys = Array.from(dayBuckets.keys()).sort()
+    dayKeys.forEach((key) => {
+      const dayTasks = dayBuckets.get(key) || []
+      const date = parseISODate(key)
+      if (!date) {
+        return
+      }
+      date.setHours(0, 0, 0, 0)
+      const diffDays = Math.round((date.getTime() - todayDate.getTime()) / 86400000)
+      const label =
+        diffDays === 0
+          ? t('view.today')
+          : diffDays === 1
+            ? t('datePicker.option.tomorrow')
+            : capitalize(date.toLocaleDateString(locale, { weekday: 'long' }))
+      sections.push({
+        id: `day-${key}`,
+        label,
+        dayNumber: String(date.getDate()),
+        tasks: dayTasks,
+      })
+    })
+
+    const monthKeys = Array.from(monthBuckets.keys()).sort()
+    monthKeys.forEach((key) => {
+      const monthTasks = monthBuckets.get(key) || []
+      const [yearStr, monthStr] = key.split('-')
+      const monthDate = new Date(Number(yearStr), Number(monthStr) - 1, 1)
+      const monthLabel = capitalize(
+        monthDate.toLocaleDateString(locale, {
+          month: 'long',
+          year: monthDate.getFullYear() === todayDate.getFullYear() ? undefined : 'numeric',
+        })
+      )
+      sections.push({
+        id: `month-${key}`,
+        label: monthLabel,
+        tasks: monthTasks,
+      })
+    })
+
+    if (undated.length > 0) {
+      sections.push({ id: 'undated', label: t('datePicker.none'), tasks: undated })
+    }
+
+    return sections
+  }, [
+    useMobileExperience,
+    activeQuickView,
+    selectedProjectId,
+    selectedAreaId,
+    isSearchMode,
+    visibleMobileTasks,
+    language,
+    todayISO,
+    t,
+  ])
   const quickViewGroups = useMemo(() => {
     if (selectedProjectId || selectedAreaId || isSearchMode) {
       return []
@@ -1144,9 +1668,6 @@ export default function TasksPage() {
     if (!selectedProject) {
       return filteredTasks
     }
-    if (activeProjectFilterChip === 'important') {
-      return filteredTasks.filter(task => (task.priority || 0) >= 2)
-    }
     return filteredTasks
   }, [filteredTasks, selectedProject, activeProjectFilterChip])
 
@@ -1183,7 +1704,6 @@ export default function TasksPage() {
   const headerChipItems = selectedProject
     ? [
         { id: 'all', label: translate(language, 'filters.all') },
-        { id: 'important', label: translate(language, 'filters.important') },
         ...projectChipOptions.map(label => ({ id: label.id, label: label.name })),
       ]
     : []
@@ -1200,17 +1720,17 @@ export default function TasksPage() {
     }
   }, [isMobileDetail, isSearchFocused])
   useEffect(() => {
-    if (selectedLabelIds.length === 0) {
-      if (activeProjectFilterChip !== 'all' && activeProjectFilterChip !== 'important') {
+    if (activeLabelIds.length === 0) {
+      if (activeProjectFilterChip !== 'all') {
         setActiveProjectFilterChip('all')
       }
       return
     }
-    const first = selectedLabelIds[0]
+    const first = activeLabelIds[0]
     if (activeProjectFilterChip !== first) {
       setActiveProjectFilterChip(first)
     }
-  }, [selectedLabelIds, activeProjectFilterChip])
+  }, [activeLabelIds, activeProjectFilterChip])
   useEffect(() => {
     if (showQuickHeadingForm && !selectedProjectId) {
       setShowQuickHeadingForm(false)
@@ -1257,17 +1777,48 @@ export default function TasksPage() {
   }
 
   const handleSuggestionSelect = (task: Task) => {
-    setSearchQuery(task.title ?? '')
-    setActiveQuickView('inbox')
-    setSelectedProjectId(task.project_id || null)
-    setSelectedAreaId(task.area_id || null)
-    setSelectedLabelIds([])
+    setSearchQuery('')
     setIsSearchFocused(false)
+    setSelectedLabelIds([])
+    setShowNewListMenu(false)
+    setActiveProjectFilterChip('all')
+    if (task.project_id) {
+      setSelectedProjectId(task.project_id)
+      const project = projects.find(project => project.id === task.project_id)
+      setSelectedAreaId(task.area_id ?? project?.area_id ?? null)
+      setActiveQuickView('inbox')
+    } else if (task.area_id) {
+      setSelectedAreaId(task.area_id)
+      setSelectedProjectId(null)
+      setActiveQuickView('inbox')
+    } else {
+      setSelectedProjectId(null)
+      setSelectedAreaId(null)
+      setActiveQuickView(getTaskView(task, todayISO))
+    }
+    highlightTask(task.id)
+    handleEditTask(task)
   }
 
   const handleClearSearch = () => {
     clearSearchState()
   }
+
+  const openDesktopQuickFind = useCallback(() => {
+    if (isFocusMode) {
+      setIsFocusMode(false)
+    }
+    const focusInput = () => {
+      desktopSearchInputRef.current?.focus()
+    }
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(focusInput)
+      })
+      return
+    }
+    setTimeout(focusInput, 0)
+  }, [isFocusMode])
 
   const formatDateForLabel = (value: string) => {
     if (!value) {
@@ -1284,7 +1835,7 @@ export default function TasksPage() {
     })
   }
 
-  const openDatePicker = (target: 'new' | 'edit' | 'draft') => {
+  const openDatePicker = (target: 'new' | 'edit' | 'draft', anchor?: HTMLElement | null) => {
     const rawValue =
       target === 'new' ? taskDraft.due_at : target === 'edit' ? editingDueAt : mobileDraftTask?.due_at || ''
     if (rawValue) {
@@ -1297,11 +1848,13 @@ export default function TasksPage() {
     } else {
       setDatePickerMonth(new Date())
     }
+    setDatePickerAnchor(anchor || null)
     setDatePickerTarget(target)
   }
 
   const closeDatePicker = () => {
     setDatePickerTarget(null)
+    setDatePickerAnchor(null)
   }
 
   const applyPickedDate = (value: string | null) => {
@@ -1327,6 +1880,7 @@ export default function TasksPage() {
       })
     }
     setDatePickerTarget(null)
+    setDatePickerAnchor(null)
   }
 
   const handleDatePickerMonthChange = (offset: number) => {
@@ -1339,7 +1893,30 @@ export default function TasksPage() {
 
 
 
-  
+  const agendaLocale = language === 'en' ? 'en-US' : 'es-ES'
+  const buildAgendaEntries = (taskList: Task[]) => {
+    const entries = taskList
+      .map(task => {
+        if (!task.start_at || !task.start_at.includes('T')) {
+          return null
+        }
+        const date = parseISODate(task.start_at)
+        if (!date) {
+          return null
+        }
+        if (formatISODate(date) !== todayISO) {
+          return null
+        }
+        const timeLabel = date.toLocaleTimeString(agendaLocale, {
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+        return { id: task.id, title: task.title, timeLabel, timeValue: date.getTime() }
+      })
+      .filter((entry): entry is { id: string; title: string; timeLabel: string; timeValue: number } => !!entry)
+      .sort((a, b) => a.timeValue - b.timeValue)
+    return entries.map(({ timeValue: _timeValue, ...entry }) => entry)
+  }
 
   const renderTaskBody = (
     variant: 'desktop' | 'mobile',
@@ -1350,17 +1927,47 @@ export default function TasksPage() {
       renderDraftCard?: () => ReactNode
       showDraftCard?: boolean
       autoSaveOnBlur?: boolean
+      dragEnabled?: boolean
+      onDragEndTask?: () => void
+      onCreateTask?: () => void
     } = {}
   ) => {
     const tasks = taskSource ?? (variant === 'mobile' ? visibleMobileTasks : filteredTasks)
     const showLoadingState = options.showLoadingState ?? !taskSource
-    return renderTaskList(variant, tasks, {
-      showEmptyState,
-      showLoadingState,
-      renderDraftCard: options.renderDraftCard,
-      showDraftCard: options.showDraftCard,
-      autoSaveOnBlur: options.autoSaveOnBlur ?? shouldAutoSaveEdit,
-    })
+    const isAgendaContext =
+      activeQuickView === 'today' && !selectedProjectId && !selectedAreaId && !isSearchMode
+    const agendaSource = variant === 'mobile' ? filteredTasks : tasks
+    const agendaEntries = isAgendaContext ? buildAgendaEntries(agendaSource) : []
+    const agendaCard =
+      agendaEntries.length > 0 ? (
+        <AgendaSummary
+          variant={variant}
+          entries={agendaEntries}
+          onSelectEntry={(taskId) => {
+            const task = tasks.find(item => item.id === taskId)
+            if (task) {
+              handleEditTask(task)
+              highlightTask(taskId)
+            }
+          }}
+        />
+      ) : null
+
+    return (
+      <>
+        {agendaCard}
+        {renderTaskList(variant, tasks, {
+          showEmptyState,
+          showLoadingState,
+          renderDraftCard: options.renderDraftCard,
+          showDraftCard: options.showDraftCard,
+          autoSaveOnBlur: options.autoSaveOnBlur ?? shouldAutoSaveEdit,
+          dragEnabled: options.dragEnabled,
+          onDragEndTask: options.onDragEndTask,
+          onCreateTask: options.onCreateTask,
+        })}
+      </>
+    )
   }
 
 
@@ -1406,7 +2013,7 @@ export default function TasksPage() {
   const renderLabelSheet = () => (
     <LabelSheet
       open={!!labelSheetTarget}
-      labels={labels}
+      labels={orderedLabels}
       selection={labelSheetSelection}
       inputValue={labelSheetInput}
       isSaving={addLabelMutation.isPending}
@@ -1428,15 +2035,7 @@ export default function TasksPage() {
       onAdd={handleChecklistAdd}
       onUpdate={handleChecklistUpdate}
       onRemove={handleChecklistRemove}
-    />
-  )
-
-  const renderPriorityMenu = () => (
-    <PriorityMenu
-      open={isPriorityMenuOpen}
-      selected={editingPriority}
-      onSelect={handleSelectPriority}
-      onClose={() => setPriorityMenuOpen(false)}
+      onReorder={handleChecklistReorder}
     />
   )
 
@@ -1479,13 +2078,23 @@ export default function TasksPage() {
 
   const renderMoveSheet = () => (
     <MoveTaskSheet
-      open={!!moveSheetTaskId}
+      open={!!moveSheetTaskId || multiSelectMoveOpen}
       task={moveSheetTask}
       areas={areas}
       projects={projects}
-      isProcessing={moveTaskMutation.isPending}
-      onClose={handleCloseMoveSheet}
-      onSelect={handleConfirmMoveDestination}
+      isProcessing={moveTaskMutation.isPending || batchActionPending}
+      titleOverride={
+        multiSelectMoveOpen
+          ? language === 'en'
+            ? `Move ${selectedTaskIds.length} tasks`
+            : `Mover ${selectedTaskIds.length} tareas`
+          : undefined
+      }
+      onClose={() => {
+        handleCloseMoveSheet()
+        setMultiSelectMoveOpen(false)
+      }}
+      onSelect={multiSelectMoveOpen ? handleConfirmMultiMoveDestination : handleConfirmMoveDestination}
     />
   )
 
@@ -1500,12 +2109,11 @@ export default function TasksPage() {
         onCancel={handleCancelDesktopDraft}
         onTitleChange={(value) => updateTaskDraft('title', value)}
         onNotesChange={(value) => updateTaskDraft('notes', value)}
-        onRequestDueDate={() => openDatePicker('new')}
+        onRequestDueDate={(anchor) => openDatePicker('new', anchor)}
         onOpenLabels={() => {
           setLabelSheetSelection(taskDraft.labelIds)
           setLabelSheetTarget({ kind: 'draft-task' })
         }}
-        onCyclePriority={handleCycleDesktopPriority}
         autoSaveEnabled={shouldAutoSaveDraft}
       />
     ) : null
@@ -1515,7 +2123,7 @@ export default function TasksPage() {
     mobileDraftTask ? (
       <MobileDraftCard
         draft={mobileDraftTask}
-        labels={labels}
+        labels={orderedLabels}
         scheduleLabel={quickViewLabels[mobileDraftTask.view]}
         onTitleChange={(value) => updateMobileDraft(prev => (prev ? { ...prev, title: value } : prev))}
         onNotesChange={(value) => updateMobileDraft(prev => (prev ? { ...prev, notes: value } : prev))}
@@ -1532,17 +2140,235 @@ export default function TasksPage() {
     ) : null
   )
 
-  const renderMobileTaskBoard = () => (
-    <MobileTaskBoard
-      taskList={renderTaskBody('mobile', undefined, true, {
+  const renderMobileTaskEditSheet = () => (
+    <MobileTaskEditSheet
+      open={useMobileExperience && !!editingTask}
+      task={editingTask}
+      title={editingTitle}
+      notes={editingNotes}
+      dueLabel={formatDateForLabel(editingDueAt)}
+      labelCount={editingTask?.labels?.length ?? 0}
+      onChangeTitle={setEditingTitle}
+      onChangeNotes={setEditingNotes}
+      onClose={handleCancelEdit}
+      onSave={() => handleSaveEdit()}
+      onOpenDatePicker={() => openDatePicker('edit')}
+      onOpenLabels={() => {
+        if (editingTask) {
+          handleOpenTaskLabelSheet(editingTask, null)
+        }
+      }}
+      onOpenChecklist={() => {
+        if (editingTask) {
+          handleOpenChecklistSheet(editingTask.id, null)
+        }
+      }}
+      onMove={() => {
+        if (editingTask) {
+          handleOpenMoveSheet(editingTask, null)
+        }
+      }}
+      onDelete={() => {
+        if (editingTask) {
+          handleRequestDeleteTask(editingTask.id)
+        }
+      }}
+      onOpenMenu={() => {
+        if (editingTask) {
+          handleOpenOverflowMenu(editingTask.id)
+        }
+      }}
+      saving={updateTaskMutation.isPending}
+    />
+  )
+
+  const dragUpdateTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'drag-update'],
+    networkMode: 'online',
+    mutationFn: async (payload: { taskId: string; updates: Partial<Task>; successMessage?: string }) => {
+      const result = await updateTask(payload.taskId, payload.updates)
+      if (!result.success) {
+        return result
+      }
+      return { ...result, successMessage: payload.successMessage }
+    },
+    onMutate: async (payload) => {
+      const previous = queryClient.getQueriesData<Task[]>({ queryKey: ['tasks'] })
+      const shouldResetQuickView = 'due_at' in payload.updates || 'status' in payload.updates
+      queryClient.setQueriesData({ queryKey: ['tasks'] }, (old: Task[] | undefined) => {
+        if (!old) return old
+        return old.map(task => {
+          if (task.id !== payload.taskId) return task
+          const nextTask = { ...task, ...payload.updates }
+          if (shouldResetQuickView) {
+            nextTask.quick_view = undefined
+          }
+          return nextTask
+        })
+      })
+      return { previous }
+    },
+    onSuccess: (result, payload) => {
+      if (result.success) {
+        setError('')
+        if (payload.successMessage) {
+          pushSuccessMessage(payload.successMessage)
+        }
+        if (editingId === payload.taskId) {
+          if ('due_at' in payload.updates) {
+            setEditingDueAt(payload.updates.due_at ? String(payload.updates.due_at) : '')
+          }
+          if ('heading_id' in payload.updates) {
+            setEditingHeadingId(payload.updates.heading_id ?? null)
+          }
+          if ('project_id' in payload.updates) {
+            setEditingProjectId(payload.updates.project_id ?? null)
+          }
+          if ('area_id' in payload.updates) {
+            setEditingAreaId(payload.updates.area_id ?? null)
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al mover tarea')
+      }
+    },
+    onError: (_err, _payload, context) => {
+      if (context?.previous) {
+        context.previous.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data)
+        })
+      }
+      setError('Error inesperado al mover tarea')
+    },
+  })
+
+  const resolveUpcomingDropDate = useCallback((sectionId: string) => {
+    if (sectionId.startsWith('day-')) {
+      return sectionId.replace('day-', '') || null
+    }
+    if (sectionId.startsWith('month-')) {
+      const key = sectionId.replace('month-', '')
+      const [year, month] = key.split('-')
+      if (!year || !month) {
+        return null
+      }
+      return `${year}-${month}-01`
+    }
+    if (sectionId === 'undated') {
+      return null
+    }
+    return null
+  }, [])
+
+  const clearUpcomingDragTarget = useCallback(() => {
+    setUpcomingDropTargetId(null)
+  }, [setUpcomingDropTargetId])
+
+  const handleUpcomingDragOver = useCallback(
+    (event: DragEvent<HTMLElement>, sectionId: string) => {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      setUpcomingDropTargetId(sectionId)
+    },
+    [setUpcomingDropTargetId]
+  )
+
+  const handleUpcomingDrop = useCallback(
+    (event: DragEvent<HTMLElement>, sectionId: string) => {
+      event.preventDefault()
+      const taskId = event.dataTransfer.getData('text/plain')
+      setUpcomingDropTargetId(null)
+      if (!taskId) {
+        return
+      }
+      const task = taskById.get(taskId)
+      if (!task) {
+        return
+      }
+      const targetDate = resolveUpcomingDropDate(sectionId)
+      const normalizedTarget = targetDate ? normalizeDate(targetDate) : null
+      const normalizedCurrent = normalizeDate(task.due_at)
+      if (normalizedCurrent === normalizedTarget) {
+        return
+      }
+      dragUpdateTaskMutation.mutate({
+        taskId,
+        updates: { due_at: targetDate },
+        successMessage: targetDate ? `Fecha actualizada a ${formatDateForLabel(targetDate)}` : 'Tarea sin fecha',
+      })
+    },
+    [dragUpdateTaskMutation, formatDateForLabel, resolveUpcomingDropDate, taskById]
+  )
+
+  const renderMobileTaskBoard = () => {
+    const showUpcomingCreateRow = !!upcomingMobileSections && !mobileDraftTask
+    const upcomingCreateRow = showUpcomingCreateRow ? (
+      <button
+        type="button"
+        onClick={() => startMobileTaskDraft('upcoming')}
+        className="w-full min-h-[48px] px-4 py-3 rounded-[var(--radius-container)] border border-dashed border-[var(--color-border)] text-left hover:border-[var(--color-primary-400)]"
+      >
+        <span className="flex items-center gap-3 text-sm font-semibold text-[var(--on-surface)]">
+          <span className="h-8 w-8 rounded-[var(--radius-card)] bg-[var(--color-surface-elevated)] flex items-center justify-center text-lg text-[var(--color-text-muted)]">+</span>
+          {t('mobile.upcoming.addAfterToday')}
+        </span>
+      </button>
+    ) : null
+    const upcomingTaskList = upcomingMobileSections
+      ? upcomingMobileSections.length === 0
+        ? (
+          <div className="space-y-6">
+            {mobileDraftTask ? renderMobileDraftTaskCard() : null}
+            {upcomingCreateRow}
+            {renderTaskBody('mobile', [], true, { showLoadingState: false, onCreateTask: handleMobileNewTask })}
+          </div>
+        )
+        : (
+          <div className="space-y-6">
+            {mobileDraftTask ? renderMobileDraftTaskCard() : null}
+            {upcomingCreateRow}
+            {upcomingMobileSections.map(section => (
+              <section
+                key={section.id}
+                onDragOver={(event) => handleUpcomingDragOver(event, section.id)}
+                onDragLeave={clearUpcomingDragTarget}
+                onDrop={(event) => handleUpcomingDrop(event, section.id)}
+                className={`space-y-3 rounded-[var(--radius-container)] ${
+                  upcomingDropTargetId === section.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
+                }`}
+              >
+                <div className="flex items-baseline gap-2 px-1">
+                  {section.dayNumber ? (
+                    <span className="text-2xl font-semibold text-[var(--on-surface)]">{section.dayNumber}</span>
+                  ) : null}
+                  <span className="text-sm font-semibold text-[var(--color-text-muted)]">{section.label}</span>
+                </div>
+                {renderTaskBody('mobile', section.tasks, false, {
+                  showLoadingState: false,
+                  dragEnabled: true,
+                  onDragEndTask: clearUpcomingDragTarget,
+                  onCreateTask: handleMobileNewTask,
+                })}
+              </section>
+            ))}
+          </div>
+        )
+      : renderTaskBody('mobile', undefined, true, {
         showLoadingState: true,
         renderDraftCard: renderMobileDraftTaskCard,
         showDraftCard: !!mobileDraftTask,
-      })}
-      canShowMore={canShowMoreMobileTasks}
-      onShowMore={handleShowMoreMobileTasks}
-    />
-  )
+        onCreateTask: handleMobileNewTask,
+      })
+
+    return (
+      <MobileTaskBoard
+        taskList={upcomingTaskList}
+        canShowMore={canShowMoreMobileTasks}
+        onShowMore={handleShowMoreMobileTasks}
+      />
+    )
+  }
 
   // Mutación para agregar tarea
   const addTaskMutation = useMutation({
@@ -1656,6 +2482,19 @@ export default function TasksPage() {
       setError('Error inesperado al crear etiqueta')
     },
   })
+
+  useEffect(() => {
+    if (!labelsFetched || seededImportantLabelRef.current || !isOnline) {
+      return
+    }
+    const hasImportant = labels.some(label => label.name.trim().toLowerCase() === 'importante')
+    if (hasImportant) {
+      seededImportantLabelRef.current = true
+      return
+    }
+    seededImportantLabelRef.current = true
+    addLabelMutation.mutate('Importante')
+  }, [labels, labelsFetched, isOnline, addLabelMutation])
 
   const deleteLabelMutation = useMutation({
     mutationKey: ['mutations', 'labels', 'delete'],
@@ -1859,7 +2698,6 @@ export default function TasksPage() {
         setEditingDueAt('')
         setEditingChecklist([])
         setChecklistSheetOpen(false)
-        setPriorityMenuOpen(false)
         setOverflowTaskId(null)
         setError('')
         queryClient.invalidateQueries({ queryKey: ['tasks'] })
@@ -1913,6 +2751,38 @@ export default function TasksPage() {
     },
     onError: () => {
       setError('Error inesperado al mover tarea')
+    },
+  })
+
+  const archiveTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'archive'],
+    networkMode: 'online',
+    mutationFn: (taskId: string) =>
+      updateTask(taskId, { status: 'done', completed_at: new Date().toISOString() }),
+    onSuccess: (result, taskId) => {
+      if (result.success) {
+        setError('')
+        pushSuccessMessage('Tarea archivada')
+        if (editingId === taskId) {
+          setEditingId(null)
+          setEditingTitle('')
+          setEditingNotes('')
+          setEditingPriority(0)
+          setEditingDueAt('')
+          setEditingProjectId(null)
+          setEditingAreaId(null)
+          setEditingHeadingId(null)
+          setEditingChecklist([])
+          setChecklistSheetOpen(false)
+        }
+        setOverflowTaskId(null)
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al archivar tarea')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al archivar tarea')
     },
   })
 
@@ -2042,6 +2912,63 @@ export default function TasksPage() {
     },
   })
 
+  const convertTaskMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'convert'],
+    networkMode: 'online',
+    mutationFn: async (task: Task) => {
+      if (task.project_id) {
+        return { success: false, error: 'La tarea ya pertenece a un proyecto.' }
+      }
+      const projectName = task.title.trim() || 'Nuevo proyecto'
+      const projectResult = await addProject(projectName, '#3b82f6', task.area_id ?? null)
+      if (!projectResult.success || !projectResult.project) {
+        return { success: false, error: projectResult.error || 'No se pudo crear el proyecto' }
+      }
+      const updated = await updateTask(task.id, {
+        project_id: projectResult.project.id,
+        area_id: null,
+        heading_id: null,
+      })
+      if (!updated.success) {
+        return { success: false, error: updated.error || 'No se pudo mover la tarea al proyecto' }
+      }
+      return { success: true, project: projectResult.project }
+    },
+    onSuccess: (result) => {
+      if (result.success && result.project) {
+        setError('')
+        pushSuccessMessage('Proyecto creado')
+        setSelectedProjectId(result.project.id)
+        setSelectedAreaId(result.project.area_id ?? null)
+        setActiveQuickView('inbox')
+        setSelectedLabelIds([])
+        setActiveProjectFilterChip('all')
+        setShowNewListMenu(false)
+        if (useMobileExperience) {
+          setShowMobileHome(false)
+        }
+        setEditingId(null)
+        setEditingTitle('')
+        setEditingNotes('')
+        setEditingPriority(0)
+        setEditingDueAt('')
+        setEditingProjectId(null)
+        setEditingAreaId(null)
+        setEditingHeadingId(null)
+        setEditingChecklist([])
+        setChecklistSheetOpen(false)
+        setOverflowTaskId(null)
+        queryClient.invalidateQueries({ queryKey: ['projects'] })
+        queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      } else {
+        setError(result.error || 'Error al convertir en proyecto')
+      }
+    },
+    onError: () => {
+      setError('Error inesperado al convertir en proyecto')
+    },
+  })
+
   // Mutaciones para headings
   const addHeadingMutation = useMutation({
     mutationKey: ['mutations', 'headings', 'add'],
@@ -2096,6 +3023,24 @@ export default function TasksPage() {
     },
     onError: () => {
       setError('Error inesperado al eliminar sección')
+    },
+  })
+
+  const reorderHeadingsMutation = useMutation({
+    mutationKey: ['mutations', 'headings', 'reorder'],
+    networkMode: 'online',
+    mutationFn: async (updates: { id: string; sort_order: number }[]) => {
+      const results = await Promise.all(
+        updates.map(update => updateProjectHeading(update.id, { sort_order: update.sort_order }))
+      )
+      const failed = results.find(result => !result.success)
+      if (failed) {
+        throw new Error(failed.error || 'Error al reordenar secciones')
+      }
+      return results
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Error inesperado al reordenar secciones')
     },
   })
 
@@ -2164,15 +3109,10 @@ export default function TasksPage() {
     },
   })
 
-  const handleProjectChipSelect = (chipId: 'all' | 'important' | string) => {
+  const handleProjectChipSelect = (chipId: 'all' | string) => {
     if (chipId === 'all') {
       setSelectedLabelIds([])
       setActiveProjectFilterChip('all')
-      return
-    }
-    if (chipId === 'important') {
-      setSelectedLabelIds([])
-      setActiveProjectFilterChip('important')
       return
     }
     setSelectedLabelIds([chipId])
@@ -2255,10 +3195,6 @@ export default function TasksPage() {
   const handleCancelDesktopDraft = () => {
     setShowDesktopDraft(false)
     resetTaskDraft()
-  }
-
-  const handleCycleDesktopPriority = () => {
-    updateTaskDraft('priority', ((taskDraft.priority + 1) % 4) as 0 | 1 | 2 | 3)
   }
 
   const handleAddTask = (e?: React.FormEvent) => {
@@ -2354,7 +3290,6 @@ export default function TasksPage() {
     setMoveSheetTaskId(null)
     setEditingChecklist([])
     setChecklistSheetOpen(false)
-    setPriorityMenuOpen(false)
     setOverflowTaskId(null)
   }
 
@@ -2466,6 +3401,57 @@ export default function TasksPage() {
       reorderProjectsMutation.mutate(updates)
     },
     [projects, queryClient, reorderProjectsMutation]
+  )
+
+  const handleReorderHeadings = useCallback(
+    ({
+      projectId,
+      orderedHeadingIds,
+      movedHeadingId,
+    }: {
+      projectId: string
+      orderedHeadingIds: string[]
+      movedHeadingId: string
+    }) => {
+      const headingsForProject = projectHeadings.filter(heading => heading.project_id === projectId)
+      const currentIds = headingsForProject.map(heading => heading.id)
+      if (!currentIds.includes(movedHeadingId)) {
+        return
+      }
+      if (orderedHeadingIds.length !== currentIds.length) {
+        return
+      }
+      if (!orderedHeadingIds.every(id => currentIds.includes(id))) {
+        return
+      }
+      if (orderedHeadingIds.every((id, index) => id === currentIds[index])) {
+        return
+      }
+
+      const updates = orderedHeadingIds.map((id, index) => ({ id, sort_order: index }))
+      const updatesById = new Map(updates.map(update => [update.id, update.sort_order]))
+      queryClient.setQueryData<ProjectHeading[]>(['project-headings'], (prev) => {
+        if (!prev) {
+          return prev
+        }
+        const next = prev.map(heading => {
+          const sortOrder = updatesById.get(heading.id)
+          if (sortOrder === undefined) {
+            return heading
+          }
+          return { ...heading, sort_order: sortOrder }
+        })
+        return [...next].sort((a, b) => {
+          const orderDelta = (a.sort_order ?? 0) - (b.sort_order ?? 0)
+          if (orderDelta !== 0) {
+            return orderDelta
+          }
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        })
+      })
+      reorderHeadingsMutation.mutate(updates)
+    },
+    [projectHeadings, queryClient, reorderHeadingsMutation]
   )
 
   const handleSelectArea = (areaId: string) => {
@@ -2589,6 +3575,56 @@ export default function TasksPage() {
     deleteHeadingMutation.mutate(headingId)
   }
 
+  const handleMoveTaskToHeading = useCallback(
+    ({ taskId, headingId }: { taskId: string; headingId: string | null }) => {
+      const task = taskById.get(taskId)
+      if (!task) {
+        return
+      }
+      const currentHeading = task.heading_id || null
+      if (currentHeading === headingId) {
+        return
+      }
+      const headingName = headingId ? headingMap.get(headingId)?.name : null
+      dragUpdateTaskMutation.mutate({
+        taskId,
+        updates: { heading_id: headingId },
+        successMessage: headingName ? `Tarea movida a ${headingName}` : 'Tarea sin sección',
+      })
+    },
+    [dragUpdateTaskMutation, headingMap, taskById]
+  )
+
+  const handleMoveTaskToProject = useCallback(
+    ({ taskId, projectId, areaId }: { taskId: string; projectId: string | null; areaId: string | null }) => {
+      const task = taskById.get(taskId)
+      if (!task) {
+        return
+      }
+      const nextProjectId = projectId ?? null
+      const nextAreaId = areaId ?? null
+      if ((task.project_id || null) === nextProjectId && (task.area_id || null) === nextAreaId) {
+        return
+      }
+      const destinationProject = nextProjectId ? projectMap.get(nextProjectId) ?? null : null
+      const destinationArea = nextAreaId ? areas.find(area => area.id === nextAreaId) ?? null : null
+      dragUpdateTaskMutation.mutate({
+        taskId,
+        updates: {
+          project_id: nextProjectId,
+          area_id: nextAreaId,
+          heading_id: null,
+        },
+        successMessage: destinationProject
+          ? `Tarea movida a ${destinationProject.name}`
+          : destinationArea
+            ? `Tarea movida a ${destinationArea.name}`
+            : 'Tarea movida',
+      })
+    },
+    [areas, dragUpdateTaskMutation, projectMap, taskById]
+  )
+
   const renderDesktopTaskBoard = () => {
     const hasDraft = showDesktopDraft
     const isQuickViewContext = !selectedProject && !selectedArea
@@ -2602,11 +3638,25 @@ export default function TasksPage() {
     if (isQuickViewContext && filteredTasks.length === 0 && !hasDraft) {
       return (
         <div className="az-card overflow-hidden">
-          <div className="p-10 text-center text-[var(--color-text-muted)]">
-            {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
+          <div className="p-10 text-center text-[var(--color-text-muted)] space-y-4">
+            <p>{filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}</p>
+            <button
+              type="button"
+              onClick={handleOpenTaskModal}
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+            >
+              {t('tasks.empty.cta')}
+            </button>
           </div>
         </div>
       )
+    }
+    if (isQuickViewContext) {
+      return renderTaskBody('desktop', filteredTasks, false, {
+        renderDraftCard: hasDraft ? renderDesktopDraftTaskCard : undefined,
+        showDraftCard: hasDraft,
+        onCreateTask: handleOpenTaskModal,
+      })
     }
     return (
       <DesktopTaskBoardSwitcher
@@ -2627,13 +3677,21 @@ export default function TasksPage() {
         onSaveHeadingName={handleSaveHeadingEdit}
         onCancelHeadingEdit={handleCancelHeadingEdit}
         onDeleteHeading={handleDeleteHeading}
+        onReorderHeadings={handleReorderHeadings}
+        onMoveTaskToHeading={handleMoveTaskToHeading}
+        onMoveTaskToProject={handleMoveTaskToProject}
         onSelectArea={handleSelectArea}
         onSelectProject={handleSelectProject}
-        renderTaskList={(tasks, options: { showEmptyState?: boolean; showLoadingState?: boolean } = {}) =>
+        renderTaskList={(
+          tasks,
+          options: { showEmptyState?: boolean; showLoadingState?: boolean; dragEnabled?: boolean } = {}
+        ) =>
           renderTaskBody('desktop', tasks, options.showEmptyState ?? !hasDraft, {
             showLoadingState: options.showLoadingState,
             renderDraftCard: hasDraft ? renderDesktopDraftTaskCard : undefined,
             showDraftCard: hasDraft,
+            dragEnabled: options.dragEnabled,
+            onCreateTask: handleOpenTaskModal,
           })
         }
       />
@@ -2704,6 +3762,30 @@ export default function TasksPage() {
     resetTaskDraft()
   }
 
+  const toggleFocusMode = () => {
+    setIsFocusMode(prev => !prev)
+  }
+
+  const renderMultiSelectBar = () => {
+    if (!isMultiSelectMode) {
+      return null
+    }
+    return (
+      <MultiSelectActionBar
+        variant={useMobileExperience ? 'mobile' : 'desktop'}
+        count={selectedTaskIds.length}
+        onCancel={exitMultiSelect}
+        onMove={() => setMultiSelectMoveOpen(true)}
+        onComplete={handleBatchComplete}
+        onDelete={handleRequestBulkDelete}
+        onCopy={handleCopySelectedTasks}
+        onShare={handleShareSelectedTasks}
+        onPaste={handlePasteTasks}
+        isProcessing={batchActionPending}
+      />
+    )
+  }
+
 
   if (useMobileExperience && showMobileHome) {
     return (
@@ -2740,22 +3822,25 @@ export default function TasksPage() {
             />
           </div>
         </div>
-        <MobileBottomBar
-          isHomeActive
-          isSearchActive={isSearchMode}
-          onHome={handleMobileNavHome}
-          onSearch={handleOpenMobileSearch}
-          onNewTask={handleMobileNewTask}
-        />
+        {!isMultiSelectMode && (
+          <MobileBottomBar
+            isHomeActive
+            isSearchActive={isSearchMode}
+            onHome={handleMobileNavHome}
+            onSearch={handleOpenMobileSearch}
+            onNewTask={handleMobileNewTask}
+          />
+        )}
+        {renderMobileTaskEditSheet()}
         {renderTaskModal()}
         {renderMobileCreationSheet()}
         {renderScheduleSheet()}
         {renderMoveSheet()}
         {renderChecklistSheet()}
-        {renderPriorityMenu()}
         {renderOverflowMenu()}
         {renderLabelSheet()}
         {renderDeleteConfirmation()}
+        {renderBulkDeleteConfirmation()}
         <TaskDatePickerOverlay
           target={datePickerTarget}
           month={datePickerMonth}
@@ -2765,10 +3850,13 @@ export default function TasksPage() {
           editingDueDate={editingDueAt}
           mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
           formatDateLabel={formatDateForLabel}
+          anchorEl={datePickerAnchor}
+          isMobile={useMobileExperience}
           onClose={closeDatePicker}
           onMonthChange={handleDatePickerMonthChange}
           onSelectDate={applyPickedDate}
         />
+        {renderMultiSelectBar()}
       </main>
     )
   }
@@ -2787,6 +3875,8 @@ export default function TasksPage() {
                 onSearchClear={handleClearSearch}
                 searchInputRef={mobileSearchInputRef}
                 onBack={handleMobileBack}
+                onToggleSelect={toggleMultiSelectMode}
+                isSelecting={isMultiSelectMode}
                 isProjectView={isMobileProjectView}
                 isSearchView={isSearchMode}
                 selectedArea={selectedArea}
@@ -2808,68 +3898,106 @@ export default function TasksPage() {
               />
             </div>
           </div>
-          <MobileBottomBar
-            isHomeActive={showMobileHome}
-            isSearchActive={isSearchMode}
-            onHome={handleMobileNavHome}
-            onSearch={handleOpenMobileSearch}
-            onNewTask={handleMobileNewTask}
-          />
+          {!isMultiSelectMode && (
+            <MobileBottomBar
+              isHomeActive={showMobileHome}
+              isSearchActive={isSearchMode}
+              onHome={handleMobileNavHome}
+              onSearch={handleOpenMobileSearch}
+              onNewTask={handleMobileNewTask}
+            />
+          )}
+          {!showMobileHome && !isMultiSelectMode && (
+            <MobileFab
+              isHomeView={false}
+              onTapHome={handleMobileNewTask}
+              onTapDetail={() => startMobileTaskDraft(activeQuickView)}
+              onDropInbox={() => startMobileTaskDraft('inbox')}
+            />
+          )}
+          {renderMobileTaskEditSheet()}
         </>
       ) : (
         <>
-          <div className="max-w-6xl mx-auto px-4 py-10 lg:px-8">
-            <div className="glass-panel p-6 lg:p-8">
-              <div className="grid gap-8 lg:grid-cols-[260px,1fr]">
-                <div className="hidden lg:block">
-                  <DesktopSidebar
-                    filteredTaskCount={activeTaskCount}
-                    completedCount={completedCount}
-                    quickLists={quickLists}
-                    quickViewStats={quickViewStats}
-                    quickViewOverdueStats={quickViewOverdueStats}
-                    projects={projects}
-                    areas={areas}
-                    projectStats={projectStats}
-                    areaStats={areaStats}
-                    selectedProjectId={selectedProjectId}
-                    selectedAreaId={selectedAreaId}
-                    activeQuickView={activeQuickView}
-                    showNewListMenu={showNewListMenu}
-                    onSelectQuickView={handleSelectQuickView}
-                    onSelectArea={handleSelectArea}
-                    onSelectProject={handleSelectProject}
-                    onToggleNewListMenu={toggleNewListMenu}
-                    onCreateProject={handleCreateProjectFromSidebar}
-                    onCreateArea={handleCreateAreaFromSidebar}
-                    onOpenSettings={handleOpenSettings}
-                    onOpenHelp={handleOpenHelp}
-                    onReorderProjects={handleReorderProjects}
-                  />
-                </div>
-                <section className="space-y-6">
-                  <DesktopSearch
-                    searchQuery={searchQuery}
-                    suggestions={suggestionResults}
-                    projects={projects}
-                    showSuggestions={showSuggestionPanel}
-                    onQueryChange={setSearchQuery}
-                    onFocus={handleSearchFocus}
-                    onBlur={handleSearchBlur}
-                    onClear={handleClearSearch}
-                    onSelectSuggestion={handleSuggestionSelect}
-                  />
-                  {assistantEnabled && (
-                    <div className="flex justify-end">
+          <div className="max-w-6xl mx-auto px-4 py-10 md:px-8">
+            <div className="glass-panel p-6 md:p-8 md:min-h-[calc(100vh-200px)] md:max-h-[calc(100vh-200px)] md:overflow-hidden">
+              <div
+                className={`grid gap-8 ${
+                  isFocusMode
+                    ? 'md:grid-cols-[minmax(0,1fr)]'
+                    : 'md:grid-cols-[var(--panel-sidebar-width),minmax(0,1fr)]'
+                }`}
+              >
+                {!isFocusMode && (
+                  <div className="hidden md:block">
+                    <DesktopSidebar
+                      filteredTaskCount={activeTaskCount}
+                      completedCount={completedCount}
+                      quickLists={quickLists}
+                      quickViewStats={quickViewStats}
+                      quickViewOverdueStats={quickViewOverdueStats}
+                      projects={projects}
+                      areas={areas}
+                      projectStats={projectStats}
+                      areaStats={areaStats}
+                      selectedProjectId={selectedProjectId}
+                      selectedAreaId={selectedAreaId}
+                      activeQuickView={activeQuickView}
+                      showNewListMenu={showNewListMenu}
+                      onSelectQuickView={handleSelectQuickView}
+                      onSelectArea={handleSelectArea}
+                      onSelectProject={handleSelectProject}
+                      onToggleNewListMenu={toggleNewListMenu}
+                      onCreateProject={handleCreateProjectFromSidebar}
+                      onCreateArea={handleCreateAreaFromSidebar}
+                      onOpenSettings={handleOpenSettings}
+                      onOpenHelp={handleOpenHelp}
+                      onReorderProjects={handleReorderProjects}
+                      search={{
+                        searchQuery,
+                        suggestions: suggestionResults,
+                        projects,
+                        showSuggestions: showSuggestionPanel,
+                        inputRef: desktopSearchInputRef,
+                        onQueryChange: setSearchQuery,
+                        onFocus: handleSearchFocus,
+                        onBlur: handleSearchBlur,
+                        onClear: handleClearSearch,
+                        onSelectSuggestion: handleSuggestionSelect,
+                      }}
+                    />
+                  </div>
+                )}
+                <section className="flex flex-col gap-6 min-h-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={toggleFocusMode}
+                        aria-pressed={isFocusMode}
+                        className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+                      >
+                        {isFocusMode ? t('actions.showSidebar') : t('actions.focusMode')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={toggleMultiSelectMode}
+                        aria-pressed={isMultiSelectMode}
+                        className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+                      >
+                        {isMultiSelectMode ? t('multiSelect.done') : t('multiSelect.select')}
+                      </button>
+                    </div>
+                    {assistantEnabled && (
                       <button
                         type="button"
                         onClick={() => setShowAssistantChat(true)}
-                        className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--on-surface)] shadow-sm backdrop-blur hover:border-[var(--color-primary-600)]"
+                        className="min-h-[44px] px-4 py-2 text-sm font-semibold rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--on-surface)] backdrop-blur hover:border-[var(--color-primary-600)]"
                       >
                         Chat IA (crear tareas)
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <DesktopContextHeader
                     label={contextLabel}
                     title={contextTitle}
@@ -2880,28 +4008,36 @@ export default function TasksPage() {
                     overdueLabel={translate(language, 'context.overdue')}
                     chips={headerChipItems}
                     activeChip={activeProjectFilterChip}
-                    onChipSelect={(chipId) => handleProjectChipSelect(chipId as 'all' | 'important' | string)}
+                    onChipSelect={(chipId) => handleProjectChipSelect(chipId as 'all' | string)}
                   />
-                  <ActiveFilterChips
-                    filters={activeFilters}
-                    compact={false}
-                    onRemove={handleRemoveFilter}
-                  />
+                  <ActiveFilterChips filters={activeFilters} compact={false} onRemove={handleRemoveFilter} />
                   <StatusBanner message={successMessage} />
                   <ErrorBanner message={error} />
                   {!isOnline && <ErrorBanner message={t('status.offline')} />}
                   {hasPendingSync && <ErrorBanner message={t('status.pendingSync')} />}
-                  {renderDesktopTaskBoard()}
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                    {renderDesktopTaskBoard()}
+                  </div>
                 </section>
               </div>
             </div>
           </div>
-          <DesktopDock
-            onCreateTask={handleOpenTaskModal}
-            onAddHeading={() => setShowQuickHeadingForm(true)}
-            onOpenDatePicker={() => openDatePicker('new')}
-            disableHeading={!selectedProjectId}
-          />
+          {!isMultiSelectMode && (
+            <DesktopDock
+              onCreateTask={handleOpenTaskModal}
+              onAddHeading={() => setShowQuickHeadingForm(true)}
+              onOpenDatePicker={(anchor) => openDatePicker('edit', anchor)}
+              onMoveSelected={() => {
+                if (selectedTask) {
+                  handleOpenMoveSheet(selectedTask)
+                }
+              }}
+              onOpenQuickFind={openDesktopQuickFind}
+              disableHeading={!selectedProjectId}
+              disableDate={!selectedTask}
+              disableMove={!selectedTask}
+            />
+          )}
         </>
       )}
       {renderTaskModal()}
@@ -2937,10 +4073,10 @@ export default function TasksPage() {
       {renderScheduleSheet()}
       {renderMoveSheet()}
       {renderChecklistSheet()}
-      {renderPriorityMenu()}
       {renderOverflowMenu()}
       {renderLabelSheet()}
       {renderDeleteConfirmation()}
+      {renderBulkDeleteConfirmation()}
       {assistantEnabled && (
         <AssistantChat
           open={showAssistantChat}
@@ -2956,10 +4092,13 @@ export default function TasksPage() {
         editingDueDate={editingDueAt}
         mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
         formatDateLabel={formatDateForLabel}
+        anchorEl={datePickerAnchor}
+        isMobile={useMobileExperience}
         onClose={closeDatePicker}
         onMonthChange={handleDatePickerMonthChange}
         onSelectDate={applyPickedDate}
       />
+      {renderMultiSelectBar()}
     </main>
   )
 }

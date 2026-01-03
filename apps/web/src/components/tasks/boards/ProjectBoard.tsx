@@ -1,4 +1,5 @@
 import type { Task, Project, ProjectHeading } from '../../../lib/supabase.js'
+import { useRef, useState } from 'react'
 
 interface ProjectBoardProps {
   project: Project
@@ -15,6 +16,8 @@ interface ProjectBoardProps {
   onCancelHeadingEdit: () => void
   onDeleteHeading: (headingId: string) => void
   onSelectArea: (areaId: string) => void
+  onReorderHeadings?: (payload: { projectId: string; orderedHeadingIds: string[]; movedHeadingId: string }) => void
+  onMoveTaskToHeading?: (payload: { taskId: string; headingId: string | null }) => void
   areaName?: string | null
   renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean }) => React.ReactNode
   renderHeadingForm?: () => React.ReactNode
@@ -35,10 +38,102 @@ export default function ProjectBoard({
   onCancelHeadingEdit,
   onDeleteHeading,
   onSelectArea,
+  onReorderHeadings,
+  onMoveTaskToHeading,
   areaName,
   renderTaskList,
   renderHeadingForm,
 }: ProjectBoardProps) {
+  const draggingHeadingRef = useRef<string | null>(null)
+  const [dragOverHeadingId, setDragOverHeadingId] = useState<string | null>(null)
+  const orderedHeadingIds = headings.map(heading => heading.id)
+
+  const resetDragState = () => {
+    draggingHeadingRef.current = null
+  }
+
+  const buildReorderedIds = (ids: string[], sourceId: string, targetId: string, insertAfter: boolean) => {
+    if (sourceId === targetId) {
+      return ids
+    }
+    const trimmed = ids.filter(id => id !== sourceId)
+    const targetIndex = trimmed.indexOf(targetId)
+    if (targetIndex === -1) {
+      return ids
+    }
+    const insertIndex = insertAfter ? targetIndex + 1 : targetIndex
+    return [...trimmed.slice(0, insertIndex), sourceId, ...trimmed.slice(insertIndex)]
+  }
+
+  const isSameOrder = (nextOrder: string[], currentOrder: string[]) =>
+    nextOrder.length === currentOrder.length && nextOrder.every((id, index) => id === currentOrder[index])
+
+  const handleHeadingDragStart = (event: React.DragEvent<HTMLDivElement>, headingId: string) => {
+    draggingHeadingRef.current = headingId
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', headingId)
+  }
+
+  const handleHeadingDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleHeadingDrop = (event: React.DragEvent<HTMLDivElement>, targetHeadingId: string) => {
+    event.preventDefault()
+    if (!onReorderHeadings) {
+      resetDragState()
+      return
+    }
+    const sourceId = draggingHeadingRef.current
+    if (!sourceId) {
+      resetDragState()
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const insertAfter = event.clientY > rect.top + rect.height / 2
+    const reordered = buildReorderedIds(orderedHeadingIds, sourceId, targetHeadingId, insertAfter)
+    if (!isSameOrder(reordered, orderedHeadingIds)) {
+      onReorderHeadings({
+        projectId: project.id,
+        orderedHeadingIds: reordered,
+        movedHeadingId: sourceId,
+      })
+    }
+    resetDragState()
+  }
+
+  const handleTaskDragOver = (event: React.DragEvent<HTMLElement>, headingId: string | null) => {
+    if (!onMoveTaskToHeading) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDragOverHeadingId(headingId ?? 'unassigned')
+  }
+
+  const handleTaskDragLeave = (headingId: string | null) => {
+    if (!onMoveTaskToHeading) {
+      return
+    }
+    if (dragOverHeadingId === (headingId ?? 'unassigned')) {
+      setDragOverHeadingId(null)
+    }
+  }
+
+  const handleTaskDrop = (event: React.DragEvent<HTMLElement>, headingId: string | null) => {
+    if (!onMoveTaskToHeading) {
+      return
+    }
+    event.preventDefault()
+    const taskId = event.dataTransfer.getData('text/plain')
+    setDragOverHeadingId(null)
+    if (!taskId) {
+      return
+    }
+    onMoveTaskToHeading({ taskId, headingId })
+  }
+
   const openTasksByHeading = new Map<string, Task[]>()
   const completedTasks: Task[] = []
 
@@ -81,7 +176,15 @@ export default function ProjectBoard({
           {renderHeadingForm ? renderHeadingForm() : null}
           <div className="space-y-3">
             {headings.map(heading => (
-              <div key={heading.id} className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] px-3 py-2">
+              <div
+                key={heading.id}
+                draggable={headingEditingId !== heading.id}
+                onDragStart={(event) => handleHeadingDragStart(event, heading.id)}
+                onDragOver={handleHeadingDragOver}
+                onDrop={(event) => handleHeadingDrop(event, heading.id)}
+                onDragEnd={resetDragState}
+                className="flex items-center justify-between rounded-[var(--radius-container)] border border-[var(--color-border)] px-3 py-2"
+              >
                 {headingEditingId === heading.id ? (
                   <form
                     onSubmit={(event) => {
@@ -94,7 +197,7 @@ export default function ProjectBoard({
                       type="text"
                       value={headingEditingName}
                       onChange={(event) => onChangeHeadingName(event.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+                      className="flex-1 px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                     />
                     <button type="submit" className="az-btn-primary min-h-[44px] px-4 py-2 text-xs">
                       Guardar
@@ -116,7 +219,7 @@ export default function ProjectBoard({
                       <button
                         type="button"
                         onClick={() => onStartEditHeading(heading.id, heading.name)}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-xs text-[var(--color-text-muted)] hover:text-[var(--on-surface)]"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-card)] text-xs text-[var(--color-text-muted)] hover:text-[var(--on-surface)]"
                         title="Renombrar"
                       >
                         ✏️
@@ -124,7 +227,7 @@ export default function ProjectBoard({
                       <button
                         type="button"
                         onClick={() => onDeleteHeading(heading.id)}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-xs text-[var(--color-danger-500)] hover:opacity-80"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-card)] text-xs text-[var(--color-danger-500)] hover:opacity-80"
                         title="Eliminar"
                       >
                         🗑️
@@ -135,8 +238,16 @@ export default function ProjectBoard({
               </div>
             ))}
           </div>
-            {headings.map(heading => (
-            <section key={heading.id} className="space-y-3">
+          {headings.map(heading => (
+            <section
+              key={heading.id}
+              onDragOver={(event) => handleTaskDragOver(event, heading.id)}
+              onDragLeave={() => handleTaskDragLeave(heading.id)}
+              onDrop={(event) => handleTaskDrop(event, heading.id)}
+              className={`space-y-3 rounded-[var(--radius-container)] ${
+                dragOverHeadingId === heading.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
+              }`}
+            >
               <div className="flex items-center justify_between">
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-text-muted)]">Sección</p>
@@ -150,7 +261,18 @@ export default function ProjectBoard({
               {renderTaskList(openTasksByHeading.get(heading.id) || [], { showEmptyState: false })}
             </section>
           ))}
-          {unassignedOpen.length > 0 && renderTaskList(unassignedOpen, { showEmptyState: false })}
+          {unassignedOpen.length > 0 && (
+            <section
+              onDragOver={(event) => handleTaskDragOver(event, null)}
+              onDragLeave={() => handleTaskDragLeave(null)}
+              onDrop={(event) => handleTaskDrop(event, null)}
+              className={`space-y-3 rounded-[var(--radius-container)] ${
+                dragOverHeadingId === 'unassigned' ? 'ring-1 ring-[var(--color-primary-200)]' : ''
+              }`}
+            >
+              {renderTaskList(unassignedOpen, { showEmptyState: false })}
+            </section>
+          )}
           {showCompletedTasks && completedTasks.length > 0 && (
             <section className="space-y-3">
               <p className="text-sm font-semibold text-[var(--color-text-muted)]">Completadas</p>

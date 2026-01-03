@@ -12,6 +12,8 @@ interface TaskDatePickerOverlayProps {
   editingDueDate: string
   mobileDraftDueDate: string | null
   formatDateLabel: (value: string) => string
+  anchorEl?: HTMLElement | null
+  isMobile?: boolean
   onClose: () => void
   onMonthChange: (offset: number) => void
   onSelectDate: (value: string | null) => void
@@ -39,6 +41,8 @@ export default function TaskDatePickerOverlay({
   editingDueDate,
   mobileDraftDueDate,
   formatDateLabel,
+  anchorEl = null,
+  isMobile = false,
   onClose,
   onMonthChange,
   onSelectDate,
@@ -57,6 +61,8 @@ export default function TaskDatePickerOverlay({
       selectedDate={selectedDate}
       selectedDateLabel={selectedDateLabel}
       formatDateLabel={formatDateLabel}
+      anchorEl={anchorEl}
+      isMobile={isMobile}
       onClose={onClose}
       onMonthChange={onMonthChange}
       onSelectDate={onSelectDate}

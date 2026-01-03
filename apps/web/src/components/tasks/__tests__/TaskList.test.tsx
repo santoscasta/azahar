@@ -88,7 +88,6 @@ describe('TaskList', () => {
         onOpenEditDatePicker={vi.fn()}
         onOpenLabelSheet={vi.fn()}
         onOpenChecklist={vi.fn()}
-        onOpenPriorityMenu={vi.fn()}
         onOpenMoveSheet={vi.fn()}
         onOpenOverflowMenu={vi.fn()}
         onToggleCollapsedChecklist={vi.fn()}
@@ -129,7 +128,6 @@ describe('TaskList', () => {
         onOpenEditDatePicker={vi.fn()}
         onOpenLabelSheet={vi.fn()}
         onOpenChecklist={vi.fn()}
-        onOpenPriorityMenu={vi.fn()}
         onOpenMoveSheet={vi.fn()}
         onOpenOverflowMenu={vi.fn()}
         onToggleCollapsedChecklist={vi.fn()}
@@ -147,7 +145,7 @@ describe('TaskList', () => {
 
     renderWithProviders(
       <TaskList
-        variant="mobile"
+        variant="desktop"
         tasks={[baseTask()]}
         isLoading={false}
         showEmptyState
@@ -167,7 +165,6 @@ describe('TaskList', () => {
         onOpenEditDatePicker={vi.fn()}
         onOpenLabelSheet={vi.fn()}
         onOpenChecklist={vi.fn()}
-        onOpenPriorityMenu={vi.fn()}
         onOpenMoveSheet={vi.fn()}
         onOpenOverflowMenu={vi.fn()}
         onToggleCollapsedChecklist={vi.fn()}

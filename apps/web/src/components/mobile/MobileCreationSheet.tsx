@@ -23,12 +23,12 @@ export function MobileCreationSheet({
       onClick={() => onClose()}
     >
       <div
-        className="absolute bottom-6 left-4 right-4 bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-4 shadow-2xl"
+        className="absolute bottom-6 left-4 right-4 bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-6 space-y-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
-          className="w-full text-left flex flex-col gap-1 p-3 rounded-xl hover:bg-[var(--color-surface-elevated)] transition"
+          className="w-full text-left flex flex-col gap-1 p-3 rounded-[var(--radius-card)] hover:bg-[var(--color-surface-elevated)] transition"
           onClick={() => {
             onClose()
             onCreateTask()
@@ -39,7 +39,7 @@ export function MobileCreationSheet({
         </button>
         <button
           type="button"
-          className="w-full text-left flex flex-col gap-1 p-3 rounded-xl hover:bg-[var(--color-surface-elevated)] transition"
+          className="w-full text-left flex flex-col gap-1 p-3 rounded-[var(--radius-card)] hover:bg-[var(--color-surface-elevated)] transition"
           onClick={() => {
             onClose(true)
             onCreateProject()
@@ -50,7 +50,7 @@ export function MobileCreationSheet({
         </button>
         <button
           type="button"
-          className="w-full text-left flex flex-col gap-1 p-3 rounded-xl hover:bg-[var(--color-surface-elevated)] transition"
+          className="w-full text-left flex flex-col gap-1 p-3 rounded-[var(--radius-card)] hover:bg-[var(--color-surface-elevated)] transition"
           onClick={() => {
             onClose(true)
             onCreateArea()

@@ -24,7 +24,7 @@ export default function QuickViewBoard({
   const { t } = useTranslations()
   if (groups.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 space-y-3">
+      <div className="rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 space-y-3">
         {renderTaskList([])}
       </div>
     )
@@ -35,7 +35,7 @@ export default function QuickViewBoard({
       {groups.map(group => (
         <section
           key={group.areaId || 'none'}
-          className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 space-y-6"
+          className="rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 space-y-6"
         >
           {group.area && (
             <div>

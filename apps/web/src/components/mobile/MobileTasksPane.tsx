@@ -16,6 +16,8 @@ interface MobileTasksPaneProps {
   onSearchClear: () => void
   searchInputRef: RefObject<HTMLInputElement>
   onBack: () => void
+  onToggleSelect: () => void
+  isSelecting: boolean
   isProjectView: boolean
   isSearchView: boolean
   selectedArea: Area | null
@@ -44,6 +46,8 @@ export default function MobileTasksPane({
   onSearchClear,
   searchInputRef,
   onBack,
+  onToggleSelect,
+  isSelecting,
   isProjectView,
   isSearchView,
   selectedArea,
@@ -78,6 +82,8 @@ export default function MobileTasksPane({
       renderHeader={() => (
         <MobileHeader
           onBack={onBack}
+          onToggleSelect={onToggleSelect}
+          isSelecting={isSelecting}
           isProjectView={isProjectView}
           isSearchView={isSearchView}
           selectedArea={selectedArea}

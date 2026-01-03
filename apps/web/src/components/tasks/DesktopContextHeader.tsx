@@ -29,14 +29,14 @@ export default function DesktopContextHeader({
   onChipSelect,
 }: DesktopContextHeaderProps) {
   const badgeClass =
-    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-full px-2 text-[11px] font-semibold border border-[var(--color-border)] bg-[var(--color-surface-elevated)]'
+    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-[var(--radius-chip)] px-2 text-[11px] font-semibold border border-[var(--color-border)] bg-[var(--color-surface-elevated)]'
   return (
-    <header className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent-500)] px-8 py-6 space-y-4 shadow-[var(--shadow-sm)]">
+    <header className="rounded-[var(--radius-container)] bg-[var(--color-surface)] border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent-500)] px-8 py-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-[220px] flex-1">
-          <p className="text-sm font-semibold text-[var(--color-text-muted)]">{label}</p>
-          <h1 className="text-[26px] font-bold text-[var(--on-surface)]">{title}</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">{description}</p>
+          <p className="az-meta text-[var(--color-text-muted)]">{label}</p>
+          <h1 className="az-h1 text-[var(--on-surface)]">{title}</h1>
+          <p className="az-body text-[var(--color-text-muted)] mt-1">{description}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 text-sm font-semibold text-[var(--on-surface)]">
           <span>{pendingLabel}</span>
@@ -58,10 +58,10 @@ export default function DesktopContextHeader({
                 key={chip.id}
                 type="button"
                 onClick={() => onChipSelect(chip.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                className={`px-3 py-1.5 rounded-[var(--radius-chip)] text-xs font-semibold border ${
                   isActive
-                    ? 'bg-[var(--color-primary-600)] text-[var(--on-primary)] border-[var(--color-primary-600)] shadow'
-                    : 'border-[var(--color-border)] text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                    ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] border-[var(--color-action-500)]'
+                    : 'border-[var(--color-border)] text-[var(--on-surface)] hover:bg-[var(--color-accent-200)]'
                 }`}
               >
                 {chip.label}

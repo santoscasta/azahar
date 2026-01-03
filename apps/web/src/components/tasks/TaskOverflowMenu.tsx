@@ -43,7 +43,7 @@ export default function TaskOverflowMenu({
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
-        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] rounded-2xl p-6 space-y-4 shadow-2xl">
+        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] rounded-[var(--radius-container)] p-6 space-y-4 shadow-2xl">
           <div>
             <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('task.menu.title')}</p>
             <p className="text-lg font-semibold text-[var(--on-surface)]">{task.title}</p>
@@ -53,7 +53,7 @@ export default function TaskOverflowMenu({
               type="button"
               onClick={onTogglePin}
               disabled={isPinning}
-              className="w-full min-h-[44px] rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-400)] disabled:opacity-60"
+              className="w-full min-h-[44px] rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-400)] disabled:opacity-60"
             >
               {task.pinned ? t('task.menu.unpin') : t('task.menu.pin')}
             </button>
@@ -61,14 +61,14 @@ export default function TaskOverflowMenu({
               type="button"
               onClick={onDuplicate}
               disabled={isDuplicating}
-              className="w-full min-h-[44px] rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-400)] disabled:opacity-60"
+              className="w-full min-h-[44px] rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-400)] disabled:opacity-60"
             >
               {t('task.menu.duplicate')}
             </button>
             <button
               type="button"
               onClick={onCopyLink}
-              className="w-full min-h-[44px] rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-400)]"
+              className="w-full min-h-[44px] rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-400)]"
             >
               {t('task.menu.copyLink')}
             </button>
@@ -83,10 +83,10 @@ export default function TaskOverflowMenu({
                     type="button"
                     disabled={isApplyingQuickView}
                     onClick={() => onApplyQuickView(action.id)}
-                    className={`w-full min-h-[44px] rounded-xl border px-4 py-3 text-left font-semibold transition disabled:opacity-60 ${
+                    className={`w-full min-h-[44px] rounded-[var(--radius-card)] border px-4 py-3 text-left font-semibold transition disabled:opacity-60 ${
                       action.active
-                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-100)] text-[var(--color-primary-700)]'
-                        : 'border-[var(--color-border)] text-[var(--on-surface)] hover:border-[var(--color-primary-400)]'
+                        ? 'border-[var(--color-action-500)] bg-[var(--color-accent-200)] text-[var(--color-action-500)]'
+                        : 'border-[var(--color-border)] text-[var(--on-surface)] hover:border-[var(--color-action-500)]'
                     }`}
                   >
                     <span className="inline-flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function TaskOverflowMenu({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]"
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]"
             >
               {t('actions.close')}
             </button>

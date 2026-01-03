@@ -22,9 +22,12 @@ interface DesktopTaskBoardSwitcherProps {
   onSaveHeadingName: () => void
   onCancelHeadingEdit: () => void
   onDeleteHeading: (headingId: string) => void
+  onReorderHeadings: (payload: { projectId: string; orderedHeadingIds: string[]; movedHeadingId: string }) => void
+  onMoveTaskToHeading?: (payload: { taskId: string; headingId: string | null }) => void
+  onMoveTaskToProject?: (payload: { taskId: string; projectId: string | null; areaId: string | null }) => void
   onSelectArea: (areaId: string) => void
   onSelectProject: (projectId: string) => void
-  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean }) => ReactNode
+  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean; dragEnabled?: boolean }) => ReactNode
   renderHeadingForm?: () => ReactNode
 }
 
@@ -40,11 +43,13 @@ function renderProjectBoard({
   onSaveHeadingName,
   onCancelHeadingEdit,
   onDeleteHeading,
+  onReorderHeadings,
   onSelectArea,
   renderTaskList,
   renderHeadingForm,
   headingEditingId,
   headingEditingName,
+  onMoveTaskToHeading,
 }: {
   project: Project
   areas: Area[]
@@ -59,9 +64,11 @@ function renderProjectBoard({
   onSaveHeadingName: () => void
   onCancelHeadingEdit: () => void
   onDeleteHeading: (headingId: string) => void
+  onReorderHeadings: (payload: { projectId: string; orderedHeadingIds: string[]; movedHeadingId: string }) => void
   onSelectArea: (areaId: string) => void
-  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean }) => ReactNode
+  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean; dragEnabled?: boolean }) => ReactNode
   renderHeadingForm?: () => ReactNode
+  onMoveTaskToHeading?: (payload: { taskId: string; headingId: string | null }) => void
 }) {
   const headingsForProject = headings.filter(heading => heading.project_id === project.id)
   const tasksByHeading = new Map<string, Task[]>()
@@ -89,7 +96,9 @@ function renderProjectBoard({
       onSaveHeadingName={onSaveHeadingName}
       onCancelHeadingEdit={onCancelHeadingEdit}
       onDeleteHeading={onDeleteHeading}
+      onReorderHeadings={onReorderHeadings}
       onSelectArea={onSelectArea}
+      onMoveTaskToHeading={onMoveTaskToHeading}
       areaName={projectAreaName}
       renderTaskList={renderTaskList}
       renderHeadingForm={renderHeadingForm}
@@ -105,6 +114,7 @@ function renderAreaBoard({
   showCompletedTasks,
   onSelectProject,
   renderTaskList,
+  onMoveTaskToProject,
 }: {
   area: Area
   projects: Project[]
@@ -112,7 +122,8 @@ function renderAreaBoard({
   completedCount: number
   showCompletedTasks: boolean
   onSelectProject: (projectId: string) => void
-  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean }) => ReactNode
+  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean; dragEnabled?: boolean }) => ReactNode
+  onMoveTaskToProject?: (payload: { taskId: string; projectId: string | null; areaId: string | null }) => void
 }) {
   const projectsInArea = projects.filter(project => project.area_id === area.id)
   const tasksByProject = new Map<string, Task[]>()
@@ -126,6 +137,7 @@ function renderAreaBoard({
   const looseTasks = tasksByProject.get('loose') || []
   return (
     <AreaBoard
+      areaId={area.id}
       areaName={area.name}
       projectCount={projectsInArea.length}
       completedCount={completedCount}
@@ -134,8 +146,9 @@ function renderAreaBoard({
       tasksByProject={tasksByProject}
       looseTasks={looseTasks}
       onSelectProject={onSelectProject}
-      renderTaskList={(list) => renderTaskList(list, { showEmptyState: false })}
+      renderTaskList={(list) => renderTaskList(list, { showEmptyState: false, dragEnabled: true })}
       showCompletedTasks={showCompletedTasks}
+      onMoveTaskToProject={onMoveTaskToProject}
     />
   )
 }
@@ -158,6 +171,9 @@ export default function DesktopTaskBoardSwitcher({
   onSaveHeadingName,
   onCancelHeadingEdit,
   onDeleteHeading,
+  onReorderHeadings,
+  onMoveTaskToHeading,
+  onMoveTaskToProject,
   onSelectArea,
   onSelectProject,
   renderTaskList,
@@ -178,9 +194,11 @@ export default function DesktopTaskBoardSwitcher({
       onSaveHeadingName,
       onCancelHeadingEdit,
       onDeleteHeading,
+      onReorderHeadings,
       onSelectArea,
-      renderTaskList: (tasks, options) => renderTaskList(tasks, options),
+      renderTaskList: (tasks, options) => renderTaskList(tasks, { ...options, dragEnabled: true }),
       renderHeadingForm,
+      onMoveTaskToHeading,
     })
   }
 
@@ -192,7 +210,8 @@ export default function DesktopTaskBoardSwitcher({
       completedCount,
       showCompletedTasks,
       onSelectProject,
-      renderTaskList: (tasks, options) => renderTaskList(tasks, options),
+      renderTaskList: (tasks, options) => renderTaskList(tasks, { ...options, dragEnabled: true }),
+      onMoveTaskToProject,
     })
   }
 

@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import type { FormEvent, ReactNode, KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { FormEvent, ReactNode, KeyboardEvent, DragEvent } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
 import { getSoftLabelStyle } from '../../lib/colorUtils.js'
+import { parseISODate, formatISODate } from '../../lib/dateUtils.js'
 import { useTranslations } from '../../App.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
-import { getLabelQuickView } from '../../pages/tasksSelectors.js'
+import { getLabelQuickView, normalizeDate, getTaskView } from '../../pages/tasksSelectors.js'
 
 type Priority = 0 | 1 | 2 | 3
 
@@ -50,11 +51,14 @@ interface TaskListProps {
   togglePending?: boolean
   onDeleteTask: (taskId: string) => void
   deletePending?: boolean
-  onOpenEditDatePicker: () => void
-  onOpenLabelSheet: (task: Task) => void
-  onOpenChecklist: (task: Task) => void
-  onOpenPriorityMenu: () => void
-  onOpenMoveSheet: (task: Task) => void
+  onOpenEditDatePicker: (anchor?: HTMLElement | null) => void
+  onOpenLabelSheet: (task: Task, anchor?: HTMLElement | null) => void
+  onOpenChecklist: (task: Task, anchor?: HTMLElement | null) => void
+  onOpenMoveSheet: (task: Task, anchor?: HTMLElement | null) => void
+  onArchiveTask?: (task: Task) => void
+  archivePending?: boolean
+  onConvertToProject?: (task: Task) => void
+  convertPending?: boolean
   onOpenOverflowMenu: (task: Task) => void
   onToggleCollapsedChecklist: (taskId: string, itemId: string, completed: boolean) => void
   onApplyQuickView?: (task: Task, view: 'waiting' | 'someday' | 'reference') => void
@@ -63,13 +67,14 @@ interface TaskListProps {
   renderDraftCard?: () => ReactNode
   showDraftCard?: boolean
   autoSaveOnBlur?: boolean
-}
-
-const priorityLabels: Record<Priority, string> = {
-  0: 'Sin prioridad',
-  1: 'Prioridad baja',
-  2: 'Prioridad media',
-  3: 'Prioridad alta',
+  dragEnabled?: boolean
+  onDragStartTask?: (task: Task) => void
+  onDragEndTask?: () => void
+  highlightedTaskId?: string | null
+  multiSelectMode?: boolean
+  selectedTaskIds?: string[]
+  onToggleSelection?: (taskId: string) => void
+  onCreateTask?: () => void
 }
 
 export default function TaskList({
@@ -96,8 +101,11 @@ export default function TaskList({
   onOpenEditDatePicker,
   onOpenLabelSheet,
   onOpenChecklist,
-  onOpenPriorityMenu,
   onOpenMoveSheet,
+  onArchiveTask,
+  archivePending = false,
+  onConvertToProject,
+  convertPending = false,
   onOpenOverflowMenu,
   onToggleCollapsedChecklist,
   onApplyQuickView,
@@ -106,9 +114,43 @@ export default function TaskList({
   renderDraftCard,
   showDraftCard,
   autoSaveOnBlur = false,
+  dragEnabled = false,
+  onDragStartTask,
+  onDragEndTask,
+  highlightedTaskId = null,
+  multiSelectMode = false,
+  selectedTaskIds = [],
+  onToggleSelection,
+  onCreateTask,
 }: TaskListProps) {
-  const { t } = useTranslations()
+  const { t, language } = useTranslations()
+  const selectionEnabled = multiSelectMode && !!onToggleSelection
+  const selectedTaskSet = useMemo(() => new Set(selectedTaskIds), [selectedTaskIds])
+  const todayDate = new Date()
+  todayDate.setHours(0, 0, 0, 0)
+  const todayISO = formatISODate(todayDate)
+  const locale = language === 'en' ? 'en-US' : 'es-ES'
+
+  const buildDeadlineFlag = (value?: string | null) => {
+    const normalized = normalizeDate(value)
+    if (!normalized) return null
+    const dueDate = parseISODate(normalized)
+    if (!dueDate) return null
+    dueDate.setHours(0, 0, 0, 0)
+    const diffDays = Math.round((dueDate.getTime() - todayDate.getTime()) / 86400000)
+    if (diffDays === 0) {
+      return { label: t('view.today').toLowerCase(), isAlert: true }
+    }
+    if (diffDays < 0) {
+      const days = Math.abs(diffDays)
+      const label = language === 'en' ? `${days}d ago` : `hace ${days}d`
+      return { label, isAlert: true }
+    }
+    const label = dueDate.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+    return { label, isAlert: false }
+  }
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
   const editingContainerRef = useRef<HTMLDivElement | null>(null)
   const autoSaveTriggerRef = useRef(false)
@@ -150,6 +192,24 @@ export default function TaskList({
       }
     }
   }, [])
+
+  const handleDragStart = (event: DragEvent<HTMLLIElement>, task: Task) => {
+    if (!dragEnabled || selectionEnabled) {
+      return
+    }
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', task.id)
+    setDraggingTaskId(task.id)
+    onDragStartTask?.(task)
+  }
+
+  const handleDragEnd = () => {
+    if (!dragEnabled || selectionEnabled) {
+      return
+    }
+    setDraggingTaskId(null)
+    onDragEndTask?.()
+  }
 
   const triggerAutoSave = () => {
     if (autoSaveTriggerRef.current) {
@@ -206,9 +266,19 @@ export default function TaskList({
       return null
     }
     const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
+    const emptyMessage = filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')
     return (
-      <div className={emptyClass}>
-        {filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')}
+      <div className={`${emptyClass} space-y-4`}>
+        <p>{emptyMessage}</p>
+        {onCreateTask && (
+          <button
+            type="button"
+            onClick={onCreateTask}
+            className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+          >
+            {t('tasks.empty.cta')}
+          </button>
+        )}
       </div>
     )
   }
@@ -231,7 +301,7 @@ export default function TaskList({
   return (
     <>
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
-      <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col gap-3'}>
+      <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col divide-y divide-[var(--color-divider)]'}>
         {tasks.map(task => {
           const legacyContent = deserializeChecklistNotes(task.notes)
           const plainNotes = legacyContent.text
@@ -259,24 +329,37 @@ export default function TaskList({
           const editingProject = editingProjectId ? projects.find(project => project.id === editingProjectId) || null : null
           const editingHeading = editingHeadingId ? headings.find(heading => heading.id === editingHeadingId) || null : null
           const isEditing = editingId === task.id
+          const isEditingSelected = isEditing
+          const isSelectedForBulk = selectionEnabled && selectedTaskSet.has(task.id)
           const isContextView = !!contextProjectId || !!contextAreaId
+          const showInlineEditor = isEditing && variant === 'desktop'
           const baseLiClass =
             variant === 'mobile'
-              ? `p-4 rounded-2xl border ${
-                  task.status === 'done' ? 'border-transparent bg-transparent shadow-none' : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm'
+              ? `p-4 rounded-[var(--radius-container)] border ${
+                  task.status === 'done' ? 'border-transparent bg-transparent ' : 'border-[var(--color-border)] bg-[var(--color-surface)] '
                 } transition-colors`
-              : `group px-6 py-6 rounded-2xl border ${
-                  task.status === 'done'
-                    ? 'border-transparent bg-transparent shadow-none'
-                    : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:border-[var(--color-accent-500)] hover:shadow-[0_10px_28px_rgba(45,37,32,0.08)]'
-                } transition-all`
+              : `group px-3 py-2 min-h-[48px] ${
+                  isEditingSelected
+                    ? 'bg-[var(--color-surface-elevated)] border-l-4 border-l-[var(--color-action-500)]'
+                    : 'hover:bg-[var(--color-surface-elevated)]'
+                } transition-colors`
+          const dragAllowed = dragEnabled && !selectionEnabled
+          const dragClass = dragAllowed && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''
+          const draggingClass = draggingTaskId === task.id ? 'opacity-60' : ''
+          const selectionClass = isSelectedForBulk ? 'ring-2 ring-[var(--color-action-500)] bg-[var(--color-accent-50)]' : ''
+          const highlightClass = highlightedTaskId === task.id ? 'ring-2 ring-[var(--color-primary-200)]' : ''
           const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
           const metaClass =
             variant === 'mobile'
               ? 'flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-muted)]'
               : 'flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-muted)]'
-          const checkboxClass =
-            variant === 'mobile'
+          const checkboxClass = selectionEnabled
+            ? `relative ${variant === 'mobile' ? 'h-7 w-7' : 'h-6 w-6'} rounded-full border-2 flex items-center justify-center overflow-visible transition ${
+                isSelectedForBulk
+                  ? 'bg-[var(--color-action-500)] border-[var(--color-action-500)] text-[var(--on-primary)]'
+                  : 'border-[var(--color-border)] text-transparent'
+              }`
+            : variant === 'mobile'
               ? `relative h-7 w-7 rounded-full border-2 flex items-center justify-center overflow-visible transition ${
                   task.status === 'done'
                     ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
@@ -287,88 +370,120 @@ export default function TaskList({
                     ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
                     : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
                 }`
+          const handleRowClick = () => {
+            if (selectionEnabled) {
+              onToggleSelection?.(task.id)
+              return
+            }
+            onStartEdit(task)
+          }
           const compactActivationProps = !isEditing
             ? {
-                onClick: () => onStartEdit(task),
+                onClick: handleRowClick,
               }
             : {}
           const useInlineLayout = true
           const showInlineMeta = variant === 'desktop'
           const checklistCompleted = checklistItems.filter(item => item.completed).length
           const checklistSummary = checklistItems.length > 0 ? `${checklistCompleted}/${checklistItems.length}` : null
-          const labelsSummary =
-            task.labels && task.labels.length > 0 ? task.labels.map(label => label.name).join(', ') : null
           const waitingActive = (task.labels || []).some(label => getLabelQuickView(label.name) === 'waiting')
           const referenceActive = (task.labels || []).some(label => getLabelQuickView(label.name) === 'reference')
           const somedayActive = task.status === 'snoozed'
           const labelCount = task.labels?.length ?? 0
-          const createdLabel = new Date(task.created_at).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })
-          const metaItems: ReactNode[] = []
+          const deadlineFlag = buildDeadlineFlag(task.due_at)
+          const deadlineStyle = deadlineFlag?.isAlert
+            ? {
+                '--az-pill-border': 'var(--color-danger-500)',
+                '--az-pill-text': 'var(--color-danger-500)',
+                '--az-pill-bg': 'var(--color-accent-200)',
+              }
+            : undefined
+          const deadlineTitle = deadlineFlag ? `${t('gtd.due')}: ${deadlineFlag.label}` : ''
+          const metaChips: ReactNode[] = []
+          const contextChipLabel = !isContextView ? (taskProject?.name || taskArea?.name) : null
+          const taskView = variant === 'mobile' ? getTaskView(task, todayISO) : null
+          const scheduleIcon =
+            taskView === 'today'
+              ? { icon: '⭐', label: t('view.today') }
+              : taskView === 'upcoming'
+                ? { icon: '📆', label: t('view.upcoming') }
+                : taskView === 'anytime'
+                  ? { icon: '🌤️', label: t('view.anytime') }
+                  : taskView === 'someday'
+                    ? { icon: '📦', label: t('view.someday') }
+                    : taskView === 'waiting'
+                      ? { icon: '⏳', label: t('view.waiting') }
+                      : taskView === 'reference'
+                        ? { icon: '📚', label: t('view.reference') }
+                        : taskView === 'inbox'
+                          ? { icon: '📥', label: t('view.inbox') }
+                          : null
 
           if (useInlineLayout && showInlineMeta) {
-            if (!isContextView && (taskProject || taskArea)) {
-              metaItems.push(
-                <span key="context" className="min-w-0 truncate max-w-[12rem]">
-                  {taskProject?.name || taskArea?.name}
+            if (contextChipLabel) {
+              metaChips.push(
+                <span key="context" className="az-pill max-w-[12rem] truncate">
+                  {contextChipLabel}
                 </span>
               )
             }
-            if (isContextView && taskProject) {
-              metaItems.push(
-                <span key="context-project" className="min-w-0 truncate max-w-[12rem]">
-                  {t('context.label.project')}: {taskProject.name}
+            if (contextAreaId && !contextProjectId && taskProject) {
+              metaChips.push(
+                <span key="context-project" className="az-pill max-w-[12rem] truncate">
+                  {taskProject.name}
                 </span>
               )
             }
-            if (isContextView && !taskProject && taskArea) {
-              metaItems.push(
-                <span key="context-area" className="min-w-0 truncate max-w-[12rem]">
-                  {t('context.label.area')}: {taskArea.name}
-                </span>
-              )
-            }
-            if (taskHeading) {
-              metaItems.push(
-                <span key="heading" className="min-w-0 truncate max-w-[12rem]">
-                  {t('context.label.section')}: {taskHeading.name}
-                </span>
-              )
-            }
-            if (task.due_at) {
-              metaItems.push(
-                <span key="due" className="min-w-0 inline-flex items-center gap-1 whitespace-nowrap">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  {formatDateLabel(task.due_at)}
-                </span>
-              )
-            }
-            if (labelsSummary) {
-              metaItems.push(
-                <span key="labels" className="min-w-0 truncate max-w-[14rem]">
-                  {t('task.labels')}: {labelsSummary}
+            if (labelCount > 0) {
+              metaChips.push(
+                <span key="labels" className="az-pill">
+                  <span aria-hidden>🏷</span>
+                  {labelCount}
                 </span>
               )
             }
             if (checklistSummary) {
-              metaItems.push(
-                <span key="checklist" className="min-w-0 whitespace-nowrap">
-                  {t('task.checklist')}: {checklistSummary}
+              metaChips.push(
+                <span key="checklist" className="az-pill">
+                  <span aria-hidden>☑</span>
+                  {checklistSummary}
                 </span>
               )
             }
-            metaItems.push(
-              <span key="created" className="min-w-0 whitespace-nowrap text-[var(--color-text-subtle)]">
-                {t('task.created')} {createdLabel}
-              </span>
-            )
+            if (plainNotes) {
+              metaChips.push(
+                <span key="notes" className="az-pill">
+                  {noteIcon}
+                  <span className="sr-only">{t('task.notes')}</span>
+                </span>
+              )
+            }
+            if (deadlineFlag) {
+              metaChips.push(
+                <span
+                  key="due"
+                  className="az-pill whitespace-nowrap"
+                  style={deadlineStyle}
+                  title={deadlineTitle}
+                  aria-label={deadlineTitle}
+                >
+                  <span aria-hidden>⚑</span>
+                  {deadlineFlag.label}
+                </span>
+              )
+            }
           }
           return (
-            <li key={task.id} className={baseLiClass} {...compactActivationProps}>
-              {isEditing ? (
+            <li
+              key={task.id}
+              id={`task-${task.id}`}
+              className={`${baseLiClass} ${dragClass} ${draggingClass} ${selectionClass} ${highlightClass}`}
+              draggable={dragAllowed && !isEditing}
+              onDragStart={(event) => handleDragStart(event, task)}
+              onDragEnd={handleDragEnd}
+              {...compactActivationProps}
+            >
+              {showInlineEditor ? (
                 <div
                   ref={(node) => (isEditing ? (editingContainerRef.current = node) : undefined)}
                   onBlurCapture={(event) => {
@@ -387,7 +502,7 @@ export default function TaskList({
                       autoSaveTriggerRef.current = true
                       onSaveEdit(event)
                     }}
-                    className="space-y-3 p-4 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent-500)]"
+                    className="space-y-3 p-4 bg-[var(--color-surface)] rounded-[var(--radius-container)] border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent-500)]"
                   >
                     <input
                       type="text"
@@ -396,7 +511,7 @@ export default function TaskList({
                       placeholder="Título"
                       onKeyDown={handleEditKeyDown}
                       autoFocus
-                      className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+                      className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                     />
                     <textarea
                       value={editingNotes}
@@ -404,60 +519,61 @@ export default function TaskList({
                       placeholder="Notas..."
                       onKeyDown={handleEditKeyDown}
                       rows={variant === 'mobile' ? 3 : 2}
-                      className="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none"
+                      className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none"
                     />
                     <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-[var(--color-text-muted)]">
                       <button
                         type="button"
-                        onClick={onOpenEditDatePicker}
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onOpenEditDatePicker(event.currentTarget)
+                        }}
+                        className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <CalendarIcon className="h-4 w-4" />
                         <span>{formatDateLabel(editingDueAt)}</span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => onOpenLabelSheet(task)}
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onOpenLabelSheet(task, event.currentTarget)
+                        }}
+                        className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>🏷</span>
                         <span>{t('task.labels')}</span>
                         {labelCount > 0 && (
-                          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 text-[11px] font-semibold text-[var(--color-primary-700)]">
+                          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 text-[11px] font-semibold text-[var(--color-primary-700)]">
                             {labelCount}
                           </span>
                         )}
                       </button>
                       <button
                         type="button"
-                        onClick={() => onOpenChecklist(task)}
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onOpenChecklist(task, event.currentTarget)
+                        }}
+                        className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <span>☑</span>
                         <span>{t('task.checklist')}</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={onOpenPriorityMenu}
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
-                      >
-                        <span>⚑</span>
-                        <span>{priorityLabels[editingPriority]}</span>
-                      </button>
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-muted)]">
-                      {editingArea && (
-                        <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
-                          {t('context.label.area')}: {editingArea.name}
-                        </span>
-                      )}
                       {editingProject && (
-                        <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+                        <span className="px-3 py-1 rounded-[var(--radius-chip)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
                           {t('context.label.project')}: {editingProject.name}
                         </span>
                       )}
+                      {editingArea && !editingProject && (
+                        <span className="px-3 py-1 rounded-[var(--radius-chip)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+                          {t('context.label.area')}: {editingArea.name}
+                        </span>
+                      )}
                       {editingHeading && (
-                        <span className="px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+                        <span className="px-3 py-1 rounded-[var(--radius-chip)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
                           {t('context.label.section')}: {editingHeading.name}
                         </span>
                       )}
@@ -475,10 +591,10 @@ export default function TaskList({
                             type="button"
                             disabled={quickViewPending}
                             onClick={() => onApplyQuickView(task, action.id as 'waiting' | 'someday' | 'reference')}
-                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 font-semibold transition ${
+                            className={`inline-flex items-center gap-1 rounded-[var(--radius-chip)] border px-3 py-1 font-semibold transition ${
                               action.active
-                                ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-100)] text-[var(--color-primary-700)]'
-                                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]'
+                                ? 'border-[var(--color-action-500)] bg-[var(--color-accent-200)] text-[var(--color-action-500)]'
+                                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-action-500)]'
                             }`}
                           >
                             <span>{action.icon}</span>
@@ -492,23 +608,49 @@ export default function TaskList({
                   <div
                     className={`mt-4 ${
                       variant === 'mobile'
-                        ? 'flex items-center justify-between gap-3'
+                        ? 'flex flex-wrap items-center gap-3'
                         : 'flex items-center justify-end gap-3'
                     }`}
                   >
+                    {onArchiveTask && (
+                      <button
+                        type="button"
+                        onClick={() => onArchiveTask(task)}
+                        disabled={archivePending || task.status === 'done'}
+                        className="min-h-[44px] flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] disabled:opacity-50"
+                      >
+                        <span className="text-lg">✓</span>
+                        <span>{t('task.archive')}</span>
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => onOpenMoveSheet(task)}
-                      className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onOpenMoveSheet(task, event.currentTarget)
+                      }}
+                      className="min-h-[44px] flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
                     >
                       <span className="text-lg">→</span>
                       <span>{t('task.move')}</span>
                     </button>
+                    {onConvertToProject && (
+                      <button
+                        type="button"
+                        onClick={() => onConvertToProject(task)}
+                        disabled={convertPending || !!task.project_id}
+                        className="min-h-[44px] flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--on-surface)] hover:border-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] disabled:opacity-50"
+                        title={task.project_id ? t('task.convertedHint') : undefined}
+                      >
+                        <span className="text-lg">📁</span>
+                        <span>{t('task.convert')}</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => onDeleteTask(task.id)}
                       disabled={deletePending}
-                      className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-danger-500)] px-4 py-2 text-sm font-semibold text-[var(--color-danger-500)] hover:opacity-80 disabled:opacity-50"
+                      className="min-h-[44px] flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-danger-500)] px-4 py-2 text-sm font-semibold text-[var(--color-danger-500)] hover:opacity-80 disabled:opacity-50"
                     >
                       <span>🗑</span>
                       <span>{t('task.trash')}</span>
@@ -516,7 +658,7 @@ export default function TaskList({
                     <button
                       type="button"
                       onClick={() => onOpenOverflowMenu(task)}
-                      className="min-h-[44px] flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+                      className="min-h-[44px] flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
                     >
                       <span>…</span>
                     </button>
@@ -527,6 +669,10 @@ export default function TaskList({
                   <button
                     onClick={(event) => {
                       event.stopPropagation()
+                      if (selectionEnabled) {
+                        onToggleSelection?.(task.id)
+                        return
+                      }
                       if (task.status !== 'done') {
                         triggerCompletionCelebration(task.id)
                       }
@@ -534,7 +680,15 @@ export default function TaskList({
                     }}
                     disabled={togglePending}
                     className="min-h-[44px] min-w-[44px] flex items-center justify-center group disabled:opacity-50"
-                    aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
+                    aria-label={
+                      selectionEnabled
+                        ? isSelectedForBulk
+                          ? t('multiSelect.deselectTask')
+                          : t('multiSelect.selectTask')
+                        : task.status === 'done'
+                          ? 'Marcar como pendiente'
+                          : 'Marcar como completada'
+                    }
                   >
                     <span className={checkboxClass}>
                       {celebratingTaskId === task.id ? (
@@ -543,12 +697,21 @@ export default function TaskList({
                           <span className="az-complete-spark" aria-hidden />
                         </>
                       ) : null}
-                      {task.status === 'done' ? checkboxIcon : null}
+                      {selectionEnabled ? (isSelectedForBulk ? checkboxIcon : null) : task.status === 'done' ? checkboxIcon : null}
                     </span>
                   </button>
                   <div className="flex-1 min-w-0 flex items-center gap-4 flex-nowrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0 flex-nowrap">
+                        {variant === 'mobile' && scheduleIcon ? (
+                          <span
+                            className="text-sm text-[var(--color-text-muted)]"
+                            aria-label={scheduleIcon.label}
+                            title={scheduleIcon.label}
+                          >
+                            {scheduleIcon.icon}
+                          </span>
+                        ) : null}
                         <p
                           className={`${titleClass} ${
                             task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
@@ -557,27 +720,38 @@ export default function TaskList({
                           {task.title}
                         </p>
                         {task.pinned ? <span className="text-base" aria-label="Tarea fijada">📌</span> : null}
-                        {plainNotes ? (
-                          <span className="text-[var(--color-text-muted)]" aria-label="Tiene notas">
+                        {variant === 'mobile' && plainNotes ? (
+                          <span className="text-[var(--color-text-muted)]" aria-label={t('task.notes')}>
                             {noteIcon}
                           </span>
                         ) : null}
                       </div>
-                      {!isContextView && (taskProject || taskArea) ? (
+                      {variant === 'mobile' && !isContextView && (taskProject || taskArea) ? (
                         <p className="text-sm text-[var(--color-text-muted)] truncate">
                           {taskProject?.name || taskArea?.name}
                         </p>
                       ) : null}
-                      {isContextView && taskProject ? (
+                      {variant === 'mobile' && isContextView && taskProject ? (
                         <p className="text-sm text-[var(--color-text-muted)] truncate">{t('context.label.project')}: {taskProject.name}</p>
                       ) : null}
-                      {isContextView && !taskProject && taskArea ? (
+                      {variant === 'mobile' && isContextView && !taskProject && taskArea ? (
                         <p className="text-sm text-[var(--color-text-muted)] truncate">{t('context.label.area')}: {taskArea.name}</p>
                       ) : null}
                     </div>
-                    {metaItems.length > 0 && (
+                    {variant === 'mobile' && deadlineFlag ? (
+                      <span
+                        className="ml-auto az-pill whitespace-nowrap text-[10px]"
+                        style={deadlineStyle}
+                        title={deadlineTitle}
+                        aria-label={deadlineTitle}
+                      >
+                        <span aria-hidden>⚑</span>
+                        {deadlineFlag.label}
+                      </span>
+                    ) : null}
+                    {metaChips.length > 0 && (
                       <div className="ml-auto flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-nowrap overflow-hidden min-w-0">
-                        {metaItems}
+                        {metaChips}
                       </div>
                     )}
                   </div>
@@ -587,6 +761,10 @@ export default function TaskList({
                   <button
                     onClick={(event) => {
                       event.stopPropagation()
+                      if (selectionEnabled) {
+                        onToggleSelection?.(task.id)
+                        return
+                      }
                       if (task.status !== 'done') {
                         triggerCompletionCelebration(task.id)
                       }
@@ -594,7 +772,15 @@ export default function TaskList({
                     }}
                     disabled={togglePending}
                     className="min-h-[44px] min-w-[44px] flex items-center justify-center group disabled:opacity-50"
-                    aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
+                    aria-label={
+                      selectionEnabled
+                        ? isSelectedForBulk
+                          ? t('multiSelect.deselectTask')
+                          : t('multiSelect.selectTask')
+                        : task.status === 'done'
+                          ? 'Marcar como pendiente'
+                          : 'Marcar como completada'
+                    }
                   >
                     <span className={checkboxClass}>
                       {celebratingTaskId === task.id ? (
@@ -603,7 +789,7 @@ export default function TaskList({
                           <span className="az-complete-spark" aria-hidden />
                         </>
                       ) : null}
-                      {task.status === 'done' ? checkboxIcon : null}
+                      {selectionEnabled ? (isSelectedForBulk ? checkboxIcon : null) : task.status === 'done' ? checkboxIcon : null}
                     </span>
                   </button>
                   <div className="flex-1 min-w-0 space-y-2">
@@ -623,22 +809,22 @@ export default function TaskList({
                     {plainNotes && <p className="text-sm text-[var(--color-text-muted)]">{plainNotes}</p>}
                     <div className={metaClass}>
                       {isContextView && taskProject && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
+                        <span className="text-xs px-2 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
                           {t('context.label.project')}: {taskProject.name}
                         </span>
                       )}
                       {isContextView && !taskProject && taskArea && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
+                        <span className="text-xs px-2 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
                           {t('context.label.area')}: {taskArea.name}
                         </span>
                       )}
                       {taskHeading && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
+                        <span className="text-xs px-2 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">
                           {t('context.label.section')}: {taskHeading.name}
                         </span>
                       )}
                       {task.due_at && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] inline-flex items-center gap-1.5">
+                        <span className="text-xs px-2 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] inline-flex items-center gap-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
                           {formatDateLabel(task.due_at)}
                         </span>

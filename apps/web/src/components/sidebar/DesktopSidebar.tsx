@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
-import type { DragEvent } from 'react'
+import type { DragEvent, RefObject } from 'react'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
-import type { Project, Area } from '../../lib/supabase.js'
+import type { Project, Area, Task } from '../../lib/supabase.js'
 import { useTranslations } from '../../App.js'
 import settingsIcon from '../../assets/icons/settings.svg'
 import helpIcon from '../../assets/icons/help.svg'
 import AreaIcon from '../icons/AreaIcon.js'
 import ProjectIcon from '../icons/ProjectIcon.js'
 import AzaharLogo from './AzaharLogo.js'
+import DesktopSearch from '../tasks/DesktopSearch.js'
 
 interface StatsMap extends Map<string, { total: number; overdue: number }> {}
 
@@ -23,6 +24,19 @@ interface ProjectReorderPayload {
   targetAreaId: string | null
   orderedProjectIds: string[]
   movedProjectId: string
+}
+
+interface SidebarSearchProps {
+  searchQuery: string
+  suggestions: Task[]
+  projects: Project[]
+  showSuggestions: boolean
+  inputRef?: RefObject<HTMLInputElement>
+  onQueryChange: (value: string) => void
+  onFocus: () => void
+  onBlur: () => void
+  onClear: () => void
+  onSelectSuggestion: (task: Task) => void
 }
 
 export interface DesktopSidebarProps {
@@ -48,12 +62,13 @@ export interface DesktopSidebarProps {
   onOpenSettings: () => void
   onOpenHelp: () => void
   onReorderProjects: (payload: ProjectReorderPayload) => void
+  search?: SidebarSearchProps
 }
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
   if (!total && !overdue) return null
   const badgeClass =
-    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-full px-2 text-[11px] font-semibold border border-[var(--color-border)] bg-[var(--color-surface-elevated)]'
+    'inline-flex items-center justify-center h-5 min-w-[20px] rounded-[var(--radius-chip)] px-2 text-[11px] font-semibold border border-[var(--color-border)] bg-[var(--color-surface-elevated)]'
   return (
     <div className="flex items-center gap-1">
       {overdue ? (
@@ -93,6 +108,7 @@ export function DesktopSidebar({
   onOpenSettings,
   onOpenHelp,
   onReorderProjects,
+  search,
 }: DesktopSidebarProps) {
   const { t } = useTranslations()
   const standaloneProjects = projects.filter(project => !project.area_id)
@@ -247,7 +263,7 @@ export function DesktopSidebar({
   }
 
   return (
-    <aside className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_50px_rgba(45,37,32,0.06)] flex flex-col h-full text-[var(--on-surface)]">
+    <aside className="rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)]  flex flex-col h-full text-[var(--on-surface)]">
       <div className="px-6 pt-6 pb-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <AzaharLogo />
@@ -257,7 +273,23 @@ export function DesktopSidebar({
           </div>
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-4">
+      {search && (
+        <div className="px-6 pt-4">
+          <DesktopSearch
+            searchQuery={search.searchQuery}
+            suggestions={search.suggestions}
+            projects={search.projects}
+            showSuggestions={search.showSuggestions}
+            inputRef={search.inputRef}
+            onQueryChange={search.onQueryChange}
+            onFocus={search.onFocus}
+            onBlur={search.onBlur}
+            onClear={search.onClear}
+            onSelectSuggestion={search.onSelectSuggestion}
+          />
+        </div>
+      )}
+      <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-6">
         <div>
           <p className="text-sm font-semibold text-[var(--color-text-muted)] mb-2">{t('sidebar.focus')}</p>
           <ul className="space-y-1">
@@ -270,14 +302,14 @@ export function DesktopSidebar({
                   <button
                     type="button"
                     onClick={() => onSelectQuickView(view.id)}
-                    className={`w-full min-h-[48px] flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium transition ${
+                    className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium transition ${
                       isActive
-                        ? 'bg-[var(--color-primary-600)] text-[var(--on-primary)] shadow-md'
+                        ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     }`}
                   >
                     <span className="flex items-center gap-3">
-                      <span className="h-8 w-8 rounded-xl bg-[var(--color-primary-100)] flex items-center justify-center">
+                      <span className="h-8 w-8 rounded-[var(--radius-card)] bg-[var(--color-primary-100)] flex items-center justify-center">
                         <img src={view.icon} alt="" className="h-5 w-5" />
                       </span>
                       {view.label}
@@ -303,7 +335,7 @@ export function DesktopSidebar({
                     onClick={() => handleAreaClick(area.id)}
                     onDragOver={(event) => handleAreaDragOver(event, area.id)}
                     onDrop={(event) => handleAreaDrop(event, area.id)}
-                    className={`w-full min-h-[48px] flex items-center justify-between text-sm font-semibold rounded-xl px-3 py-2 ${
+                    className={`w-full min-h-[48px] flex items-center justify-between text-sm font-semibold rounded-[var(--radius-card)] px-3 py-2 ${
                       isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     } ${dragOverAreaId === area.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
                   >
@@ -327,9 +359,9 @@ export function DesktopSidebar({
                           onDragEnd={handleProjectDragEnd}
                           onDragOver={(event) => handleProjectDragOver(event, project.id)}
                           onDrop={(event) => handleProjectDrop(event, project.id, area.id)}
-                          className={`w-full min-h-[48px] flex items-center justify-between text-sm rounded-xl px-3 py-2 ${
+                          className={`w-full min-h-[48px] flex items-center justify-between text-sm rounded-[var(--radius-card)] px-3 py-2 ${
                             isActiveProject
-                              ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] shadow-inner'
+                              ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] '
                               : 'text-[var(--color-text-muted)] hover:text-[var(--on-surface)]'
                           } ${
                             draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
@@ -367,9 +399,9 @@ export function DesktopSidebar({
                     onDragEnd={handleProjectDragEnd}
                     onDragOver={(event) => handleProjectDragOver(event, project.id)}
                     onDrop={(event) => handleProjectDrop(event, project.id, null)}
-                    className={`w-full min-h-[48px] flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-medium ${
+                    className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium ${
                       isActive
-                        ? 'bg-[var(--color-primary-600)] text-[var(--on-primary)] shadow-md'
+                        ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
                     } ${
                       draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
@@ -393,7 +425,7 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onToggleNewListMenu}
-          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] py-2 text-sm font-semibold shadow-lg hover:bg-[var(--color-primary-700)]"
+          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] py-2 text-sm font-semibold  hover:opacity-90"
         >
           +
           <span>Nueva lista</span>
@@ -401,7 +433,7 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="h-12 w-12 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
+          className="h-12 w-12 flex items-center justify-center rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
           aria-label={t('sidebar.settings')}
         >
           <img src={settingsIcon} alt="" className="h-5 w-5" />
@@ -409,13 +441,13 @@ export function DesktopSidebar({
         <button
           type="button"
           onClick={onOpenHelp}
-          className="h-12 w-12 flex items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
+          className="h-12 w-12 flex items-center justify-center rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
           aria-label={t('sidebar.help')}
         >
           <img src={helpIcon} alt="" className="h-5 w-5" />
         </button>
         {showNewListMenu && (
-          <div className="absolute left-6 right-6 bottom-20 bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-2xl p-4 space-y-4 shadow-[0_20px_50px_rgba(45,37,32,0.18)] border border-[var(--color-border)]">
+          <div className="absolute left-6 right-6 bottom-20 bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-4 space-y-4  border border-[var(--color-border)]">
             <button
               type="button"
               onClick={onCreateProject}

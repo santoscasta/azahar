@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import type { Task, Project } from '../../lib/supabase.js'
 import { useTranslations } from '../../App.js'
 
@@ -6,6 +7,7 @@ interface DesktopSearchProps {
   suggestions: Task[]
   projects: Project[]
   showSuggestions: boolean
+  inputRef?: RefObject<HTMLInputElement>
   onQueryChange: (value: string) => void
   onFocus: () => void
   onBlur: () => void
@@ -18,6 +20,7 @@ export default function DesktopSearch({
   suggestions,
   projects,
   showSuggestions,
+  inputRef,
   onQueryChange,
   onFocus,
   onBlur,
@@ -27,19 +30,20 @@ export default function DesktopSearch({
   const { t } = useTranslations()
   return (
     <div className="relative">
-      <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-sm)]">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-primary-100)] text-lg text-[var(--on-surface)]">
+      <div className="flex items-center gap-3 rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 ">
+        <span className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-primary-100)] text-lg text-[var(--on-surface)]">
           🔍
         </span>
         <div className="flex-1 relative">
           <input
             type="text"
             value={searchQuery}
+            ref={inputRef}
             onFocus={onFocus}
             onBlur={onBlur}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={t('search.placeholder')}
-            className="w-full rounded-xl border border-transparent bg-transparent px-3 py-2 text-sm font-medium text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-primary-600)] focus:ring-1 focus:ring-[var(--color-primary-200)] outline-none transition"
+            className="w-full rounded-[var(--radius-card)] border border-transparent bg-transparent px-3 py-2 text-sm font-medium text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-primary-600)] focus:ring-1 focus:ring-[var(--color-primary-200)] outline-none transition"
           />
           {searchQuery && (
             <button
@@ -53,14 +57,14 @@ export default function DesktopSearch({
             </button>
           )}
         </div>
-        <span className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)]">
+        <span className="hidden sm:inline-flex items-center gap-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)]">
           <span className="text-xs">⌘</span>
           <span>K</span>
         </span>
       </div>
       {showSuggestions && (
         <div className="absolute left-0 right-0 mt-3 z-30">
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-[var(--shadow-md)]">
+          <div className="bg-[var(--color-surface)] rounded-[var(--radius-container)] border border-[var(--color-border)] overflow-hidden ">
             <div className="px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
               {t('search.suggestions.title')} ({suggestions.length})
             </div>

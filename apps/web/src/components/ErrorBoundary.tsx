@@ -28,14 +28,14 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
-          <div className="text-center p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="text-center p-6 rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)]">
             <h2 className="text-xl font-semibold text-[var(--on-surface)] mb-2">Algo salió mal</h2>
             <p className="text-[var(--color-text-muted)] mb-4">
               {this.state.error?.message || 'Un error inesperado ha ocurrido'}
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-[var(--on-primary)] hover:bg-[var(--color-primary-700)] transition"
+              className="px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] hover:opacity-90 transition"
             >
               Recargar página
             </button>

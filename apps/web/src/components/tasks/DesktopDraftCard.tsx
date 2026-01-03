@@ -12,17 +12,9 @@ interface DesktopDraftCardProps {
   onCancel: () => void
   onTitleChange: (value: string) => void
   onNotesChange: (value: string) => void
-  onRequestDueDate: () => void
+  onRequestDueDate: (anchor?: HTMLElement | null) => void
   onOpenLabels: () => void
-  onCyclePriority: () => void
   autoSaveEnabled?: boolean
-}
-
-const priorityBadge: Record<TaskCreationDraft['priority'], string> = {
-  0: 'Sin prioridad',
-  1: '🟢 Baja',
-  2: '🟡 Media',
-  3: '🔴 Alta',
 }
 
 export function DesktopDraftCard({
@@ -36,7 +28,6 @@ export function DesktopDraftCard({
   onNotesChange,
   onRequestDueDate,
   onOpenLabels,
-  onCyclePriority,
   autoSaveEnabled = true,
 }: DesktopDraftCardProps) {
   const titleRef = useRef<HTMLInputElement | null>(null)
@@ -98,7 +89,6 @@ export function DesktopDraftCard({
   }, [
     draft.title,
     draft.notes,
-    draft.priority,
     draft.due_at,
     draft.projectId,
     draft.areaId,
@@ -129,10 +119,10 @@ export function DesktopDraftCard({
         }
         commitDraft()
       }}
-      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--on-surface)] shadow-[0_18px_40px_rgba(45,37,32,0.12)] p-6 space-y-4"
+      className="rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--on-surface)]  p-6 space-y-4"
     >
       <div className="flex gap-4">
-        <span className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-lg border border-[var(--color-border)] text-transparent">
+        <span className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-chip)] border border-[var(--color-border)] text-transparent">
           □
         </span>
         <div className="flex-1 space-y-2">
@@ -152,7 +142,7 @@ export function DesktopDraftCard({
             className="w-full bg-transparent text-sm text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] outline-none resize-none"
           />
           <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)] pt-1 flex-wrap gap-3">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] font-semibold text-[var(--color-text-muted)]">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-[var(--radius-chip)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] font-semibold text-[var(--color-text-muted)]">
               <span className="text-lg">⭐</span>
               {viewLabel}
             </span>
@@ -160,31 +150,23 @@ export function DesktopDraftCard({
               <button
                 type="button"
                 onClick={onOpenLabels}
-                className="relative h-11 w-11 rounded-xl border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-primary-600)]"
+                className="relative h-11 w-11 rounded-[var(--radius-card)] border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-primary-600)]"
                 aria-label="Etiquetas"
               >
                 🏷
                 {labelCount > 0 && (
-                  <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1 text-[10px] font-semibold text-[var(--color-primary-700)]">
+                  <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-1 text-[10px] font-semibold text-[var(--color-primary-700)]">
                     {labelCount}
                   </span>
                 )}
               </button>
               <button
                 type="button"
-                onClick={onCyclePriority}
-                className="min-h-[44px] px-3 rounded-xl border border-[var(--color-border)] text-xs font-semibold hover:border-[var(--color-primary-600)]"
-                aria-label="Prioridad"
-              >
-                {priorityBadge[draft.priority]}
-              </button>
-              <button
-                type="button"
-                onClick={onRequestDueDate}
-                className="min-h-[44px] px-3 rounded-xl border border-[var(--color-border)] inline-flex items-center gap-2 hover:border-[var(--color-primary-600)]"
+                onClick={(event) => onRequestDueDate(event.currentTarget)}
+                className="min-h-[44px] px-3 rounded-[var(--radius-card)] border border-[var(--color-border)] inline-flex items-center gap-2 hover:border-[var(--color-primary-600)]"
               >
                 <CalendarIcon className="h-4 w-4" />
-                {dueLabel}
+                Cuando: {dueLabel}
               </button>
             </div>
           </div>

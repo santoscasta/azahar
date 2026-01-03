@@ -33,7 +33,7 @@ function NavButton({ label, icon, active, badge, helperText, disabled, onClick }
       aria-pressed={active}
     >
       <span
-        className={`relative h-11 w-11 rounded-xl border border-[var(--color-border)] flex items-center justify-center transition ${
+        className={`relative h-11 w-11 rounded-[var(--radius-card)] border border-[var(--color-border)] flex items-center justify-center transition ${
           active
             ? 'bg-[var(--color-accent-50)] border-[var(--color-accent-200)]'
             : 'bg-[var(--color-surface)]'
@@ -72,7 +72,7 @@ export default function MobileBottomBar({
         <button
           type="button"
           onClick={onNewTask}
-          className="flex-1 max-w-[140px] flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] py-3 text-sm font-semibold shadow-lg transition hover:bg-[var(--color-primary-700)] active:scale-[0.98]"
+          className="flex-1 max-w-[140px] flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] py-3 text-sm font-semibold  transition hover:opacity-90 active:scale-[0.98]"
           aria-label={t('mobile.nav.newTask')}
         >
           <span className="text-lg leading-none">＋</span>

@@ -28,7 +28,7 @@ export function MobileScheduleSheet({
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
       <div
-        className="absolute inset-x-4 bottom-6 bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-4 shadow-2xl"
+        className="absolute inset-x-4 bottom-6 bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-6 space-y-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
       <div className="flex items-center justify-between">
@@ -45,7 +45,7 @@ export function MobileScheduleSheet({
               onSelect(option.id)
               onClose()
             }}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left ${
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius-card)] text-left ${
             view === option.id ? 'bg-[var(--color-primary-100)]' : 'hover:bg-[var(--color-surface-elevated)]'
           }`}
         >

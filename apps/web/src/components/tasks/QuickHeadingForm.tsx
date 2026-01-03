@@ -25,13 +25,13 @@ export default function QuickHeadingForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay)] backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[var(--color-surface)] rounded-2xl shadow-2xl p-6 space-y-4"
+        className="w-full max-w-md bg-[var(--color-surface)] rounded-[var(--radius-container)] p-6 space-y-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Nueva sección</p>
-            <p className="text-[24px] font-bold text-[var(--on-surface)]">Agrupa tus tareas</p>
+            <p className="az-meta text-[var(--color-text-muted)]">Nueva sección</p>
+            <p className="az-h1 text-[var(--on-surface)]">Agrupa tus tareas</p>
           </div>
           <button
             type="button"
@@ -47,20 +47,20 @@ export default function QuickHeadingForm({
             value={headingName}
             onChange={(event) => onNameChange(event.target.value)}
             placeholder="Nombre de la sección"
-            className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+            className="w-full px-4 py-3 rounded-[var(--radius-container)] border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
           />
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={!hasProjectSelected || isSaving}
-              className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-sm font-semibold shadow-lg disabled:opacity-60"
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] text-sm font-semibold  disabled:opacity-60"
             >
               {isSaving ? 'Guardando...' : 'Crear sección'}
             </button>

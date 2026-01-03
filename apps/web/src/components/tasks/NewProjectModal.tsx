@@ -31,7 +31,7 @@ export default function NewProjectModal({
   const { t } = useTranslations()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay)] backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg bg-[var(--color-surface)] rounded-2xl shadow-2xl p-6 space-y-4">
+      <div className="w-full max-w-lg bg-[var(--color-surface)] rounded-[var(--radius-container)] shadow-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('project.new.title')}</p>
@@ -51,12 +51,12 @@ export default function NewProjectModal({
             value={projectName}
             onChange={(event) => onNameChange(event.target.value)}
             placeholder={t('project.new.placeholder')}
-            className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+            className="w-full px-4 py-3 rounded-[var(--radius-container)] border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
           />
           <select
             value={selectedAreaId || ''}
             onChange={(event) => onAreaChange(event.target.value || null)}
-            className="w-full px-4 py-3 rounded-2xl border border-[var(--color-border)] text-[var(--on-surface)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
+            className="w-full px-4 py-3 rounded-[var(--radius-container)] border border-[var(--color-border)] text-[var(--on-surface)] bg-[var(--color-surface-elevated)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
           >
             <option value="">{t('project.new.area.none')}</option>
             {areas.map(area => (
@@ -72,14 +72,14 @@ export default function NewProjectModal({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
             >
               {t('actions.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-sm font-semibold shadow-lg disabled:opacity-60"
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] text-sm font-semibold disabled:opacity-60"
             >
               {isSaving ? t('project.new.saving') : t('project.new.create')}
             </button>

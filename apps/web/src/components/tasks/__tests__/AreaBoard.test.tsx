@@ -43,6 +43,7 @@ describe('AreaBoard', () => {
 
     renderWithProviders(
       <AreaBoard
+        areaId="area-1"
         areaName="Área Uno"
         projectCount={1}
         completedCount={0}

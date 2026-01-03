@@ -97,27 +97,27 @@ export function MobileOverview({
           onFocus={onSearchFocus}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={t('mobile.search.placeholder')}
-          className="w-full min-h-[44px] pl-10 pr-14 py-3 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
+          className="w-full min-h-[44px] pl-10 pr-14 py-3 rounded-[var(--radius-container)] border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
       </div>
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={onOpenSettings}
-          className="min-h-[44px] flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--on-surface)] flex items-center justify-center gap-2"
+          className="min-h-[44px] flex-1 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--on-surface)] flex items-center justify-center gap-2"
         >
           ⚙ <span>{t('settings.title')}</span>
         </button>
         <button
           type="button"
           onClick={onOpenHelp}
-          className="min-h-[44px] flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-text-muted)] flex items-center justify-center gap-2"
+          className="min-h-[44px] flex-1 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-text-muted)] flex items-center justify-center gap-2"
         >
           ❓ <span>{t('sidebar.help')}</span>
         </button>
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] divide-y divide-[var(--color-border)]">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-container)] border border-[var(--color-border)] divide-y divide-[var(--color-divider)]">
         {quickLists.map(view => (
           <button
             key={`mobile-${view.id}`}
@@ -125,14 +125,14 @@ export function MobileOverview({
             className="w-full min-h-[52px] flex items-center justify-between px-4 py-4 text-left"
           >
             <span className="flex items-center gap-3">
-              <span className="h-11 w-11 rounded-xl bg-[var(--color-primary-100)] flex items-center justify-center">
+              <span className="h-11 w-11 rounded-[var(--radius-card)] bg-[var(--color-primary-100)] flex items-center justify-center">
                 <img src={view.icon} alt="" className="h-6 w-6" />
               </span>
               <span className="text-base font-medium text-[var(--on-surface)]">{view.label}</span>
             </span>
             <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
               {quickViewStats[view.id] > 0 && (
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 text-[11px] font-semibold text-[var(--color-accent-500)]">
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 text-[11px] font-semibold text-[var(--color-accent-500)]">
                   {quickViewStats[view.id]}
                 </span>
               )}
@@ -142,7 +142,7 @@ export function MobileOverview({
         ))}
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 space-y-3">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-container)] border border-[var(--color-border)] p-4 space-y-3">
         <div className="flex items-center justify-between text-sm font-semibold text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2">
             <AreaIcon className="h-4 w-4" />
@@ -152,34 +152,34 @@ export function MobileOverview({
             <button
               type="button"
               onClick={() => setShowAllAreas(prev => !prev)}
-              className="min-h-[44px] px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
+              className="min-h-[44px] px-3 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
             >
               {showAllAreas ? t('actions.hide') : t('actions.showAll')}
             </button>
           )}
         </div>
         {areaDraft && (
-          <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
+          <div className="rounded-[var(--radius-container)] border border-[var(--color-border)] p-3 space-y-2">
             <input
               ref={areaInputRef}
               type="text"
               value={areaDraft.name}
               onChange={(event) => onAreaDraftChange(event.target.value)}
               onBlur={(event) => onAreaDraftBlur(event.target.value)}
-              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none bg-[var(--color-surface)]"
+              className="w-full px-3 py-2 rounded-[var(--radius-container)] border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none bg-[var(--color-surface)]"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onCancelAreaDraft}
-                className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
+                className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
                 {t('actions.cancel')}
               </button>
               <button
                 type="button"
                 onClick={onSaveAreaDraft}
-                className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-xs"
+                className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] text-xs"
               >
                 {t('actions.ok')}
               </button>
@@ -190,7 +190,7 @@ export function MobileOverview({
           {visibleAreas.map(area => (
             <button
               key={`mobile-area-${area.id}`}
-              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-xl border border-transparent hover:border-[var(--color-border)]"
+              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-[var(--radius-card)] border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectArea(area.id)}
             >
               <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
@@ -203,7 +203,7 @@ export function MobileOverview({
         </div>
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 space-y-3">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-container)] border border-[var(--color-border)] p-4 space-y-3">
         <div className="flex items-center justify-between text-sm font-semibold text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2">
             <ProjectIcon className="h-4 w-4" />
@@ -213,34 +213,34 @@ export function MobileOverview({
             <button
               type="button"
               onClick={() => setShowAllProjects(prev => !prev)}
-              className="min-h-[44px] px-3 py-1 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
+              className="min-h-[44px] px-3 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
             >
               {showAllProjects ? t('actions.hide') : t('actions.showAll')}
             </button>
           )}
         </div>
         {projectDraft && (
-          <div className="rounded-2xl border border-[var(--color-border)] p-3 space-y-2">
+          <div className="rounded-[var(--radius-container)] border border-[var(--color-border)] p-3 space-y-2">
             <input
               ref={projectInputRef}
               type="text"
               value={projectDraft.name}
               onChange={(event) => onProjectDraftChange(event.target.value)}
               onBlur={(event) => onProjectDraftBlur(event.target.value)}
-              className="w-full px-3 py-2 rounded-2xl border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none bg-[var(--color-surface)]"
+              className="w-full px-3 py-2 rounded-[var(--radius-container)] border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none bg-[var(--color-surface)]"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onCancelProjectDraft}
-                className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
+                className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-xs text-[var(--on-surface)]"
               >
                 {t('actions.cancel')}
               </button>
               <button
                 type="button"
                 onClick={onSaveProjectDraft}
-                className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-xs"
+                className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] text-xs"
               >
                 {t('actions.ok')}
               </button>
@@ -251,7 +251,7 @@ export function MobileOverview({
           {visibleProjects.map(project => (
             <button
               key={`mobile-project-${project.id}`}
-              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-xl border border-transparent hover:border-[var(--color-border)]"
+              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-[var(--radius-card)] border border-transparent hover:border-[var(--color-border)]"
               onClick={() => onSelectProject(project.id)}
             >
               <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">

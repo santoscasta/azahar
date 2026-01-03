@@ -68,15 +68,15 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
       }}
     >
       <div className="w-full max-w-xl">
-        <div className="rounded-2xl bg-[var(--color-surface)] shadow-[var(--shadow-md)] border border-[var(--color-border)] px-10 py-12 space-y-10">
+        <div className="rounded-[var(--radius-container)] bg-[var(--color-surface)]  border border-[var(--color-border)] px-10 py-12 space-y-10">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="flex items-center justify-center">
               <img src="/icon.png" alt="Azahar" className="h-32 w-32 object-contain" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Azahar</p>
-              <p className="text-[26px] font-bold text-[var(--on-surface)]">{isSignUp ? t('auth.title.signup') : t('auth.title.login')}</p>
-              <p className="text-sm text-[var(--color-text-muted)]">{t('auth.tagline')}</p>
+              <p className="az-meta text-[var(--color-text-muted)]">Azahar</p>
+              <p className="az-h1 text-[var(--on-surface)]">{isSignUp ? t('auth.title.signup') : t('auth.title.login')}</p>
+              <p className="az-body text-[var(--color-text-muted)]">{t('auth.tagline')}</p>
             </div>
           </div>
 
@@ -89,7 +89,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 id={emailInputId}
-                className={`w-full min-h-[44px] px-4 py-3 rounded-2xl border bg-[var(--color-surface-elevated)] text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] ${
+                className={`w-full min-h-[44px] px-4 py-3 rounded-[var(--radius-container)] border bg-[var(--color-surface-elevated)] text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] ${
                   email && !isEmailValid
                     ? 'border-[var(--color-danger-500)] focus:ring-[var(--color-danger-500)] focus:border-[var(--color-danger-500)]'
                     : 'border-[var(--color-border)]'
@@ -115,7 +115,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   id={passwordInputId}
-                  className={`w-full min-h-[44px] pl-4 pr-20 py-3 rounded-2xl border bg-[var(--color-surface-elevated)] text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] ${
+                  className={`w-full min-h-[44px] pl-4 pr-20 py-3 rounded-[var(--radius-container)] border bg-[var(--color-surface-elevated)] text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] ${
                     password && !isPasswordValid
                       ? 'border-[var(--color-danger-500)] focus:ring-[var(--color-danger-500)] focus:border-[var(--color-danger-500)]'
                       : 'border-[var(--color-border)]'
@@ -149,7 +149,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
             </div>
 
             {error && (
-              <div className="p-3 bg-[rgba(214,69,69,0.12)] border border-[rgba(214,69,69,0.35)] rounded-2xl text-[var(--color-danger-500)] text-sm" role="alert" aria-live="assertive">
+              <div className="p-3 bg-[rgba(214,69,69,0.12)] border border-[rgba(214,69,69,0.35)] rounded-[var(--radius-container)] text-[var(--color-danger-500)] text-sm" role="alert" aria-live="assertive">
                 {error}
               </div>
             )}
@@ -157,7 +157,7 @@ export default function LoginPage({ authClient = { signIn, signUp }, navigateTo 
             <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full py-3 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] font-semibold shadow-[0_18px_30px_rgba(45,37,32,0.15)] hover:bg-[var(--color-primary-700)] transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] font-semibold  hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

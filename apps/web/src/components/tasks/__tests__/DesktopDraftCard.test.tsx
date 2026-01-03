@@ -35,7 +35,6 @@ describe('DesktopDraftCard', () => {
         onNotesChange={vi.fn()}
         onRequestDueDate={vi.fn()}
         onOpenLabels={vi.fn()}
-        onCyclePriority={vi.fn()}
       />
     )
 
@@ -64,7 +63,6 @@ describe('DesktopDraftCard', () => {
         onNotesChange={vi.fn()}
         onRequestDueDate={vi.fn()}
         onOpenLabels={vi.fn()}
-        onCyclePriority={vi.fn()}
       />
     )
 

@@ -30,7 +30,7 @@ export function MobileDraftCard({
 }: MobileDraftCardProps) {
   return (
     <div
-      className="rounded-2xl border p-4 space-y-3"
+      className="rounded-[var(--radius-container)] border p-4 space-y-3"
       style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
     >
       <div>
@@ -53,8 +53,8 @@ export function MobileDraftCard({
         <button
           type="button"
           onClick={onSchedulePress}
-          className="min-h-[44px] text-sm font-semibold text-[var(--on-primary)] rounded-xl px-4 py-2"
-          style={{ backgroundColor: 'var(--color-primary-600)' }}
+          className="min-h-[44px] text-sm font-semibold text-[var(--on-primary)] rounded-[var(--radius-card)] px-4 py-2 hover:opacity-90"
+          style={{ backgroundColor: 'var(--color-action-500)' }}
         >
           {scheduleLabel}
         </button>
@@ -62,7 +62,7 @@ export function MobileDraftCard({
           <button type="button" onClick={onLabelsPress} aria-label="Etiquetas">
             🏷
           </button>
-          <button type="button" onClick={onDatePress} aria-label="Plazo" className="flex items-center justify-center">
+          <button type="button" onClick={onDatePress} aria-label="Cuando" className="flex items-center justify-center">
             <CalendarIcon className="h-5 w-5" />
           </button>
           <button type="button" disabled className="opacity-50" aria-label="Checklist (pronto)">
@@ -80,7 +80,7 @@ export function MobileDraftCard({
             return (
               <span
                 key={label.id}
-                className="px-2 py-1 rounded-full text-xs"
+                className="px-2 py-1 rounded-[var(--radius-chip)] text-xs"
                 style={{ backgroundColor: 'var(--color-surface-elevated)', color: 'var(--color-text-muted)' }}
               >
                 {label.name}
@@ -90,12 +90,12 @@ export function MobileDraftCard({
         </div>
       )}
       {draft.due_at && (
-        <p className="text-xs text-[var(--color-text-muted)]">Plazo: {draft.due_at}</p>
+        <p className="text-xs text-[var(--color-text-muted)]">Cuando: {draft.due_at}</p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
           <span
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold border"
+            className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] px-3 py-1 font-semibold border"
             style={{ backgroundColor: 'var(--color-surface-elevated)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}
           >
             <span aria-hidden>✓</span>
@@ -107,18 +107,18 @@ export function MobileDraftCard({
           <button
             type="button"
             onClick={onCancel}
-            className="h-11 w-11 rounded-xl border text-lg text-[var(--color-text-muted)] hover:text-[var(--on-surface)] hover:border-[var(--color-primary-600)]"
+            className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border text-sm font-semibold text-[var(--color-text-muted)] hover:text-[var(--on-surface)] hover:border-[var(--color-primary-600)]"
             style={{ borderColor: 'var(--color-border)' }}
-            aria-label="Descartar borrador"
+            aria-label="Cancelar borrador"
           >
-            ✕
+            Cancelar
           </button>
           <button
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[var(--on-primary)] text-sm font-semibold shadow-sm disabled:opacity-60"
-            style={{ backgroundColor: 'var(--color-primary-600)' }}
+            className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius-card)] text-[var(--on-primary)] text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+            style={{ backgroundColor: 'var(--color-action-500)' }}
             aria-label="Crear tarea"
           >
             <span className="text-lg" aria-hidden>✓</span>

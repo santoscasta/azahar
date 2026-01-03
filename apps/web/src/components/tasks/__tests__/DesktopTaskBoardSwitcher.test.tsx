@@ -72,6 +72,7 @@ describe('DesktopTaskBoardSwitcher', () => {
     onSaveHeadingName: vi.fn(),
     onCancelHeadingEdit: vi.fn(),
     onDeleteHeading: vi.fn(),
+    onReorderHeadings: vi.fn(),
     onSelectArea: vi.fn(),
     onSelectProject: vi.fn(),
     renderTaskList: (tasks: Task[]) => <div>{tasks.length} tarea(s)</div>,

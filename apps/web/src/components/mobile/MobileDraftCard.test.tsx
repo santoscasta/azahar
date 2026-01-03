@@ -45,7 +45,7 @@ describe('MobileDraftCard', () => {
     fireEvent.click(getByLabelText('Etiquetas'))
     expect(callbacks.onLabelsPress).toHaveBeenCalled()
 
-    fireEvent.click(getByLabelText('Plazo'))
+    fireEvent.click(getByLabelText('Cuando'))
     expect(callbacks.onDatePress).toHaveBeenCalled()
 
     fireEvent.click(getByRole('button', { name: 'Crear tarea' }))

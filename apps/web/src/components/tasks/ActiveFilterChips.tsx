@@ -14,21 +14,16 @@ export default function ActiveFilterChips({ filters, compact = false, onRemove }
   return (
     <div className={`flex flex-wrap gap-2 ${compact ? 'px-1' : ''}`}>
       {filters.map(filter => (
-        <span
+        <button
           key={filter.key}
-          className="az-pill"
+          type="button"
+          onClick={() => onRemove(filter)}
+          className={`az-pill ${compact ? 'min-h-[44px] px-3 py-2' : ''}`}
           style={filter.type === 'label' ? getSoftLabelStyle(filter.color) : undefined}
         >
-          {filter.label}
-          <button
-            type="button"
-            onClick={() => onRemove(filter)}
-            className="text-xs font-bold"
-            style={{ color: 'var(--color-primary-600)' }}
-          >
-            ✕
-          </button>
-        </span>
+          <span>{filter.label}</span>
+          <span aria-hidden style={{ color: 'var(--color-primary-600)' }}>✕</span>
+        </button>
       ))}
     </div>
   )

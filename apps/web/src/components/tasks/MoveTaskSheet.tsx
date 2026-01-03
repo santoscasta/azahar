@@ -7,6 +7,7 @@ interface MoveTaskSheetProps {
   areas: Area[]
   projects: Project[]
   isProcessing?: boolean
+  titleOverride?: string
   onClose: () => void
   onSelect: (destination: { areaId: string | null; projectId: string | null }) => void
 }
@@ -17,6 +18,7 @@ export default function MoveTaskSheet({
   areas,
   projects,
   isProcessing = false,
+  titleOverride,
   onClose,
   onSelect,
 }: MoveTaskSheetProps) {
@@ -42,10 +44,10 @@ export default function MoveTaskSheet({
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
-        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-6 shadow-2xl border border-[var(--color-border)]">
+        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-6 space-y-6 shadow-2xl border border-[var(--color-border)]">
           <div>
             <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('task.move.title')}</p>
-            <p className="text-lg font-semibold text-[var(--on-surface)]">{task?.title || t('task.move.subtitle')}</p>
+            <p className="text-lg font-semibold text-[var(--on-surface)]">{titleOverride || task?.title || t('task.move.subtitle')}</p>
           </div>
           <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
             <section>
@@ -53,7 +55,7 @@ export default function MoveTaskSheet({
               <button
                 type="button"
                 onClick={() => handleSelection(null, null)}
-                className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                className="w-full min-h-[44px] flex items-center justify-between rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                 disabled={isProcessing}
               >
                 <span>{t('view.inbox')}</span>
@@ -65,7 +67,7 @@ export default function MoveTaskSheet({
                 <button
                   type="button"
                   onClick={() => handleSelection(area.id, null)}
-                  className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                  className="w-full min-h-[44px] flex items-center justify-between rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                   disabled={isProcessing}
                 >
                   <span>{area.name}</span>
@@ -76,7 +78,7 @@ export default function MoveTaskSheet({
                     key={project.id}
                     type="button"
                     onClick={() => handleSelection(project.area_id || null, project.id)}
-                    className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                    className="w-full min-h-[44px] flex items-center justify-between rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                     disabled={isProcessing}
                   >
                     <span className="pl-4">{project.name}</span>
@@ -93,7 +95,7 @@ export default function MoveTaskSheet({
                     key={project.id}
                     type="button"
                     onClick={() => handleSelection(null, project.id)}
-                    className="w-full min-h-[44px] flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
+                    className="w-full min-h-[44px] flex items-center justify-between rounded-[var(--radius-card)] border border-[var(--color-border)] px-4 py-3 text-left font-medium text-[var(--on-surface)] transition hover:border-[var(--color-primary-600)]"
                     disabled={isProcessing}
                   >
                     <span>{project.name}</span>
@@ -107,7 +109,7 @@ export default function MoveTaskSheet({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+              className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
             >
               {t('actions.cancel')}
             </button>

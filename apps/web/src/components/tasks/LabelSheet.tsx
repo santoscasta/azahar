@@ -37,7 +37,7 @@ export default function LabelSheet({
   return (
     <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
       <div className="absolute inset-x-0 bottom-6 px-4" onClick={(event) => event.stopPropagation()}>
-        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-2xl p-6 space-y-4 shadow-2xl">
+        <div className="mx-auto w-full max-w-md bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-6 space-y-4 shadow-2xl">
           <div className="flex items-center justify-between">
             <span className="text-lg font-semibold">{t('labels.title')}</span>
             <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl">
@@ -54,7 +54,7 @@ export default function LabelSheet({
                     type="button"
                     onClick={() => onToggle(label.id)}
                     aria-pressed={active}
-                    className={`flex-1 flex items-center justify-between text-left px-3 py-2 rounded-xl border ${
+                    className={`flex-1 flex items-center justify-between text-left px-3 py-2 rounded-[var(--radius-card)] border ${
                       active
                         ? 'bg-[var(--color-primary-100)] border-[var(--color-primary-200)]'
                         : 'bg-[var(--color-surface-elevated)] border-[var(--color-border)]'
@@ -81,11 +81,11 @@ export default function LabelSheet({
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
               placeholder={t('labels.placeholder')}
-              className="flex-1 rounded-2xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none"
+              className="flex-1 rounded-[var(--radius-container)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] outline-none"
             />
           <button
             type="submit"
-            className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-sm font-semibold disabled:opacity-60"
+            className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] text-sm font-semibold disabled:opacity-60"
             disabled={isSaving}
           >
             {t('actions.add')}
@@ -95,7 +95,7 @@ export default function LabelSheet({
           <button
             type="button"
             onClick={onConfirm}
-            className="min-h-[44px] px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-[var(--on-primary)] text-sm font-semibold"
+            className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] text-sm font-semibold"
           >
             {t('actions.done')}
           </button>
