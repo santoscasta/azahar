@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, ReactNode, KeyboardEvent, DragEvent } from 'react'
+import type { FormEvent, ReactNode, KeyboardEvent, DragEvent, CSSProperties } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
 import { getSoftLabelStyle } from '../../lib/colorUtils.js'
@@ -392,11 +392,11 @@ export default function TaskList({
           const labelCount = task.labels?.length ?? 0
           const deadlineFlag = buildDeadlineFlag(task.due_at)
           const deadlineStyle = deadlineFlag?.isAlert
-            ? {
+            ? ({
                 '--az-pill-border': 'var(--color-danger-500)',
                 '--az-pill-text': 'var(--color-danger-500)',
                 '--az-pill-bg': 'var(--color-accent-200)',
-              }
+              } as CSSProperties)
             : undefined
           const deadlineTitle = deadlineFlag ? `${t('gtd.due')}: ${deadlineFlag.label}` : ''
           const metaChips: ReactNode[] = []
@@ -518,7 +518,7 @@ export default function TaskList({
                       onChange={(event) => setEditingNotes(event.target.value)}
                       placeholder="Notas..."
                       onKeyDown={handleEditKeyDown}
-                      rows={variant === 'mobile' ? 3 : 2}
+                      rows={2}
                       className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none"
                     />
                     <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-[var(--color-text-muted)]">
@@ -605,13 +605,7 @@ export default function TaskList({
                     )}
                     <p className="text-xs text-[var(--color-text-muted)]">{t('task.autoSaveHint')}</p>
                   </form>
-                  <div
-                    className={`mt-4 ${
-                      variant === 'mobile'
-                        ? 'flex flex-wrap items-center gap-3'
-                        : 'flex items-center justify-end gap-3'
-                    }`}
-                  >
+                  <div className="mt-4 flex items-center justify-end gap-3">
                     {onArchiveTask && (
                       <button
                         type="button"

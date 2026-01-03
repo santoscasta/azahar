@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from '../../../tests/renderWithProviders'
 import MobileTasksPane from '../MobileTasksPane'
 import type { ActiveFilterDescriptor } from '../../../pages/tasksSelectors.js'
@@ -24,6 +24,8 @@ describe('MobileTasksPane', () => {
         onSearchClear={vi.fn()}
         searchInputRef={{ current: null }}
         onBack={vi.fn()}
+        onToggleSelect={vi.fn()}
+        isSelecting={false}
         isProjectView={false}
         isSearchView={false}
         selectedArea={null}
@@ -52,18 +54,8 @@ describe('MobileTasksPane', () => {
     expect(screen.getByText('Tablero móvil')).toBeDefined()
     expect(screen.getByText('Draft card')).toBeDefined()
 
-    const filterLabel = screen.getByText('Etiqueta')
-    const filterChip = filterLabel.closest('span')
-    if (!filterChip) throw new Error('Filter chip not found')
-    // The button is a sibling of the text node "Etiqueta" inside the span, 
-    // but getByText returns the element containing the text if it's a leaf, or the element itself.
-    // In ActiveFilterChips: {filter.label} <button>...</button>
-    // "Etiqueta" is a text node inside the span. 
-    // getByText('Etiqueta') usually matches the span if it contains only that text + elements?
-    // Actually, let's use within on the parent span.
-
-    const closeButton = within(filterChip).getByText('✕')
-    fireEvent.click(closeButton)
+    const filterChip = screen.getByRole('button', { name: 'Etiqueta' })
+    fireEvent.click(filterChip)
     expect(onRemoveFilter).toHaveBeenCalledWith(filters[0])
   })
 })

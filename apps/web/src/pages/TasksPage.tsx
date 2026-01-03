@@ -278,6 +278,13 @@ export default function TasksPage() {
     }, 3200)
   }, [])
 
+  const getNavigator = () => {
+    if (typeof globalThis === 'undefined') {
+      return undefined
+    }
+    return (globalThis as { navigator?: Navigator }).navigator
+  }
+
   const exitMultiSelect = () => {
     setIsMultiSelectMode(false)
     setSelectedTaskIds([])
@@ -932,8 +939,9 @@ export default function TasksPage() {
     const base =
       typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://azahar.app'
     const shareText = `${base}/tasks/${overflowTask.id}`
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(shareText).catch(() => null)
+    const nav = getNavigator()
+    if (nav?.clipboard?.writeText) {
+      nav.clipboard.writeText(shareText).catch(() => null)
     }
     setOverflowTaskId(null)
   }
@@ -1095,7 +1103,12 @@ export default function TasksPage() {
       return
     }
     try {
-      await navigator.clipboard.writeText(text)
+      const nav = getNavigator()
+      if (!nav?.clipboard?.writeText) {
+        setError('El portapapeles no está disponible')
+        return
+      }
+      await nav.clipboard.writeText(text)
       pushSuccessMessage('Tareas copiadas')
     } catch (_err) {
       setError('No se pudo copiar al portapapeles')
@@ -1108,11 +1121,16 @@ export default function TasksPage() {
       return
     }
     try {
-      if (typeof navigator !== 'undefined' && 'share' in navigator) {
-        await navigator.share({ title: 'Azahar', text })
+      const nav = getNavigator()
+      if (nav?.share) {
+        await nav.share({ title: 'Azahar', text })
         return
       }
-      await navigator.clipboard.writeText(text)
+      if (!nav?.clipboard?.writeText) {
+        setError('El portapapeles no está disponible')
+        return
+      }
+      await nav.clipboard.writeText(text)
       pushSuccessMessage('Tareas copiadas')
     } catch (_err) {
       setError('No se pudo compartir')
@@ -1120,12 +1138,13 @@ export default function TasksPage() {
   }
 
   const handlePasteTasks = async () => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
+    const nav = getNavigator()
+    if (!nav?.clipboard?.readText) {
       setError('El portapapeles no está disponible')
       return
     }
     try {
-      const text = await navigator.clipboard.readText()
+      const text = await nav.clipboard.readText()
       const lines = text
         .split(/\r?\n/)
         .map(line => line.replace(/^[-*]\s+/, '').trim())
