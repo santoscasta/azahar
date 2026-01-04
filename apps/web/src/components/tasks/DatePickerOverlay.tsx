@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { formatISODate, parseISODate } from '../../lib/dateUtils.js'
+import { formatISODate } from '../../lib/dateUtils.js'
 import { useTranslations } from '../../App.js'
 import AnchoredPopover from './AnchoredPopover.js'
 
@@ -56,21 +56,13 @@ export default function DatePickerOverlay({
 
   const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
   const monthLabel = month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-  const baseDate = parseISODate(todayISO) ?? new Date()
-  const weekendDate = new Date(baseDate)
-  const dayOfWeek = baseDate.getDay()
-  const daysUntilWeekend = dayOfWeek === 6 ? 0 : 6 - dayOfWeek
-  weekendDate.setDate(weekendDate.getDate() + daysUntilWeekend)
-  const weekendISO = formatISODate(weekendDate)
-  const nextWeekDate = new Date(baseDate)
-  nextWeekDate.setDate(nextWeekDate.getDate() + 7)
-  const nextWeekISO = formatISODate(nextWeekDate)
 
   const quickOptions = [
     { id: 'today', label: t('datePicker.option.today'), value: todayISO },
     { id: 'tomorrow', label: t('datePicker.option.tomorrow'), value: tomorrowISO },
-    { id: 'weekend', label: t('datePicker.option.weekend'), value: weekendISO },
-    { id: 'nextweek', label: t('datePicker.option.nextWeek'), value: nextWeekISO },
+    { id: 'someday', label: t('gtd.someday'), value: 'someday' },
+    { id: 'waiting', label: t('view.waiting'), value: 'waiting' },
+    { id: 'reference', label: t('view.reference'), value: 'reference' },
     { id: 'clear', label: t('datePicker.option.clear'), value: '' },
   ]
 
@@ -142,11 +134,10 @@ export default function DatePickerOverlay({
               key={option.id}
               type="button"
               onClick={() => setPendingDate(option.value)}
-              className={`px-3 py-1.5 rounded-[var(--radius-chip)] text-sm font-medium border transition ${
-                pendingDate === option.value
-                  ? 'border-[var(--color-action-500)] text-[var(--color-action-500)] bg-[var(--color-accent-200)]'
-                  : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]'
-              }`}
+              className={`px-3 py-1.5 rounded-[var(--radius-chip)] text-sm font-medium border transition ${pendingDate === option.value
+                ? 'border-[var(--color-action-500)] text-[var(--color-action-500)] bg-[var(--color-accent-200)]'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]'
+                }`}
             >
               {option.label}
             </button>
@@ -185,15 +176,14 @@ export default function DatePickerOverlay({
                 key={day.iso}
                 type="button"
                 onClick={() => setPendingDate(day.iso)}
-                className={`h-11 w-11 mx-auto rounded-[var(--radius-card)] text-sm font-semibold transition flex items-center justify-center ${
-                  pendingDate === day.iso
-                    ? 'bg-[var(--color-action-500)] text-[var(--on-primary)]'
-                    : day.isToday
-                      ? 'border border-[var(--color-primary-200)] text-[var(--color-primary-600)]'
-                      : day.inMonth
-                        ? 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
-                        : 'text-[var(--color-text-subtle)]'
-                }`}
+                className={`h-11 w-11 mx-auto rounded-[var(--radius-card)] text-sm font-semibold transition flex items-center justify-center ${pendingDate === day.iso
+                  ? 'bg-[var(--color-action-500)] text-[var(--on-primary)]'
+                  : day.isToday
+                    ? 'border border-[var(--color-primary-200)] text-[var(--color-primary-600)]'
+                    : day.inMonth
+                      ? 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                      : 'text-[var(--color-text-subtle)]'
+                  }`}
               >
                 {day.label}
               </button>

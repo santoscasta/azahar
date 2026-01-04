@@ -57,6 +57,20 @@ type TranslationKey =
   | 'sidebar.newProject.desc'
   | 'sidebar.newArea'
   | 'sidebar.newArea.desc'
+  | 'search.title'
+  | 'search.placeholder'
+  | 'search.noResults'
+  | 'search.navigate'
+  | 'search.type.task'
+  | 'search.type.project'
+  | 'search.type.area'
+  | 'search.type.view'
+  | 'search.clear'
+  | 'search.suggestions.title'
+  | 'search.suggestions.empty'
+  | 'search.suggestions.project'
+  | 'search.suggestions.noProject'
+  | 'gtd.someday'
   | 'gtd.title'
   | 'gtd.subtitle'
   | 'gtd.switchClassic'
@@ -214,12 +228,6 @@ type TranslationKey =
   | 'multiSelect.actions.paste'
   | 'agenda.title'
   | 'mobile.search.placeholder'
-  | 'search.placeholder'
-  | 'search.clear'
-  | 'search.suggestions.title'
-  | 'search.suggestions.empty'
-  | 'search.suggestions.project'
-  | 'search.suggestions.noProject'
   | 'datePicker.option.today'
   | 'datePicker.option.tomorrow'
   | 'datePicker.option.weekend'
@@ -380,6 +388,20 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'help.widgets.lock.title': 'Widget en Lock Screen',
     'help.widgets.lock.description': 'Acceso rápido a Hoy desde la pantalla de bloqueo.',
     'help.footer': 'Azahar mantiene tu sistema ligero: captura rápido, decide con calma.',
+    'search.title': 'Búsqueda rápida',
+    'search.placeholder': 'Buscar tareas, proyectos, áreas...',
+    'search.noResults': 'No se encontraron resultados para',
+    'search.navigate': 'Enter para ir',
+    'search.type.task': 'Tarea',
+    'search.type.project': 'Proyecto',
+    'search.type.area': 'Área',
+    'search.type.view': 'Vista',
+    'search.clear': 'Limpiar',
+    'search.suggestions.title': 'Sugerencias',
+    'search.suggestions.empty': 'No hay sugerencias',
+    'search.suggestions.project': 'Proyecto',
+    'search.suggestions.noProject': 'Sin proyecto',
+    'gtd.someday': 'Algún día',
     'gtd.quickCapture.title': 'Captura rápida',
     'gtd.quickCapture.subtitle': 'Inspírate en Things: escribe primero, ordena después.',
     'gtd.quickCapture.placeholder': 'Captura en un solo campo: “Enviar briefing a Juan mañana”',
@@ -498,12 +520,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'multiSelect.actions.paste': 'Pegar',
     'agenda.title': 'Agenda',
     'mobile.search.placeholder': 'Búsqueda rápida',
-    'search.placeholder': 'Buscar por título, notas o proyecto...',
-    'search.clear': 'Cerrar búsqueda',
-    'search.suggestions.title': 'Coincidencias',
-    'search.suggestions.empty': 'Sigue escribiendo para encontrar tareas que coincidan con',
-    'search.suggestions.project': 'Proyecto',
-    'search.suggestions.noProject': 'Sin proyecto',
     'datePicker.option.today': 'Hoy',
     'datePicker.option.tomorrow': 'Mañana',
     'datePicker.option.weekend': 'Este fin',
@@ -663,6 +679,20 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'help.widgets.lock.title': 'Lock screen widget',
     'help.widgets.lock.description': 'Quick access to Today from the lock screen.',
     'help.footer': 'Azahar keeps your system light: capture fast, decide calmly.',
+    'search.title': 'Quick Find',
+    'search.placeholder': 'Search tasks, projects, areas...',
+    'search.noResults': 'No results found for',
+    'search.navigate': 'Press Enter to go',
+    'search.type.task': 'Task',
+    'search.type.project': 'Project',
+    'search.type.area': 'Area',
+    'search.type.view': 'View',
+    'search.clear': 'Clear',
+    'search.suggestions.title': 'Suggestions',
+    'search.suggestions.empty': 'No suggestions',
+    'search.suggestions.project': 'Project',
+    'search.suggestions.noProject': 'No project',
+    'gtd.someday': 'Someday',
     'gtd.quickCapture.title': 'Quick capture',
     'gtd.quickCapture.subtitle': 'Inspired by Things: write first, sort later.',
     'gtd.quickCapture.placeholder': 'Capture in one field: “Send briefing to Sarah tomorrow”',
@@ -781,12 +811,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'multiSelect.actions.paste': 'Paste',
     'agenda.title': 'Agenda',
     'mobile.search.placeholder': 'Quick search',
-    'search.placeholder': 'Search by title, notes, or project...',
-    'search.clear': 'Close search',
-    'search.suggestions.title': 'Matches',
-    'search.suggestions.empty': 'Keep typing to find tasks that match',
-    'search.suggestions.project': 'Project',
-    'search.suggestions.noProject': 'No project',
     'datePicker.option.today': 'Today',
     'datePicker.option.tomorrow': 'Tomorrow',
     'datePicker.option.weekend': 'This weekend',

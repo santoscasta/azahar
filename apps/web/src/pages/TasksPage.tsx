@@ -69,6 +69,7 @@ import QuickHeadingForm from '../components/tasks/QuickHeadingForm.js'
 import ActiveFilterChips from '../components/tasks/ActiveFilterChips.js'
 import ErrorBanner from '../components/tasks/ErrorBanner.js'
 import StatusBanner from '../components/tasks/StatusBanner.js'
+import QuickFindOverlay, { type QuickFindResult } from '../components/tasks/QuickFindOverlay.js'
 import TaskCreationModal from '../components/tasks/TaskCreationModal.js'
 import TaskDatePickerOverlay from '../components/tasks/TaskDatePickerOverlay.js'
 import LabelSheet from '../components/tasks/LabelSheet.js'
@@ -185,6 +186,8 @@ export default function TasksPage() {
   const [inlineLabelName, setInlineLabelName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
+  const [isQuickFindOpen, setIsQuickFindOpen] = useState(false)
+  const [quickFindQuery, setQuickFindQuery] = useState('')
   const [activeQuickView, setActiveQuickView] = useState<QuickViewId>('inbox')
   const [newHeadingName, setNewHeadingName] = useState('')
   const [headingEditingId, setHeadingEditingId] = useState<string | null>(null)
@@ -1927,20 +1930,9 @@ export default function TasksPage() {
   }
 
   const openDesktopQuickFind = useCallback(() => {
-    if (isFocusMode) {
-      setIsFocusMode(false)
-    }
-    const focusInput = () => {
-      desktopSearchInputRef.current?.focus()
-    }
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(focusInput)
-      })
-      return
-    }
-    setTimeout(focusInput, 0)
-  }, [isFocusMode])
+    setIsQuickFindOpen(true)
+    setQuickFindQuery('')
+  }, [])
 
   useEffect(() => {
     if (useMobileExperience || typeof window === 'undefined') {
@@ -1959,7 +1951,63 @@ export default function TasksPage() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [openDesktopQuickFind, useMobileExperience])
+  }, [openDesktopQuickFind, useMobileExperience, isQuickFindOpen])
+
+  const quickFindResults = useMemo(() => {
+    const q = quickFindQuery.toLowerCase().trim()
+    if (!q) return []
+
+    const res: QuickFindResult[] = []
+
+    // Views
+    quickLists.forEach(l => {
+      if (l.label.toLowerCase().includes(q)) {
+        res.push({ id: l.id, type: 'view', title: l.label, payload: l.id })
+      }
+    })
+
+    // Projects
+    projects.forEach(p => {
+      if (p.name.toLowerCase().includes(q)) {
+        res.push({ id: p.id, type: 'project', title: p.name, payload: p })
+      }
+    })
+
+    // Areas
+    areas.forEach(a => {
+      if (a.name.toLowerCase().includes(q)) {
+        res.push({ id: a.id, type: 'area', title: a.name, payload: a })
+      }
+    })
+
+    // Tasks (Top 10)
+    tasks.filter(t => t.title.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q))
+      .slice(0, 10)
+      .forEach(t => {
+        res.push({ id: t.id, type: 'task', title: t.title, subtitle: t.notes || undefined, payload: t })
+      })
+
+    return res
+  }, [quickFindQuery, tasks, projects, areas, quickLists])
+
+  const handleQuickFindSelect = (result: QuickFindResult) => {
+    setIsQuickFindOpen(false)
+    if (result.type === 'view') {
+      applyViewPreset(result.payload as QuickViewId)
+    } else if (result.type === 'project') {
+      setSelectedProjectId(result.id)
+      setSelectedAreaId(null)
+      setActiveQuickView('inbox')
+    } else if (result.type === 'area') {
+      setSelectedAreaId(result.id)
+      setSelectedProjectId(null)
+      setActiveQuickView('inbox')
+    } else if (result.type === 'task') {
+      const task = result.payload as Task
+      highlightTask(task.id)
+      handleEditTask(task)
+    }
+  }
 
   const formatDateForLabel = (value: string) => {
     if (!value) {
@@ -2011,7 +2059,8 @@ export default function TasksPage() {
   }
 
   const applyPickedDate = (value: string | null) => {
-    const normalized = value || ''
+    const isSomeday = value === 'someday'
+    const normalized = isSomeday ? '' : (value || '')
     if (datePickerIntent === 'deadline') {
       if (datePickerTarget === 'new') {
         updateTaskDraft('deadline_at', normalized)
@@ -2023,7 +2072,7 @@ export default function TasksPage() {
     } else {
       if (datePickerTarget === 'new') {
         updateTaskDraft('due_at', normalized)
-        const nextView = determineViewFromDate(normalized, todayISO, taskDraft.view)
+        const nextView = isSomeday ? 'someday' : determineViewFromDate(normalized, todayISO, taskDraft.view)
         updateTaskDraft('view', nextView)
         applyQuickViewLabels(nextView)
         updateTaskDraft('status', nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
@@ -2032,7 +2081,7 @@ export default function TasksPage() {
       } else if (datePickerTarget === 'draft') {
         updateMobileDraft(prev => {
           if (!prev) return prev
-          const nextView = determineViewFromDate(normalized, todayISO, prev.view)
+          const nextView = isSomeday ? 'someday' : determineViewFromDate(normalized, todayISO, prev.view)
           return {
             ...prev,
             due_at: normalized || null,
@@ -4292,7 +4341,6 @@ export default function TasksPage() {
             isSearchActive={isQuickFindActive}
             onHome={handleMobileNavHome}
             onSearch={handleOpenMobileSearch}
-            onNewTask={handleMobileNewTask}
           />
         )}
         {renderMobileTaskEditSheet()}
@@ -4379,17 +4427,16 @@ export default function TasksPage() {
                 isSearchActive={isQuickFindActive}
                 onHome={handleMobileNavHome}
                 onSearch={handleOpenMobileSearch}
-                onNewTask={handleMobileNewTask}
               />
             )}
-            {!showMobileHome && !isMultiSelectMode && (
+            {useMobileExperience && !isMultiSelectMode && (
               <MobileFab
-                isHomeView={false}
+                isHomeView={showMobileHome}
                 onTapHome={handleMobileNewTask}
                 onTapDetail={() => startMobileTaskDraft(activeQuickView)}
                 onDropInbox={() => startMobileTaskDraft('inbox')}
-                currentLabel={currentQuickView.label}
-                currentIcon={quickViewEmojis[activeQuickView]}
+                currentLabel={showMobileHome ? undefined : currentQuickView.label}
+                currentIcon={showMobileHome ? undefined : quickViewEmojis[activeQuickView]}
                 onDropCurrent={() => startMobileTaskDraft(activeQuickView)}
               />
             )}
@@ -4586,6 +4633,14 @@ export default function TasksPage() {
           onSelectDate={applyPickedDate}
         />
         {renderMultiSelectBar()}
+        <QuickFindOverlay
+          open={isQuickFindOpen}
+          onClose={() => setIsQuickFindOpen(false)}
+          query={quickFindQuery}
+          onQueryChange={setQuickFindQuery}
+          results={quickFindResults}
+          onSelect={handleQuickFindSelect}
+        />
       </main>
     </DragDropContext>
   )

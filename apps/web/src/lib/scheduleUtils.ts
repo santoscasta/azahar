@@ -26,6 +26,9 @@ export function determineViewFromDate(
   if (!value) {
     return fallback === 'someday' || fallback === 'waiting' || fallback === 'reference' ? fallback : 'anytime'
   }
+  if (value === 'someday') {
+    return 'someday'
+  }
   if (value <= todayISO) {
     return 'today'
   }

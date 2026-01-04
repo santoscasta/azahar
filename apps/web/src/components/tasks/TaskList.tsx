@@ -13,6 +13,7 @@ import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
 import { parseISODate, formatISODate } from '../../lib/dateUtils.js'
 import { sortTasks, type TaskSortMode } from '../../lib/taskSorting.js'
 import { useTranslations } from '../../App.js'
+import { TaskListSkeleton } from './TaskSkeleton.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
 import { getLabelQuickView, normalizeDate, getTaskView } from '../../pages/tasksSelectors.js'
 
@@ -365,22 +366,10 @@ export default function TaskList({
   }, [editingId, autoSaveOnBlur, triggerAutoSave])
 
   if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
-    const skeletonCount = variant === 'mobile' ? 5 : 6
     return (
-      <div className="p-6 space-y-3">
+      <div className="p-4 space-y-4">
         <span className="sr-only">{t('tasks.loading')}</span>
-        {Array.from({ length: skeletonCount }).map((_, index) => (
-          <div
-            key={`skeleton-${index}`}
-            className="flex items-center gap-3 rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 animate-pulse"
-          >
-            <div className="h-6 w-6 rounded-full bg-[var(--color-surface-elevated)]" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3 w-1/2 rounded-full bg-[var(--color-surface-elevated)]" />
-              <div className="h-2 w-1/3 rounded-full bg-[var(--color-surface-elevated)]" />
-            </div>
-          </div>
-        ))}
+        <TaskListSkeleton count={variant === 'mobile' ? 6 : 8} />
       </div>
     )
   }
@@ -389,16 +378,23 @@ export default function TaskList({
     if (!showEmptyState) {
       return null
     }
-    const emptyClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
     const emptyMessage = filteredViewActive ? t('tasks.empty.filtered') : t('tasks.empty')
     return (
-      <div className={`${emptyClass} space-y-4`}>
-        <p>{emptyMessage}</p>
+      <div className={`flex flex-col items-center justify-center ${variant === 'mobile' ? 'py-16 px-6' : 'py-24 px-10'} text-center space-y-6`}>
+        <div className="h-20 w-20 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center text-3xl opacity-50 mb-2">
+          📭
+        </div>
+        <div className="max-w-[280px] space-y-2">
+          <p className="text-lg font-semibold text-[var(--on-surface)]">{emptyMessage}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {filteredViewActive ? t('tasks.empty.cta') : t('gtd.focus.empty')}
+          </p>
+        </div>
         {onCreateTask && (
           <button
             type="button"
             onClick={onCreateTask}
-            className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+            className="az-btn az-btn-primary min-h-[44px] px-6 py-2 shadow-lg active:scale-95 transition-transform"
           >
             {t('tasks.empty.cta')}
           </button>
@@ -433,20 +429,20 @@ export default function TaskList({
     const checklistItems =
       task.checklist_items && task.checklist_items.length > 0
         ? task.checklist_items
-            .slice()
-            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-            .map(item => ({
-              id: item.id,
-              text: item.text,
-              completed: item.completed,
-              persisted: true,
-            }))
-        : legacyContent.items.map((item, index) => ({
-            id: item.id || `${task.id}-legacy-${index}`,
+          .slice()
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map(item => ({
+            id: item.id,
             text: item.text,
             completed: item.completed,
-            persisted: false,
+            persisted: true,
           }))
+        : legacyContent.items.map((item, index) => ({
+          id: item.id || `${task.id}-legacy-${index}`,
+          text: item.text,
+          completed: item.completed,
+          persisted: false,
+        }))
     const taskProject = task.project_id ? projects.find(project => project.id === task.project_id) || null : null
     const taskArea = task.area_id ? areas.find(area => area.id === task.area_id) || null : null
     const taskHeading = task.heading_id ? headings.find(heading => heading.id === task.heading_id) || null : null
@@ -460,14 +456,12 @@ export default function TaskList({
     const showInlineEditor = isEditing && variant === 'desktop'
     const baseLiClass =
       variant === 'mobile'
-        ? `p-4 rounded-[var(--radius-container)] border ${
-            task.status === 'done' ? 'border-transparent bg-transparent ' : 'border-[var(--color-border)] bg-[var(--color-surface)] '
-          } transition-colors`
-        : `group px-3 py-2 min-h-[48px] ${
-            isEditingSelected
-              ? 'bg-[var(--color-surface-elevated)] border-l-4 border-l-[var(--color-action-500)]'
-              : 'hover:bg-[var(--color-surface-elevated)]'
-          } transition-colors`
+        ? `p-4 rounded-[var(--radius-container)] border ${task.status === 'done' ? 'border-transparent bg-transparent ' : 'border-[var(--color-border)] bg-[var(--color-surface)] '
+        } transition-colors`
+        : `group px-3 py-2 min-h-[48px] ${isEditingSelected
+          ? 'bg-[var(--color-surface-elevated)] border-l-4 border-l-[var(--color-action-500)]'
+          : 'hover:bg-[var(--color-surface-elevated)]'
+        } transition-colors`
     const dragAllowed = dragEnabled && !selectionEnabled && (isNativeDrag || useDnd)
     const dragClass = dragAllowed && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''
     const draggingClass = (useDnd ? !!dndSnapshot?.isDragging : draggingTaskId === task.id) ? 'opacity-60' : ''
@@ -480,22 +474,19 @@ export default function TaskList({
         ? 'flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-muted)]'
         : 'flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-muted)]'
     const checkboxClass = selectionEnabled
-      ? `relative ${variant === 'mobile' ? 'h-7 w-7' : 'h-6 w-6'} rounded-full border-2 flex items-center justify-center overflow-visible transition ${
-          isSelectedForBulk
-            ? 'bg-[var(--color-action-500)] border-[var(--color-action-500)] text-[var(--on-primary)]'
-            : 'border-[var(--color-border)] text-transparent'
-        }`
+      ? `relative ${variant === 'mobile' ? 'h-7 w-7' : 'h-6 w-6'} rounded-full border-2 flex items-center justify-center overflow-visible transition ${isSelectedForBulk
+        ? 'bg-[var(--color-action-500)] border-[var(--color-action-500)] text-[var(--on-primary)]'
+        : 'border-[var(--color-border)] text-transparent'
+      }`
       : variant === 'mobile'
-        ? `relative h-7 w-7 rounded-full border-2 flex items-center justify-center overflow-visible transition ${
-            task.status === 'done'
-              ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-              : 'border-[var(--color-border)] text-transparent'
-          }`
-        : `relative h-6 w-6 rounded-full border-2 flex items-center justify-center overflow-visible transition ${
-            task.status === 'done'
-              ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-              : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
-          }`
+        ? `relative h-7 w-7 rounded-full border-2 flex items-center justify-center overflow-visible transition ${task.status === 'done'
+          ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
+          : 'border-[var(--color-border)] text-transparent'
+        }`
+        : `relative h-6 w-6 rounded-full border-2 flex items-center justify-center overflow-visible transition ${task.status === 'done'
+          ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
+          : 'border-[var(--color-border)] group-hover:border-[var(--color-primary-600)] text-transparent'
+        }`
     const handleRowClick = () => {
       if (selectionEnabled) {
         onToggleSelection?.(task.id)
@@ -505,8 +496,8 @@ export default function TaskList({
     }
     const compactActivationProps = !isEditing
       ? {
-          onClick: handleRowClick,
-        }
+        onClick: handleRowClick,
+      }
       : {}
     const useInlineLayout = true
     const showInlineMeta = variant === 'desktop'
@@ -519,10 +510,10 @@ export default function TaskList({
     const deadlineFlag = buildDeadlineFlag(task.deadline_at)
     const deadlineStyle = deadlineFlag?.isAlert
       ? ({
-          '--az-pill-border': 'var(--color-danger-500)',
-          '--az-pill-text': 'var(--color-danger-500)',
-          '--az-pill-bg': 'var(--color-accent-200)',
-        } as CSSProperties)
+        '--az-pill-border': 'var(--color-danger-500)',
+        '--az-pill-text': 'var(--color-danger-500)',
+        '--az-pill-bg': 'var(--color-accent-200)',
+      } as CSSProperties)
       : undefined
     const deadlineTitle = deadlineFlag ? `${t('gtd.due')}: ${deadlineFlag.label}` : ''
     const metaChips: ReactNode[] = []
@@ -603,12 +594,12 @@ export default function TaskList({
     const dndProps = useDnd && dndProvided ? { ...dndProvided.draggableProps, ...dndProvided.dragHandleProps } : {}
     const nativeProps = isNativeDrag
       ? {
-          draggable: dragAllowed && !isEditing,
-          onDragStart: (event: DragEvent<HTMLLIElement>) => handleDragStart(event, task),
-          onDragEnd: handleDragEnd,
-          onDragOver: (event: DragEvent<HTMLLIElement>) => handleReorderDragOver(event, task.id),
-          onDrop: (event: DragEvent<HTMLLIElement>) => handleReorderDrop(event, task.id),
-        }
+        draggable: dragAllowed && !isEditing,
+        onDragStart: (event: DragEvent<HTMLLIElement>) => handleDragStart(event, task),
+        onDragEnd: handleDragEnd,
+        onDragOver: (event: DragEvent<HTMLLIElement>) => handleReorderDragOver(event, task.id),
+        onDrop: (event: DragEvent<HTMLLIElement>) => handleReorderDrop(event, task.id),
+      }
       : {}
 
     return (
@@ -740,11 +731,10 @@ export default function TaskList({
                       type="button"
                       disabled={quickViewPending}
                       onClick={() => onApplyQuickView(task, action.id as 'waiting' | 'someday' | 'reference')}
-                      className={`inline-flex items-center gap-1 rounded-[var(--radius-chip)] border px-3 py-1 font-semibold transition ${
-                        action.active
-                          ? 'border-[var(--color-action-500)] bg-[var(--color-accent-200)] text-[var(--color-action-500)]'
-                          : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-action-500)]'
-                      }`}
+                      className={`inline-flex items-center gap-1 rounded-[var(--radius-chip)] border px-3 py-1 font-semibold transition ${action.active
+                        ? 'border-[var(--color-action-500)] bg-[var(--color-accent-200)] text-[var(--color-action-500)]'
+                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-action-500)]'
+                        }`}
                     >
                       <span>{action.icon}</span>
                       <span>{action.label}</span>
@@ -856,9 +846,8 @@ export default function TaskList({
                     </span>
                   ) : null}
                   <p
-                    className={`${titleClass} ${
-                      task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
-                    } truncate flex-1 min-w-0`}
+                    className={`${titleClass} ${task.status === 'done' ? 'text-[var(--color-text-subtle)] line-through' : 'text-[var(--on-surface)]'
+                      } truncate flex-1 min-w-0`}
                   >
                     {task.title}
                   </p>
@@ -1006,11 +995,10 @@ export default function TaskList({
                           aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completada'}
                         >
                           <span
-                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                              item.completed
-                                ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-                                : 'border-[var(--color-border)] text-transparent'
-                            }`}
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${item.completed
+                              ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
+                              : 'border-[var(--color-border)] text-transparent'
+                              }`}
                           >
                             ✓
                           </span>
@@ -1018,11 +1006,10 @@ export default function TaskList({
                       ) : (
                         <span className="min-h-[44px] min-w-[44px] flex items-center justify-center">
                           <span
-                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                              item.completed
-                                ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
-                                : 'border-[var(--color-border)] text-transparent'
-                            }`}
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${item.completed
+                              ? 'bg-[var(--color-done-500)] border-[var(--color-done-500)] text-white'
+                              : 'border-[var(--color-border)] text-transparent'
+                              }`}
                           >
                             ✓
                           </span>
@@ -1057,9 +1044,8 @@ export default function TaskList({
             <ul
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className={`${variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col divide-y divide-[var(--color-divider)]'} ${
-                snapshot.isDraggingOver ? 'ring-1 ring-[var(--color-primary-200)]' : ''
-              }`}
+              className={`${variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col divide-y divide-[var(--color-divider)]'} ${snapshot.isDraggingOver ? 'ring-1 ring-[var(--color-primary-200)]' : ''
+                }`}
             >
               {sortedTasks.map((task, index) => {
                 const isEditing = editingId === task.id

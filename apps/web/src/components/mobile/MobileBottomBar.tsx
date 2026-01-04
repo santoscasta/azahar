@@ -8,7 +8,6 @@ interface MobileBottomBarProps {
   isSearchActive: boolean
   onHome: () => void
   onSearch: () => void
-  onNewTask: () => void
 }
 
 interface NavButtonProps {
@@ -27,17 +26,15 @@ function NavButton({ label, icon, active, badge, helperText, disabled, onClick }
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-16 flex-col items-center justify-center gap-1 text-xs font-semibold transition ${
-        active ? 'text-[var(--color-accent-500)]' : 'text-[var(--color-text-muted)]'
-      } ${disabled ? 'opacity-40 cursor-not-allowed' : 'active:translate-y-[1px]'}`}
+      className={`flex h-16 flex-col items-center justify-center gap-1 text-xs font-semibold transition ${active ? 'text-[var(--color-accent-500)]' : 'text-[var(--color-text-muted)]'
+        } ${disabled ? 'opacity-40 cursor-not-allowed' : 'active:translate-y-[1px]'}`}
       aria-pressed={active}
     >
       <span
-        className={`relative h-11 w-11 rounded-[var(--radius-card)] border border-[var(--color-border)] flex items-center justify-center transition ${
-          active
-            ? 'bg-[var(--color-accent-50)] border-[var(--color-accent-200)]'
-            : 'bg-[var(--color-surface)]'
-        } ${disabled ? '' : 'active:scale-95'}`}
+        className={`relative h-11 w-11 rounded-[var(--radius-card)] border border-[var(--color-border)] flex items-center justify-center transition ${active
+          ? 'bg-[var(--color-accent-50)] border-[var(--color-accent-200)]'
+          : 'bg-[var(--color-surface)]'
+          } ${disabled ? '' : 'active:scale-95'}`}
       >
         {icon}
         {badge ? (
@@ -58,7 +55,6 @@ export default function MobileBottomBar({
   isSearchActive,
   onHome,
   onSearch,
-  onNewTask,
 }: MobileBottomBarProps) {
   const { t } = useTranslations()
   return (
@@ -66,18 +62,9 @@ export default function MobileBottomBar({
       className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-md px-6 py-3"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
     >
-      <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
+      <div className="mx-auto max-w-2xl flex items-center justify-around gap-12">
         <NavButton label={t('mobile.nav.home')} icon={<HomeIcon />} active={isHomeActive} onClick={onHome} />
         <NavButton label={t('mobile.nav.search')} icon={<SearchIcon />} active={isSearchActive} onClick={onSearch} />
-        <button
-          type="button"
-          onClick={onNewTask}
-          className="flex-1 max-w-[140px] flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] py-3 text-sm font-semibold  transition hover:opacity-90 active:scale-[0.98]"
-          aria-label={t('mobile.nav.newTask')}
-        >
-          <span className="text-lg leading-none">＋</span>
-          <span>{t('mobile.nav.new')}</span>
-        </button>
       </div>
     </div>
   )
