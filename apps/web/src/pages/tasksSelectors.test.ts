@@ -42,7 +42,6 @@ describe('tasksSelectors', () => {
     expect(getTaskView({ ...baseTask, due_at: '2024-05-09' }, todayISO)).toBe('today')
     expect(getTaskView({ ...baseTask, due_at: '2024-05-12' }, todayISO)).toBe('upcoming')
     expect(getTaskView({ ...baseTask, project_id: 'p1' }, todayISO)).toBe('anytime')
-    expect(getTaskView({ ...baseTask, quick_view: 'today' }, todayISO)).toBe('today')
   })
 
   it('computes quick view stats and filters by context', () => {

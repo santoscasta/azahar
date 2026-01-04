@@ -52,6 +52,11 @@ type TranslationKey =
   | 'sidebar.areas'
   | 'sidebar.projects'
   | 'sidebar.emptyAreas'
+  | 'sidebar.newList'
+  | 'sidebar.newProject'
+  | 'sidebar.newProject.desc'
+  | 'sidebar.newArea'
+  | 'sidebar.newArea.desc'
   | 'gtd.title'
   | 'gtd.subtitle'
   | 'gtd.switchClassic'
@@ -121,6 +126,7 @@ type TranslationKey =
   | 'tasks.empty'
   | 'tasks.empty.filtered'
   | 'tasks.empty.cta'
+  | 'tasks.loading'
   | 'gtd.due'
   | 'auth.title.login'
   | 'auth.title.signup'
@@ -160,6 +166,12 @@ type TranslationKey =
   | 'mobile.nav.new'
   | 'mobile.nav.newTask'
   | 'mobile.upcoming.addAfterToday'
+  | 'mobile.creation.task.title'
+  | 'mobile.creation.task.desc'
+  | 'mobile.creation.project.title'
+  | 'mobile.creation.project.desc'
+  | 'mobile.creation.area.title'
+  | 'mobile.creation.area.desc'
   | 'view.inbox'
   | 'view.today'
   | 'view.upcoming'
@@ -178,6 +190,7 @@ type TranslationKey =
   | 'view.desc.reference'
   | 'view.desc.logbook'
   | 'view.desc.search'
+  | 'actions.back'
   | 'actions.close'
   | 'actions.cancel'
   | 'actions.ok'
@@ -186,8 +199,11 @@ type TranslationKey =
   | 'actions.focusMode'
   | 'actions.showSidebar'
   | 'actions.clear'
+  | 'actions.retry'
   | 'actions.add'
   | 'actions.done'
+  | 'actions.save'
+  | 'actions.rename'
   | 'schedule.title'
   | 'schedule.hint'
   | 'multiSelect.select'
@@ -238,6 +254,10 @@ type TranslationKey =
   | 'task.edit.titlePlaceholder'
   | 'task.edit.notesPlaceholder'
   | 'task.edit.when'
+  | 'task.singular'
+  | 'task.plural'
+  | 'task.project.none'
+  | 'task.section.none'
   | 'task.quickView.title'
   | 'task.loose'
   | 'task.labels'
@@ -321,6 +341,11 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.areas': 'Áreas',
     'sidebar.projects': 'Proyectos',
     'sidebar.emptyAreas': 'Crea tu primera área para organizarte.',
+    'sidebar.newList': 'Nueva lista',
+    'sidebar.newProject': 'Nuevo proyecto',
+    'sidebar.newProject.desc': 'Define un objetivo y avanza tarea a tarea.',
+    'sidebar.newArea': 'Nueva área',
+    'sidebar.newArea.desc': 'Agrupa proyectos por responsabilidades.',
     'gtd.title': 'Comando GTD',
     'gtd.subtitle': 'Una sala de control para capturar, aclarar, organizar y ejecutar sin perder contexto.',
     'gtd.switchClassic': 'Volver a la vista clásica',
@@ -390,6 +415,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'tasks.empty': 'No hay tareas todavía. Captura la primera cuando quieras.',
     'tasks.empty.filtered': 'No hay tareas que coincidan con esta vista. Puedes ajustar los filtros cuando quieras.',
     'tasks.empty.cta': 'Crear tarea',
+    'tasks.loading': 'Cargando tareas...',
     'gtd.due': 'Fecha límite',
     'auth.title.login': 'Inicia sesión',
     'auth.title.signup': 'Crea tu cuenta',
@@ -429,6 +455,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'mobile.nav.new': 'Nueva',
     'mobile.nav.newTask': 'Crear nueva tarea',
     'mobile.upcoming.addAfterToday': 'Crear después de hoy',
+    'mobile.creation.task.title': 'Nueva tarea',
+    'mobile.creation.task.desc': 'Añade rápidamente una tarea a la entrada.',
+    'mobile.creation.project.title': 'Nuevo proyecto',
+    'mobile.creation.project.desc': 'Define un objetivo y avanza tarea tras tarea.',
+    'mobile.creation.area.title': 'Nueva área',
+    'mobile.creation.area.desc': 'Agrupa proyectos y tareas por responsabilidades.',
     'view.inbox': 'Inbox',
     'view.today': 'Hoy',
     'view.upcoming': 'Próximas',
@@ -447,6 +479,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.desc.reference': 'Material de consulta sin acción inmediata.',
     'view.desc.logbook': 'Un registro de todo lo que has terminado.',
     'view.desc.search': 'Resultados en todas las vistas (completadas sólo si lo tienes activado).',
+    'actions.back': 'Volver',
     'actions.close': 'Cerrar',
     'actions.cancel': 'Cancelar',
     'actions.ok': 'OK',
@@ -455,8 +488,11 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.focusMode': 'Modo foco',
     'actions.showSidebar': 'Mostrar sidebar',
     'actions.clear': 'Limpiar',
+    'actions.retry': 'Reintentar',
     'actions.add': 'Añadir',
     'actions.done': 'Listo',
+    'actions.save': 'Guardar',
+    'actions.rename': 'Renombrar',
     'schedule.title': '¿Cuándo?',
     'schedule.hint': 'Selecciona la vista rápida para agendar.',
     'multiSelect.select': 'Seleccionar',
@@ -507,6 +543,10 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'task.edit.titlePlaceholder': 'Título',
     'task.edit.notesPlaceholder': 'Notas (Markdown)',
     'task.edit.when': 'Cuando',
+    'task.singular': 'tarea',
+    'task.plural': 'tareas',
+    'task.project.none': 'Sin proyecto',
+    'task.section.none': 'Sin sección',
     'task.quickView.title': 'Mover a',
     'task.loose': 'Tareas sueltas',
     'task.labels': 'Etiquetas',
@@ -589,6 +629,11 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sidebar.areas': 'Areas',
     'sidebar.projects': 'Projects',
     'sidebar.emptyAreas': 'Create your first area to organize your work.',
+    'sidebar.newList': 'New list',
+    'sidebar.newProject': 'New project',
+    'sidebar.newProject.desc': 'Define a goal and move forward task by task.',
+    'sidebar.newArea': 'New area',
+    'sidebar.newArea.desc': 'Group projects by responsibility.',
     'gtd.title': 'GTD Command Center',
     'gtd.subtitle': 'A radical control room to capture, clarify, organize, and execute with zero friction.',
     'gtd.switchClassic': 'Back to classic view',
@@ -658,6 +703,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'tasks.empty': 'No tasks yet. Capture the first one whenever you are ready.',
     'tasks.empty.filtered': 'No tasks match this view. You can adjust the filters anytime.',
     'tasks.empty.cta': 'Create task',
+    'tasks.loading': 'Loading tasks...',
     'gtd.due': 'Deadline',
     'auth.title.login': 'Sign in',
     'auth.title.signup': 'Create your account',
@@ -697,6 +743,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'mobile.nav.new': 'New',
     'mobile.nav.newTask': 'Create new task',
     'mobile.upcoming.addAfterToday': 'Create after today',
+    'mobile.creation.task.title': 'New task',
+    'mobile.creation.task.desc': 'Quickly capture a task in the inbox.',
+    'mobile.creation.project.title': 'New project',
+    'mobile.creation.project.desc': 'Define a goal and move it forward task by task.',
+    'mobile.creation.area.title': 'New area',
+    'mobile.creation.area.desc': 'Group projects and tasks by responsibility.',
     'view.inbox': 'Inbox',
     'view.today': 'Today',
     'view.upcoming': 'Upcoming',
@@ -715,6 +767,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'view.desc.reference': 'Reference material with no immediate action.',
     'view.desc.logbook': 'A record of everything you have finished.',
     'view.desc.search': 'Results across all lists (done items only if enabled).',
+    'actions.back': 'Back',
     'actions.close': 'Close',
     'actions.cancel': 'Cancel',
     'actions.ok': 'OK',
@@ -723,8 +776,11 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.focusMode': 'Focus mode',
     'actions.showSidebar': 'Show sidebar',
     'actions.clear': 'Clear',
+    'actions.retry': 'Retry',
     'actions.add': 'Add',
     'actions.done': 'Done',
+    'actions.save': 'Save',
+    'actions.rename': 'Rename',
     'schedule.title': 'When?',
     'schedule.hint': 'Pick the view to schedule.',
     'multiSelect.select': 'Select',
@@ -775,6 +831,10 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'task.edit.titlePlaceholder': 'Title',
     'task.edit.notesPlaceholder': 'Notes (Markdown)',
     'task.edit.when': 'When',
+    'task.singular': 'task',
+    'task.plural': 'tasks',
+    'task.project.none': 'No project',
+    'task.section.none': 'No section',
     'task.quickView.title': 'Move to',
     'task.loose': 'Loose tasks',
     'task.labels': 'Labels',

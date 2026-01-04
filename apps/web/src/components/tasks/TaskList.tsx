@@ -383,8 +383,24 @@ export default function TaskList({
   }, [editingId, autoSaveOnBlur, triggerAutoSave])
 
   if (isLoading && showEmptyState && showLoadingState && !hasDraft) {
-    const loadingClass = variant === 'mobile' ? 'p-6 text-center text-[var(--color-text-muted)]' : 'p-10 text-center text-[var(--color-text-muted)]'
-    return <div className={loadingClass}>Cargando tareas...</div>
+    const skeletonCount = variant === 'mobile' ? 5 : 6
+    return (
+      <div className="p-6 space-y-3">
+        <span className="sr-only">{t('tasks.loading')}</span>
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <div
+            key={`skeleton-${index}`}
+            className="flex items-center gap-3 rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 animate-pulse"
+          >
+            <div className="h-6 w-6 rounded-full bg-[var(--color-surface-elevated)]" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-1/2 rounded-full bg-[var(--color-surface-elevated)]" />
+              <div className="h-2 w-1/3 rounded-full bg-[var(--color-surface-elevated)]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   if (sortedTasks.length === 0 && !hasDraft) {
@@ -642,7 +658,7 @@ export default function TaskList({
                       type="text"
                       value={editingTitle}
                       onChange={(event) => setEditingTitle(event.target.value)}
-                      placeholder="Título"
+                      placeholder={t('task.edit.titlePlaceholder')}
                       onKeyDown={handleEditKeyDown}
                       autoFocus
                       className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
@@ -650,7 +666,7 @@ export default function TaskList({
                     <textarea
                       value={editingNotes}
                       onChange={(event) => setEditingNotes(event.target.value)}
-                      placeholder="Notas..."
+                      placeholder={t('task.edit.notesPlaceholder')}
                       onKeyDown={handleEditKeyDown}
                       rows={2}
                       className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none resize-none"

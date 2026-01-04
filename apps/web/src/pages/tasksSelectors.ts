@@ -87,10 +87,6 @@ export function filterTasksForContext(
 }
 
 export function getTaskView(task: Task, todayISO: string): QuickViewId {
-  const serverQuickView = (task as { quick_view?: TaskQuickView }).quick_view
-  if (serverQuickView) {
-    return serverQuickView
-  }
   if (task.status === 'done') {
     return 'logbook'
   }

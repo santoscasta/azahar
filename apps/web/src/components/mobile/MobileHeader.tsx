@@ -37,7 +37,7 @@ export default function MobileHeader({
         <button
           onClick={onBack}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl text-[var(--on-surface)]"
-          aria-label="Volver"
+          aria-label={t('actions.back')}
         >
           ←
         </button>
@@ -47,7 +47,7 @@ export default function MobileHeader({
           </p>
           <p className="az-h1 text-[var(--on-surface)]">
             {isProjectView
-              ? mobileProject?.name || 'Proyecto'
+              ? mobileProject?.name || t('mobile.project')
               : selectedArea
                 ? selectedArea.name
                 : quickViewLabel}

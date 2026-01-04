@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, RefObject } from 'react'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { Project, Area, Task } from '../../lib/supabase.js'
@@ -24,6 +24,13 @@ interface ProjectReorderPayload {
   targetAreaId: string | null
   orderedProjectIds: string[]
   movedProjectId: string
+}
+
+interface TaskDropHandlers {
+  canDropTask: (taskId: string) => boolean
+  onDropQuickView: (taskId: string, view: QuickViewId) => void
+  onDropArea: (taskId: string, areaId: string) => void
+  onDropProject: (taskId: string, projectId: string) => void
 }
 
 interface SidebarSearchProps {
@@ -63,6 +70,7 @@ export interface DesktopSidebarProps {
   onOpenHelp: () => void
   onReorderProjects: (payload: ProjectReorderPayload) => void
   search?: SidebarSearchProps
+  taskDrop?: TaskDropHandlers
 }
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
@@ -109,14 +117,44 @@ export function DesktopSidebar({
   onOpenHelp,
   onReorderProjects,
   search,
+  taskDrop,
 }: DesktopSidebarProps) {
   const { t } = useTranslations()
   const standaloneProjects = projects.filter(project => !project.area_id)
   const [draggingProjectId, setDraggingProjectId] = useState<string | null>(null)
   const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
   const [dragOverAreaId, setDragOverAreaId] = useState<string | null>(null)
+  const [taskDropTarget, setTaskDropTarget] = useState<{ kind: 'quick' | 'area' | 'project'; id: string } | null>(null)
   const dragStateRef = useRef<'idle' | 'dragging' | 'justDropped'>('idle')
   const draggingProjectRef = useRef<{ id: string; areaId: string | null } | null>(null)
+
+  const clearTaskDropTarget = () => {
+    setTaskDropTarget(null)
+  }
+
+  const resolveTaskDropId = (event: DragEvent<HTMLElement>) => {
+    if (!taskDrop?.canDropTask) {
+      return null
+    }
+    const raw = event.dataTransfer.getData('text/plain')
+    if (!raw) {
+      return null
+    }
+    return taskDrop.canDropTask(raw) ? raw : null
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const handleDragEnd = () => {
+      setTaskDropTarget(null)
+    }
+    window.addEventListener('dragend', handleDragEnd)
+    return () => {
+      window.removeEventListener('dragend', handleDragEnd)
+    }
+  }, [])
 
   const handleProjectClick = (projectId: string) => {
     if (dragStateRef.current !== 'idle') {
@@ -137,6 +175,7 @@ export function DesktopSidebar({
     setDraggingProjectId(null)
     setDragOverProjectId(null)
     setDragOverAreaId(null)
+    setTaskDropTarget(null)
     dragStateRef.current = 'justDropped'
     setTimeout(() => {
       dragStateRef.current = 'idle'
@@ -165,6 +204,13 @@ export function DesktopSidebar({
     event: DragEvent<HTMLButtonElement>,
     projectId: string
   ) => {
+    const taskId = resolveTaskDropId(event)
+    if (taskId) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      setTaskDropTarget({ kind: 'project', id: projectId })
+      return
+    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       return
@@ -180,6 +226,13 @@ export function DesktopSidebar({
   }
 
   const handleAreaDragOver = (event: DragEvent<HTMLButtonElement>, areaId: string) => {
+    const taskId = resolveTaskDropId(event)
+    if (taskId) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      setTaskDropTarget({ kind: 'area', id: areaId })
+      return
+    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       return
@@ -196,6 +249,12 @@ export function DesktopSidebar({
 
   const handleAreaDrop = (event: DragEvent<HTMLButtonElement>, areaId: string) => {
     event.preventDefault()
+    const taskId = resolveTaskDropId(event)
+    if (taskId && taskDrop) {
+      taskDrop.onDropArea(taskId, areaId)
+      clearTaskDropTarget()
+      return
+    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       resetDragState()
@@ -237,6 +296,12 @@ export function DesktopSidebar({
     areaId: string | null
   ) => {
     event.preventDefault()
+    const taskId = resolveTaskDropId(event)
+    if (taskId && taskDrop) {
+      taskDrop.onDropProject(taskId, targetProjectId)
+      clearTaskDropTarget()
+      return
+    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       resetDragState()
@@ -260,6 +325,26 @@ export function DesktopSidebar({
       })
     }
     resetDragState()
+  }
+
+  const handleQuickViewDragOver = (event: DragEvent<HTMLButtonElement>, viewId: QuickViewId) => {
+    const taskId = resolveTaskDropId(event)
+    if (!taskId) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setTaskDropTarget({ kind: 'quick', id: viewId })
+  }
+
+  const handleQuickViewDrop = (event: DragEvent<HTMLButtonElement>, viewId: QuickViewId) => {
+    const taskId = resolveTaskDropId(event)
+    if (!taskId || !taskDrop) {
+      return
+    }
+    event.preventDefault()
+    taskDrop.onDropQuickView(taskId, viewId)
+    clearTaskDropTarget()
   }
 
   return (
@@ -297,16 +382,20 @@ export function DesktopSidebar({
               const total = quickViewStats[view.id]
               const overdue = quickViewOverdueStats[view.id]
               const isActive = !selectedProjectId && !selectedAreaId && activeQuickView === view.id
+              const isTaskDropActive = taskDropTarget?.kind === 'quick' && taskDropTarget.id === view.id
               return (
                 <li key={view.id}>
                   <button
                     type="button"
                     onClick={() => onSelectQuickView(view.id)}
+                    onDragOver={(event) => handleQuickViewDragOver(event, view.id)}
+                    onDrop={(event) => handleQuickViewDrop(event, view.id)}
+                    onDragLeave={clearTaskDropTarget}
                     className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium transition ${
                       isActive
                         ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
                         : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
-                    }`}
+                    } ${isTaskDropActive ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
                   >
                     <span className="flex items-center gap-3">
                       <span className="h-8 w-8 rounded-[var(--radius-card)] bg-[var(--color-primary-100)] flex items-center justify-center">
@@ -328,6 +417,7 @@ export function DesktopSidebar({
               const areaProjects = projects.filter(project => project.area_id === area.id)
               const stats = areaStats.get(area.id)
               const isActiveArea = selectedAreaId === area.id && !selectedProjectId
+              const isTaskDropActive = taskDropTarget?.kind === 'area' && taskDropTarget.id === area.id
               return (
                 <div key={area.id} className="px-1 py-1">
                   <button
@@ -335,9 +425,10 @@ export function DesktopSidebar({
                     onClick={() => handleAreaClick(area.id)}
                     onDragOver={(event) => handleAreaDragOver(event, area.id)}
                     onDrop={(event) => handleAreaDrop(event, area.id)}
+                    onDragLeave={clearTaskDropTarget}
                     className={`w-full min-h-[48px] flex items-center justify-between text-sm font-semibold rounded-[var(--radius-card)] px-3 py-2 ${
                       isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
-                    } ${dragOverAreaId === area.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
+                    } ${dragOverAreaId === area.id || isTaskDropActive ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
                   >
                     <span className="flex items-center gap-2">
                       <AreaIcon className="h-3.5 w-3.5" />
@@ -349,6 +440,8 @@ export function DesktopSidebar({
                     {areaProjects.map(project => {
                       const projectStat = projectStats.get(project.id)
                       const isActiveProject = selectedProjectId === project.id
+                      const isTaskDropActiveProject =
+                        taskDropTarget?.kind === 'project' && taskDropTarget.id === project.id
                       return (
                         <button
                           key={project.id}
@@ -359,6 +452,7 @@ export function DesktopSidebar({
                           onDragEnd={handleProjectDragEnd}
                           onDragOver={(event) => handleProjectDragOver(event, project.id)}
                           onDrop={(event) => handleProjectDrop(event, project.id, area.id)}
+                          onDragLeave={clearTaskDropTarget}
                           className={`w-full min-h-[48px] flex items-center justify-between text-sm rounded-[var(--radius-card)] px-3 py-2 ${
                             isActiveProject
                               ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] '
@@ -366,7 +460,9 @@ export function DesktopSidebar({
                           } ${
                             draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
                           } ${
-                            dragOverProjectId === project.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
+                            dragOverProjectId === project.id || isTaskDropActiveProject
+                              ? 'ring-1 ring-[var(--color-primary-200)]'
+                              : ''
                           }`}
                         >
                           <span className="flex items-center gap-2">
@@ -386,9 +482,11 @@ export function DesktopSidebar({
         {standaloneProjects.length > 0 && (
           <div>
             <div className="space-y-1">
-              {standaloneProjects.map(project => {
+            {standaloneProjects.map(project => {
                 const stats = projectStats.get(project.id)
                 const isActive = selectedProjectId === project.id
+                const isTaskDropActiveProject =
+                  taskDropTarget?.kind === 'project' && taskDropTarget.id === project.id
                 return (
                   <button
                     key={project.id}
@@ -399,6 +497,7 @@ export function DesktopSidebar({
                     onDragEnd={handleProjectDragEnd}
                     onDragOver={(event) => handleProjectDragOver(event, project.id)}
                     onDrop={(event) => handleProjectDrop(event, project.id, null)}
+                    onDragLeave={clearTaskDropTarget}
                     className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium ${
                       isActive
                         ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
@@ -406,7 +505,9 @@ export function DesktopSidebar({
                     } ${
                       draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
                     } ${
-                      dragOverProjectId === project.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
+                      dragOverProjectId === project.id || isTaskDropActiveProject
+                        ? 'ring-1 ring-[var(--color-primary-200)]'
+                        : ''
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -428,7 +529,7 @@ export function DesktopSidebar({
           className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] py-2 text-sm font-semibold  hover:opacity-90"
         >
           +
-          <span>Nueva lista</span>
+          <span>{t('sidebar.newList')}</span>
         </button>
         <button
           type="button"
@@ -454,9 +555,9 @@ export function DesktopSidebar({
               className="w-full min-h-[44px] text-left flex flex-col gap-1 py-2"
             >
               <span className="text-sm font-semibold flex items-center gap-2">
-                <span className="text-[var(--color-primary-600)]">🌀</span> Nuevo proyecto
+                <span className="text-[var(--color-primary-600)]">🌀</span> {t('sidebar.newProject')}
               </span>
-              <span className="text-xs text-[var(--color-text-subtle)]">Define un objetivo y avanza tarea a tarea.</span>
+              <span className="text-xs text-[var(--color-text-subtle)]">{t('sidebar.newProject.desc')}</span>
             </button>
             <div className="h-px bg-[var(--color-border)]" />
             <button
@@ -465,9 +566,9 @@ export function DesktopSidebar({
               className="w-full min-h-[44px] text-left flex flex-col gap-1 py-2"
             >
               <span className="text-sm font-semibold flex items-center gap-2">
-                <span className="text-[var(--color-accent-600)]">🧩</span> Nueva área
+                <span className="text-[var(--color-accent-600)]">🧩</span> {t('sidebar.newArea')}
               </span>
-              <span className="text-xs text-[var(--color-text-subtle)]">Agrupa proyectos por responsabilidades.</span>
+              <span className="text-xs text-[var(--color-text-subtle)]">{t('sidebar.newArea.desc')}</span>
             </button>
           </div>
         )}

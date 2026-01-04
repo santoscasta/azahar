@@ -1,5 +1,6 @@
 import type { Task, Project, ProjectHeading } from '../../../lib/supabase.js'
 import { useRef, useState } from 'react'
+import { useTranslations } from '../../../App.js'
 
 interface ProjectBoardProps {
   project: Project
@@ -44,6 +45,12 @@ export default function ProjectBoard({
   renderTaskList,
   renderHeadingForm,
 }: ProjectBoardProps) {
+  const { t } = useTranslations()
+  const projectLabel = t('context.label.project')
+  const sectionLabel = t('context.label.section')
+  const completedLabel = t('mobile.completed')
+  const taskSingular = t('task.singular')
+  const taskPlural = t('task.plural')
   const draggingHeadingRef = useRef<string | null>(null)
   const [dragOverHeadingId, setDragOverHeadingId] = useState<string | null>(null)
   const orderedHeadingIds = headings.map(heading => heading.id)
@@ -155,7 +162,7 @@ export default function ProjectBoard({
         <div className="px-6 py-6 border-b border-[var(--color-border)]">
           <div className="flex flex-wrap items-center gap-4 justify-between">
             <div>
-              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Proyecto</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">{projectLabel}</p>
               <h2 className="text-lg font-semibold text-[var(--on-surface)]">{project.name}</h2>
               {project.area_id && areaName && (
                 <button
@@ -168,7 +175,7 @@ export default function ProjectBoard({
               )}
             </div>
             <span className="text-sm text-[var(--color-text-muted)]">
-              {completedCount}/{totalCount} completadas
+              {completedCount}/{totalCount} {completedLabel}
             </span>
           </div>
         </div>
@@ -200,10 +207,10 @@ export default function ProjectBoard({
                       className="flex-1 px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-subtle)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none"
                     />
                     <button type="submit" className="az-btn-primary min-h-[44px] px-4 py-2 text-xs">
-                      Guardar
+                      {t('actions.save')}
                     </button>
                     <button type="button" onClick={onCancelHeadingEdit} className="az-btn-secondary min-h-[44px] px-4 py-2 text-xs">
-                      Cancelar
+                      {t('actions.cancel')}
                     </button>
                   </form>
                 ) : (
@@ -211,8 +218,8 @@ export default function ProjectBoard({
                     <div>
                       <p className="text-sm font-medium text-[var(--on-surface)]">{heading.name}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">
-                        {(openTasksByHeading.get(heading.id)?.length || 0)} tarea
-                        {openTasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
+                        {(openTasksByHeading.get(heading.id)?.length || 0)}{' '}
+                        {(openTasksByHeading.get(heading.id)?.length || 0) === 1 ? taskSingular : taskPlural}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -220,7 +227,7 @@ export default function ProjectBoard({
                         type="button"
                         onClick={() => onStartEditHeading(heading.id, heading.name)}
                         className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-card)] text-xs text-[var(--color-text-muted)] hover:text-[var(--on-surface)]"
-                        title="Renombrar"
+                        title={t('actions.rename')}
                       >
                         ✏️
                       </button>
@@ -228,7 +235,7 @@ export default function ProjectBoard({
                         type="button"
                         onClick={() => onDeleteHeading(heading.id)}
                         className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-card)] text-xs text-[var(--color-danger-500)] hover:opacity-80"
-                        title="Eliminar"
+                        title={t('multiSelect.actions.delete')}
                       >
                         🗑️
                       </button>
@@ -250,11 +257,11 @@ export default function ProjectBoard({
             >
               <div className="flex items-center justify_between">
                 <div>
-                  <p className="text-sm font-semibold text-[var(--color-text-muted)]">Sección</p>
+                  <p className="text-sm font-semibold text-[var(--color-text-muted)]">{sectionLabel}</p>
                   <p className="text-base font-semibold text-[var(--on-surface)]">{heading.name}</p>
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    {(openTasksByHeading.get(heading.id)?.length || 0)} tarea
-                    {openTasksByHeading.get(heading.id)?.length === 1 ? '' : 's'}
+                    {(openTasksByHeading.get(heading.id)?.length || 0)}{' '}
+                    {(openTasksByHeading.get(heading.id)?.length || 0) === 1 ? taskSingular : taskPlural}
                   </p>
                 </div>
               </div>
@@ -275,7 +282,7 @@ export default function ProjectBoard({
           )}
           {showCompletedTasks && completedTasks.length > 0 && (
             <section className="space-y-3">
-              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Completadas</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">{completedLabel}</p>
               {renderTaskList(completedTasks, { showEmptyState: false })}
             </section>
           )}

@@ -281,7 +281,7 @@ export default function TaskCreationModal({
             {showContext && (
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[var(--color-text-muted)]">Área</p>
+                  <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('context.label.area')}</p>
                   <select
                     value={draft.areaId || ''}
                     onChange={(event) => {
@@ -297,7 +297,7 @@ export default function TaskCreationModal({
                     }}
                     className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface-elevated)]"
                   >
-                    <option value="">Sin área</option>
+                    <option value="">{t('project.new.area.none')}</option>
                     {areas.map(area => (
                       <option key={area.id} value={area.id}>
                         {area.name}
@@ -306,7 +306,7 @@ export default function TaskCreationModal({
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[var(--color-text-muted)]">Proyecto</p>
+                  <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('context.label.project')}</p>
                   <select
                     value={draft.projectId || (draft.view === 'inbox' ? '__inbox__' : '')}
                     onChange={(event) => {
@@ -327,10 +327,10 @@ export default function TaskCreationModal({
                     }}
                     className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface-elevated)]"
                   >
-                    <option value="__inbox__">Inbox</option>
-                    <option value="">Sin proyecto</option>
+                    <option value="__inbox__">{t('view.inbox')}</option>
+                    <option value="">{t('task.project.none')}</option>
                     {orderedProjects.withoutArea.length > 0 && !draft.areaId && (
-                      <optgroup label="Sin área">
+                      <optgroup label={t('project.new.area.none')}>
                         {orderedProjects.withoutArea.map(project => (
                           <option key={project.id} value={project.id}>
                             {project.name}
@@ -345,7 +345,7 @@ export default function TaskCreationModal({
                         </option>
                       ))
                     ) : orderedProjects.withArea.length > 0 ? (
-                      <optgroup label="Áreas">
+                      <optgroup label={t('sidebar.areas')}>
                         {orderedProjects.withArea.map(project => (
                           <option key={project.id} value={project.id}>
                             {project.name}
@@ -359,13 +359,13 @@ export default function TaskCreationModal({
             )}
             {showContext && draft.projectId && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-[var(--color-text-muted)]">Sección</p>
+                <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('context.label.section')}</p>
                 <select
                   value={draft.headingId || ''}
                   onChange={(event) => onUpdateDraft('headingId', event.target.value || null)}
                   className="w-full px-3 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--color-primary-600)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface-elevated)]"
                 >
-                  <option value="">Sin sección</option>
+                  <option value="">{t('task.section.none')}</option>
                   {availableHeadings.map(heading => (
                     <option key={heading.id} value={heading.id}>
                       {heading.name}

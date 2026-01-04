@@ -1,3 +1,5 @@
+import { useTranslations } from '../../App.js'
+
 interface MobileCreationSheetProps {
   isOpen: boolean
   onClose: (preserveDrafts?: boolean) => void
@@ -13,6 +15,7 @@ export function MobileCreationSheet({
   onCreateProject,
   onCreateArea,
 }: MobileCreationSheetProps) {
+  const { t } = useTranslations()
   if (!isOpen) {
     return null
   }
@@ -34,8 +37,8 @@ export function MobileCreationSheet({
             onCreateTask()
           }}
         >
-          <span className="text-base font-semibold">Nueva tarea</span>
-          <span className="text-sm text-[var(--color-text-muted)]">Añade rápidamente una tarea a la Entrada.</span>
+          <span className="text-base font-semibold">{t('mobile.creation.task.title')}</span>
+          <span className="text-sm text-[var(--color-text-muted)]">{t('mobile.creation.task.desc')}</span>
         </button>
         <button
           type="button"
@@ -45,8 +48,8 @@ export function MobileCreationSheet({
             onCreateProject()
           }}
         >
-          <span className="text-base font-semibold">Nuevo proyecto</span>
-          <span className="text-sm text-[var(--color-text-muted)]">Define un objetivo y avanza tarea tras tarea.</span>
+          <span className="text-base font-semibold">{t('mobile.creation.project.title')}</span>
+          <span className="text-sm text-[var(--color-text-muted)]">{t('mobile.creation.project.desc')}</span>
         </button>
         <button
           type="button"
@@ -56,10 +59,8 @@ export function MobileCreationSheet({
             onCreateArea()
           }}
         >
-          <span className="text-base font-semibold">Nueva área</span>
-          <span className="text-sm text-[var(--color-text-muted)]">
-            Agrupa proyectos y tareas por responsabilidades.
-          </span>
+          <span className="text-base font-semibold">{t('mobile.creation.area.title')}</span>
+          <span className="text-sm text-[var(--color-text-muted)]">{t('mobile.creation.area.desc')}</span>
         </button>
       </div>
     </div>

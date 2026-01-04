@@ -1,5 +1,6 @@
 import type { Task, Project } from '../../../lib/supabase.js'
 import { useState } from 'react'
+import { useTranslations } from '../../../App.js'
 
 interface AreaBoardProps {
   areaId: string
@@ -30,6 +31,12 @@ export default function AreaBoard({
   showCompletedTasks,
   onMoveTaskToProject,
 }: AreaBoardProps) {
+  const { t } = useTranslations()
+  const areaLabel = t('context.label.area')
+  const projectLabel = t('context.label.project')
+  const projectsLabel = t('sidebar.projects').toLowerCase()
+  const completedLabel = t('mobile.completed')
+  const projectCountLabel = projectCount === 1 ? projectLabel.toLowerCase() : projectsLabel
   const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
   const openTasksByProject = new Map<string, Task[]>()
   const completedTasks: Task[] = []
@@ -79,16 +86,16 @@ export default function AreaBoard({
 
   return (
     <div className="az-card overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-6 border-b border-[var(--color-border)]">
+        <div className="flex items-center justify-between px-6 py-6 border-b border-[var(--color-border)]">
         <div>
-          <p className="text-sm font-semibold text-[var(--color-text-muted)]">Área</p>
+          <p className="text-sm font-semibold text-[var(--color-text-muted)]">{areaLabel}</p>
           <h2 className="text-lg font-semibold text-[var(--on-surface)]">{areaName}</h2>
           <p className="text-sm text-[var(--color-text-muted)]">
-            {projectCount} proyecto{projectCount === 1 ? '' : 's'}
+            {projectCount} {projectCountLabel}
           </p>
         </div>
         <span className="text-sm text-[var(--color-text-muted)]">
-          {completedCount}/{totalCount} completadas
+          {completedCount}/{totalCount} {completedLabel}
         </span>
       </div>
       <div className="divide-y divide-[var(--color-divider)]">
@@ -103,7 +110,7 @@ export default function AreaBoard({
             }`}
           >
             <div>
-              <p className="text-sm font-semibold text-[var(--color-text-muted)]">Proyecto</p>
+              <p className="text-sm font-semibold text-[var(--color-text-muted)]">{projectLabel}</p>
               <button
                 type="button"
                 onClick={() => onSelectProject(project.id)}
@@ -129,7 +136,7 @@ export default function AreaBoard({
         )}
         {showCompletedTasks && completedTasks.length > 0 && (
           <section className="px-6 py-6 space-y-3">
-            <p className="text-sm font-semibold text-[var(--color-text-muted)]">Completadas</p>
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">{completedLabel}</p>
             {renderTaskList(completedTasks)}
           </section>
         )}

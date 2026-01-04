@@ -227,6 +227,7 @@ export default function TasksPage() {
   const searchBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mobileHomeSearchInputRef = useRef<HTMLInputElement | null>(null)
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null)
   const desktopSearchInputRef = useRef<HTMLInputElement | null>(null)
   const seededImportantLabelRef = useRef(false)
@@ -253,6 +254,12 @@ export default function TasksPage() {
     }
   }
   const queryClient = useQueryClient()
+  const handleRetryLoad = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    queryClient.invalidateQueries({ queryKey: ['projects'] })
+    queryClient.invalidateQueries({ queryKey: ['areas'] })
+    queryClient.invalidateQueries({ queryKey: ['labels'] })
+  }, [queryClient])
   const isOnline = useConnectivity()
   const pendingMutations = useIsMutating({
     predicate: (mutation) => mutation.state.status === 'pending',
@@ -265,7 +272,6 @@ export default function TasksPage() {
     }
     return selectedLabelIds.length > 0 ? [selectedLabelIds[0]] : []
   }, [selectedLabelIds, selectedProjectId, selectedAreaId, activeQuickView])
-  const sortedLabelIds = useMemo(() => [...activeLabelIds].sort(), [activeLabelIds])
   const assistantEnabled = Boolean(
     (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_OPENAI_API_KEY
   )
@@ -330,15 +336,9 @@ export default function TasksPage() {
 
   // Consulta para obtener tareas con búsqueda y filtros
   const { data: tasksData = [], isLoading } = useQuery({
-    queryKey: ['tasks', normalizedSearch, sortedLabelIds],
+    queryKey: ['tasks'],
     queryFn: async () => {
-      const result = await searchTasks({
-        query: normalizedSearch || null,
-        labelIds: sortedLabelIds.length > 0 ? sortedLabelIds : null,
-        projectId: null,
-        areaId: null,
-        quickView: null,
-      })
+      const result = await searchTasks()
       if (!result.success) {
         setError(result.error || 'Error al cargar tareas')
         return []
@@ -596,27 +596,27 @@ export default function TasksPage() {
       }
     })
   }, [normalizedSearch, projects, tasks])
-  const isSearchMode = isSearchFocused || normalizedSearch.length > 0
+  const isQuickFindActive = isSearchFocused || normalizedSearch.length > 0
   useEffect(() => {
     if (!isMultiSelectMode) {
       return
     }
     exitMultiSelect()
-  }, [activeQuickView, selectedProjectId, selectedAreaId, isSearchMode, showMobileHome])
+  }, [activeQuickView, selectedProjectId, selectedAreaId, showMobileHome])
   const filteredTasks = useMemo(() => {
-    if (isSearchMode) {
-      return searchResults.filter(task => task.status !== 'done')
+    const base = filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap)
+    if (activeLabelIds.length === 0) {
+      return base
     }
-    return filterTasksForContext(tasks, activeQuickView, todayISO, selectedProjectId, selectedAreaId, projectMap)
+    return base.filter(task => (task.labels || []).some(label => activeLabelIds.includes(label.id)))
   }, [
-    isSearchMode,
-    searchResults,
     tasks,
     activeQuickView,
     todayISO,
     selectedProjectId,
     selectedAreaId,
     projectMap,
+    activeLabelIds,
   ])
   const selectedTask = useMemo(() => {
     if (!editingId) {
@@ -961,7 +961,12 @@ export default function TasksPage() {
   }
 
   const handleApplyQuickView = (task: Task, view: 'waiting' | 'someday' | 'reference') => {
-    applyQuickViewMutation.mutate({ task, view })
+    const sortKey = `view:${view}` as const
+    applyQuickViewMutation.mutate({
+      task,
+      view,
+      sortOrders: buildSortOrdersForKey(task, sortKey),
+    })
   }
 
   const handleArchiveTask = (task: Task) => {
@@ -1015,13 +1020,31 @@ export default function TasksPage() {
     }
     setBatchActionPending(true)
     try {
+      const sortKey = destination.projectId
+        ? `project:${destination.projectId}`
+        : destination.areaId
+          ? `area:${destination.areaId}`
+          : 'view:inbox'
+      let nextOrder = sortKey ? getNextSortOrder(sortKey) : null
       const results = await Promise.all(
         selectedTaskIds.map(taskId =>
-          updateTask(taskId, {
-            project_id: destination.projectId,
-            area_id: destination.areaId,
-            heading_id: null,
-          })
+          updateTask(taskId, (() => {
+            const task = taskById.get(taskId)
+            const baseOrders =
+              task?.sort_orders && typeof task.sort_orders === 'object'
+                ? (task.sort_orders as Record<string, number>)
+                : {}
+            const sort_orders =
+              sortKey && nextOrder !== null
+                ? { ...baseOrders, [sortKey]: nextOrder++ }
+                : baseOrders
+            return {
+              project_id: destination.projectId,
+              area_id: destination.areaId,
+              heading_id: null,
+              sort_orders,
+            }
+          })())
         )
       )
       const failed = results.find(result => !result.success)
@@ -1212,9 +1235,6 @@ export default function TasksPage() {
   }
   const resolveListSortKey = useCallback(
     (viewOverride?: QuickViewId) => {
-      if (isSearchMode) {
-        return null
-      }
       if (selectedProjectId) {
         return `project:${selectedProjectId}`
       }
@@ -1224,7 +1244,7 @@ export default function TasksPage() {
       const view = viewOverride ?? activeQuickView
       return view ? `view:${view}` : null
     },
-    [activeQuickView, isSearchMode, selectedAreaId, selectedProjectId]
+    [activeQuickView, selectedAreaId, selectedProjectId]
   )
   const resolveListSortMode = useCallback(
     (viewOverride?: QuickViewId) => {
@@ -1258,6 +1278,14 @@ export default function TasksPage() {
       return maxOrder + 1
     },
     [tasks]
+  )
+  const buildSortOrdersForKey = useCallback(
+    (task: Task, sortKey: string) => {
+      const baseOrders =
+        task.sort_orders && typeof task.sort_orders === 'object' ? (task.sort_orders as Record<string, number>) : {}
+      return { ...baseOrders, [sortKey]: getNextSortOrder(sortKey) }
+    },
+    [getNextSortOrder]
   )
 
   const renderTaskList = (
@@ -1343,6 +1371,16 @@ export default function TasksPage() {
     reference: customViewNames.reference?.trim() || translate(language, 'view.reference'),
     logbook: customViewNames.logbook?.trim() || translate(language, 'view.logbook'),
   }), [customViewNames, language])
+  const quickViewEmojis: Record<QuickViewId, string> = useMemo(() => ({
+    inbox: '📥',
+    today: '⭐',
+    upcoming: '📆',
+    anytime: '🌤️',
+    waiting: '⏳',
+    someday: '📦',
+    reference: '📚',
+    logbook: '✅',
+  }), [])
 
   const quickViewDescriptions: Record<QuickViewId, string> = useMemo(() => ({
     inbox: translate(language, 'view.desc.inbox'),
@@ -1354,8 +1392,6 @@ export default function TasksPage() {
     reference: translate(language, 'view.desc.reference'),
     logbook: translate(language, 'view.desc.logbook'),
   }), [language])
-  const searchViewLabel = translate(language, 'view.search')
-  const searchViewDescription = translate(language, 'view.desc.search')
   const quickViewLabelIds = useMemo(() => {
     const payload: Record<'waiting' | 'reference', string[]> = { waiting: [], reference: [] }
     labels.forEach(label => {
@@ -1418,7 +1454,7 @@ export default function TasksPage() {
   const shouldAutoSaveDraft = labelSheetTarget === null && datePickerTarget === null
 
   const handleSelectQuickView = (view: QuickViewId) => {
-    clearSearchState(false)
+    clearSearchState()
     setActiveQuickView(view)
     setSelectedProjectId(null)
     setSelectedAreaId(null)
@@ -1569,15 +1605,13 @@ export default function TasksPage() {
     () => buildActiveFilters(selectedProjectId, projects, activeLabelIds, labels, selectedAreaId, areas, language),
     [selectedProjectId, projects, activeLabelIds, labels, selectedAreaId, areas, language]
   )
-  const filteredViewActive = isSearchMode
-    ? true
-    : isFilteredView(
-      activeQuickView,
-      searchQuery,
-      selectedProjectId,
-      selectedLabelIds,
-      selectedAreaId
-    )
+  const filteredViewActive = isFilteredView(
+    activeQuickView,
+    '',
+    selectedProjectId,
+    selectedLabelIds,
+    selectedAreaId
+  )
 
   const friendlyToday = useMemo(() => {
     const locale = language === 'en' ? 'en-US' : 'es-ES'
@@ -1588,14 +1622,14 @@ export default function TasksPage() {
     })
   }, [language])
 
-  const isMobileDetail = useMobileExperience && !showMobileHome && !isSearchMode
+  const isMobileDetail = useMobileExperience && !showMobileHome
   const mobileProject = mobileProjectFocusId ? projects.find(project => project.id === mobileProjectFocusId) ?? null : null
   const selectedAreaProjectCount = selectedArea ? projects.filter(project => project.area_id === selectedArea.id).length : 0
   const isMobileProjectView = isMobileDetail && !!mobileProject
   const visibleMobileTasks = isMobileDetail ? filteredTasks.slice(0, mobileTaskLimit) : filteredTasks
   const canShowMoreMobileTasks = isMobileDetail && mobileTaskLimit < filteredTasks.length
   const upcomingMobileSections = useMemo(() => {
-    if (!useMobileExperience || activeQuickView !== 'upcoming' || selectedProjectId || selectedAreaId || isSearchMode) {
+    if (!useMobileExperience || activeQuickView !== 'upcoming' || selectedProjectId || selectedAreaId) {
       return null
     }
     if (visibleMobileTasks.length === 0) {
@@ -1697,14 +1731,13 @@ export default function TasksPage() {
     activeQuickView,
     selectedProjectId,
     selectedAreaId,
-    isSearchMode,
     visibleMobileTasks,
     language,
     todayISO,
     t,
   ])
   const quickViewGroups = useMemo(() => {
-    if (selectedProjectId || selectedAreaId || isSearchMode) {
+    if (selectedProjectId || selectedAreaId) {
       return []
     }
     const groups = new Map<
@@ -1766,16 +1799,12 @@ export default function TasksPage() {
     ? translate(language, 'context.label.project')
     : selectedArea
       ? translate(language, 'context.label.area')
-      : isSearchMode
-        ? searchViewLabel
-        : translate(language, 'context.label.view')
+      : translate(language, 'context.label.view')
   const contextTitle = selectedProject
     ? selectedProject.name
     : selectedArea
       ? selectedArea.name
-      : isSearchMode
-        ? searchViewLabel
-        : currentQuickView.label
+      : currentQuickView.label
   const areaTaskSummary = selectedArea ? areaStats.get(selectedArea.id) : null
   const contextDescription = selectedProject
     ? selectedArea
@@ -1783,9 +1812,7 @@ export default function TasksPage() {
       : ''
     : selectedArea
       ? `${selectedAreaProjectCount} ${translate(language, 'sidebar.projects').toLowerCase()} · ${areaTaskSummary?.total || 0} ${translate(language, 'sidebar.tasks')}`
-      : isSearchMode
-        ? searchViewDescription
-        : quickViewDescriptions[activeQuickView]
+      : quickViewDescriptions[activeQuickView]
   const pendingCount = selectedProject
     ? visibleProjectTasks.filter(task => task.status !== 'done').length
     : filteredTasks.filter(task => task.status !== 'done').length
@@ -1854,16 +1881,12 @@ export default function TasksPage() {
     }, 120)
   }
 
-  const clearSearchState = useCallback((returnHomeOnMobile = true) => {
+  const clearSearchState = useCallback(() => {
     setSearchQuery('')
     setIsSearchFocused(false)
-    if (useMobileExperience && returnHomeOnMobile) {
-      setShowMobileHome(true)
-    }
-  }, [useMobileExperience])
+  }, [])
 
   const handleMobileHomeSearchFocus = () => {
-    setShowMobileHome(false)
     handleSearchFocus()
   }
 
@@ -1911,15 +1934,35 @@ export default function TasksPage() {
     setTimeout(focusInput, 0)
   }, [isFocusMode])
 
+  useEffect(() => {
+    if (useMobileExperience || typeof window === 'undefined') {
+      return
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName?.toLowerCase()
+      if (target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select') {
+        return
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        openDesktopQuickFind()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [openDesktopQuickFind, useMobileExperience])
+
   const formatDateForLabel = (value: string) => {
     if (!value) {
-      return 'Sin fecha'
+      return t('datePicker.none')
     }
     const date = parseISODate(value)
     if (!date || Number.isNaN(date.getTime())) {
-      return 'Sin fecha'
+      return t('datePicker.none')
     }
-    return date.toLocaleDateString('es-ES', {
+    const locale = language === 'en' ? 'en-US' : 'es-ES'
+    return date.toLocaleDateString(locale, {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -2048,10 +2091,10 @@ export default function TasksPage() {
     const tasks = taskSource ?? (variant === 'mobile' ? visibleMobileTasks : filteredTasks)
     const showLoadingState = options.showLoadingState ?? !taskSource
     const isAgendaContext =
-      activeQuickView === 'today' && !selectedProjectId && !selectedAreaId && !isSearchMode
+      activeQuickView === 'today' && !selectedProjectId && !selectedAreaId
     const agendaSource = variant === 'mobile' ? filteredTasks : tasks
     const agendaEntries = isAgendaContext ? buildAgendaEntries(agendaSource) : []
-    const dragEnabled = options.dragEnabled ?? (variant === 'desktop' && !isSearchMode)
+    const dragEnabled = options.dragEnabled ?? (variant === 'desktop')
     const agendaCard =
       agendaEntries.length > 0 ? (
         <AgendaSummary
@@ -2671,14 +2714,21 @@ export default function TasksPage() {
   const applyQuickViewMutation = useMutation({
     mutationKey: ['mutations', 'tasks', 'quickView'],
     networkMode: 'online',
-    mutationFn: async (payload: { task: Task; view: 'waiting' | 'someday' | 'reference' }) => {
-      const { task, view } = payload
+    mutationFn: async (payload: {
+      task: Task
+      view: 'waiting' | 'someday' | 'reference'
+      sortOrders?: Record<string, number>
+    }) => {
+      const { task, view, sortOrders } = payload
       const updates: Partial<Task> = {}
       if (view === 'someday') {
         updates.status = 'snoozed'
         updates.due_at = null
       } else {
         updates.status = 'open'
+      }
+      if (sortOrders) {
+        updates.sort_orders = sortOrders
       }
       const updated = await updateTask(task.id, updates)
       if (!updated.success) {
@@ -2852,12 +2902,21 @@ export default function TasksPage() {
   const moveTaskMutation = useMutation({
     mutationKey: ['mutations', 'tasks', 'move'],
     networkMode: 'online',
-    mutationFn: ({ taskId, areaId, projectId }: { taskId: string; areaId: string | null; projectId: string | null }) =>
-      updateTask(taskId, {
+    mutationFn: ({ taskId, areaId, projectId }: { taskId: string; areaId: string | null; projectId: string | null }) => {
+      const task = taskById.get(taskId)
+      const sortKey = projectId
+        ? `project:${projectId}`
+        : areaId
+          ? `area:${areaId}`
+          : 'view:inbox'
+      const sortOrders = task ? buildSortOrdersForKey(task, sortKey) : undefined
+      return updateTask(taskId, {
         area_id: areaId,
         project_id: projectId,
         heading_id: null,
-      }),
+        sort_orders: sortOrders,
+      })
+    },
     onSuccess: (result, variables) => {
       if (result.success) {
         setError('')
@@ -3305,6 +3364,116 @@ export default function TasksPage() {
     },
   })
 
+  const clearQuickViewLabels = useCallback(
+    (task: Task) => {
+      const labelIds = (task.labels || [])
+        .filter(label => {
+          const view = getLabelQuickView(label.name)
+          return view === 'waiting' || view === 'reference'
+        })
+        .map(label => label.id)
+      labelIds.forEach(labelId => {
+        removeTaskLabelMutation.mutate({ taskId: task.id, labelId })
+      })
+    },
+    [removeTaskLabelMutation]
+  )
+
+  const canDropTask = useCallback((taskId: string) => taskById.has(taskId), [taskById])
+
+  const handleDropTaskQuickView = useCallback(
+    (taskId: string, view: QuickViewId) => {
+      const task = taskById.get(taskId)
+      if (!task) {
+        return
+      }
+      if (view === 'waiting' || view === 'someday' || view === 'reference') {
+        applyQuickViewMutation.mutate({
+          task,
+          view,
+          sortOrders: buildSortOrdersForKey(task, `view:${view}`),
+        })
+        return
+      }
+
+      const updates: Partial<Task> = {
+        sort_orders: buildSortOrdersForKey(task, `view:${view}`),
+      }
+
+      if (view === 'inbox') {
+        updates.project_id = null
+        updates.area_id = null
+        updates.heading_id = null
+        updates.due_at = null
+        updates.status = 'open'
+      } else if (view === 'today') {
+        updates.due_at = todayISO
+        updates.status = 'open'
+      } else if (view === 'upcoming') {
+        const normalizedCurrent = normalizeDate(task.due_at)
+        updates.due_at = normalizedCurrent && normalizedCurrent > todayISO ? normalizedCurrent : tomorrowISO
+        updates.status = 'open'
+      } else if (view === 'anytime') {
+        updates.due_at = null
+        updates.status = 'open'
+      } else if (view === 'logbook') {
+        updates.status = 'done'
+        updates.completed_at = new Date().toISOString()
+      }
+
+      dragUpdateTaskMutation.mutate({ taskId, updates })
+      clearQuickViewLabels(task)
+    },
+    [
+      applyQuickViewMutation,
+      buildSortOrdersForKey,
+      clearQuickViewLabels,
+      dragUpdateTaskMutation,
+      taskById,
+      todayISO,
+      tomorrowISO,
+    ]
+  )
+
+  const handleDropTaskArea = useCallback(
+    (taskId: string, areaId: string) => {
+      const task = taskById.get(taskId)
+      if (!task) {
+        return
+      }
+      dragUpdateTaskMutation.mutate({
+        taskId,
+        updates: {
+          area_id: areaId,
+          project_id: null,
+          heading_id: null,
+          sort_orders: buildSortOrdersForKey(task, `area:${areaId}`),
+        },
+      })
+    },
+    [buildSortOrdersForKey, dragUpdateTaskMutation, taskById]
+  )
+
+  const handleDropTaskProject = useCallback(
+    (taskId: string, projectId: string) => {
+      const task = taskById.get(taskId)
+      if (!task) {
+        return
+      }
+      const destinationProject = projectMap.get(projectId)
+      dragUpdateTaskMutation.mutate({
+        taskId,
+        updates: {
+          project_id: projectId,
+          area_id: destinationProject?.area_id ?? null,
+          heading_id: null,
+          sort_orders: buildSortOrdersForKey(task, `project:${projectId}`),
+        },
+      })
+    },
+    [buildSortOrdersForKey, dragUpdateTaskMutation, projectMap, taskById]
+  )
+
   const handleProjectChipSelect = (chipId: 'all' | string) => {
     if (chipId === 'all') {
       setSelectedLabelIds([])
@@ -3501,7 +3670,7 @@ export default function TasksPage() {
   }
 
   const handleSelectProject = (projectId: string) => {
-    clearSearchState(false)
+    clearSearchState()
     if (selectedProjectId === projectId) {
       setSelectedProjectId(null)
       setSelectedAreaId(null)
@@ -3662,7 +3831,7 @@ export default function TasksPage() {
   )
 
   const handleSelectArea = (areaId: string) => {
-    clearSearchState(false)
+    clearSearchState()
     if (selectedAreaId === areaId) {
       setSelectedAreaId(null)
     } else {
@@ -3815,12 +3984,18 @@ export default function TasksPage() {
       }
       const destinationProject = nextProjectId ? projectMap.get(nextProjectId) ?? null : null
       const destinationArea = nextAreaId ? areas.find(area => area.id === nextAreaId) ?? null : null
+      const sortKey = nextProjectId
+        ? `project:${nextProjectId}`
+        : nextAreaId
+          ? `area:${nextAreaId}`
+          : 'view:inbox'
       dragUpdateTaskMutation.mutate({
         taskId,
         updates: {
           project_id: nextProjectId,
           area_id: nextAreaId,
           heading_id: null,
+          sort_orders: buildSortOrdersForKey(task, sortKey),
         },
         successMessage: destinationProject
           ? `Tarea movida a ${destinationProject.name}`
@@ -3829,7 +4004,7 @@ export default function TasksPage() {
             : 'Tarea movida',
       })
     },
-    [areas, dragUpdateTaskMutation, projectMap, taskById]
+    [areas, buildSortOrdersForKey, dragUpdateTaskMutation, projectMap, taskById]
   )
 
   const renderDesktopTaskBoard = () => {
@@ -3838,7 +4013,7 @@ export default function TasksPage() {
     if (isQuickViewContext && isLoading && filteredTasks.length === 0 && !hasDraft) {
       return (
         <div className="az-card overflow-hidden">
-          <div className="p-10 text-center text-[var(--color-text-muted)]">Cargando tareas...</div>
+          <div className="p-10 text-center text-[var(--color-text-muted)]">{t('tasks.loading')}</div>
         </div>
       )
     }
@@ -3910,7 +4085,7 @@ export default function TasksPage() {
   }
 
   const handleMobileBack = () => {
-    if (isSearchMode) {
+    if (isQuickFindActive) {
       handleClearSearch()
       return
     }
@@ -3929,9 +4104,12 @@ export default function TasksPage() {
   }
 
   const handleOpenMobileSearch = () => {
-    setShowMobileHome(false)
     handleSearchFocus()
     setTimeout(() => {
+      if (showMobileHome) {
+        mobileHomeSearchInputRef.current?.focus()
+        return
+      }
       mobileSearchInputRef.current?.focus()
     }, 120)
   }
@@ -4003,8 +4181,12 @@ export default function TasksPage() {
               showDraftCard={!!mobileDraftTask}
               renderDraftCard={renderMobileDraftTaskCard}
               searchQuery={searchQuery}
+              searchInputRef={mobileHomeSearchInputRef}
               onSearchChange={setSearchQuery}
               onSearchFocus={handleMobileHomeSearchFocus}
+              showSuggestions={showSuggestionPanel && showMobileHome}
+              suggestions={suggestionResults}
+              onSelectSuggestion={handleSuggestionSelect}
               quickLists={quickLists}
               quickViewStats={quickViewStats}
               onSelectQuickView={handleSelectQuickView}
@@ -4032,7 +4214,7 @@ export default function TasksPage() {
         {!isMultiSelectMode && (
           <MobileBottomBar
             isHomeActive
-            isSearchActive={isSearchMode}
+            isSearchActive={isQuickFindActive}
             onHome={handleMobileNavHome}
             onSearch={handleOpenMobileSearch}
             onNewTask={handleMobileNewTask}
@@ -4085,14 +4267,18 @@ export default function TasksPage() {
                 onSearchBlur={handleSearchBlur}
                 onSearchClear={handleClearSearch}
                 searchInputRef={mobileSearchInputRef}
+                showSuggestions={showSuggestionPanel && !showMobileHome}
+                suggestions={suggestionResults}
+                projects={projects}
+                onSelectSuggestion={handleSuggestionSelect}
                 onBack={handleMobileBack}
                 onToggleSelect={toggleMultiSelectMode}
                 isSelecting={isMultiSelectMode}
                 isProjectView={isMobileProjectView}
-                isSearchView={isSearchMode}
+                isSearchView={false}
                 selectedArea={selectedArea}
                 mobileProject={mobileProject}
-                quickViewLabel={isSearchMode ? searchViewLabel : currentQuickView.label}
+                quickViewLabel={currentQuickView.label}
                 friendlyToday={friendlyToday}
                 filteredTaskCount={filteredTasks.length}
                 completedCount={completedCount}
@@ -4102,6 +4288,8 @@ export default function TasksPage() {
                 onRemoveFilter={handleRemoveFilter}
                 errorMessage={error}
                 successMessage={successMessage}
+                retryLabel={t('actions.retry')}
+                onRetry={handleRetryLoad}
                 renderTaskBoard={renderMobileTaskBoard}
                 renderDraftCard={renderMobileDraftTaskCard}
                 showDraft={showMobileHome && !!mobileDraftTask}
@@ -4112,7 +4300,7 @@ export default function TasksPage() {
           {!isMultiSelectMode && (
             <MobileBottomBar
               isHomeActive={showMobileHome}
-              isSearchActive={isSearchMode}
+              isSearchActive={isQuickFindActive}
               onHome={handleMobileNavHome}
               onSearch={handleOpenMobileSearch}
               onNewTask={handleMobileNewTask}
@@ -4124,6 +4312,9 @@ export default function TasksPage() {
               onTapHome={handleMobileNewTask}
               onTapDetail={() => startMobileTaskDraft(activeQuickView)}
               onDropInbox={() => startMobileTaskDraft('inbox')}
+              currentLabel={currentQuickView.label}
+              currentIcon={quickViewEmojis[activeQuickView]}
+              onDropCurrent={() => startMobileTaskDraft(activeQuickView)}
             />
           )}
           {renderMobileTaskEditSheet()}
@@ -4164,6 +4355,12 @@ export default function TasksPage() {
                       onOpenSettings={handleOpenSettings}
                       onOpenHelp={handleOpenHelp}
                       onReorderProjects={handleReorderProjects}
+                      taskDrop={{
+                        canDropTask,
+                        onDropQuickView: handleDropTaskQuickView,
+                        onDropArea: handleDropTaskArea,
+                        onDropProject: handleDropTaskProject,
+                      }}
                       search={{
                         searchQuery,
                         suggestions: suggestionResults,
@@ -4223,7 +4420,7 @@ export default function TasksPage() {
                   />
                   <ActiveFilterChips filters={activeFilters} compact={false} onRemove={handleRemoveFilter} />
                   <StatusBanner message={successMessage} />
-                  <ErrorBanner message={error} />
+                  <ErrorBanner message={error} actionLabel={t('actions.retry')} onAction={handleRetryLoad} />
                   {!isOnline && <ErrorBanner message={t('status.offline')} />}
                   {hasPendingSync && <ErrorBanner message={t('status.pendingSync')} />}
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1">

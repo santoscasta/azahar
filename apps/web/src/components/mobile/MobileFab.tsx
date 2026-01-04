@@ -1,16 +1,29 @@
 import { useRef, useState } from 'react'
+import { useTranslations } from '../../App.js'
 
 interface MobileFabProps {
   isHomeView: boolean
   onTapHome: () => void
   onTapDetail: () => void
   onDropInbox?: () => void
+  currentLabel?: string
+  currentIcon?: string
+  onDropCurrent?: () => void
 }
 
-export default function MobileFab({ isHomeView, onTapHome, onTapDetail, onDropInbox }: MobileFabProps) {
+export default function MobileFab({
+  isHomeView,
+  onTapHome,
+  onTapDetail,
+  onDropInbox,
+  currentLabel,
+  currentIcon,
+  onDropCurrent,
+}: MobileFabProps) {
+  const { t } = useTranslations()
   const [isDragging, setIsDragging] = useState(false)
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null)
-  const [activeTarget, setActiveTarget] = useState<'inbox' | 'cancel' | null>(null)
+  const [activeTarget, setActiveTarget] = useState<'inbox' | 'cancel' | 'current' | null>(null)
   const dragStateRef = useRef<{
     startX: number
     startY: number
@@ -20,6 +33,7 @@ export default function MobileFab({ isHomeView, onTapHome, onTapDetail, onDropIn
   } | null>(null)
   const suppressClickRef = useRef(false)
   const inboxTargetRef = useRef<HTMLDivElement | null>(null)
+  const currentTargetRef = useRef<HTMLDivElement | null>(null)
   const cancelTargetRef = useRef<HTMLDivElement | null>(null)
 
   const handleTap = () => {
@@ -32,12 +46,16 @@ export default function MobileFab({ isHomeView, onTapHome, onTapDetail, onDropIn
 
   const resolveTarget = (x: number, y: number) => {
     const inbox = inboxTargetRef.current?.getBoundingClientRect()
+    const current = currentTargetRef.current?.getBoundingClientRect()
     const cancel = cancelTargetRef.current?.getBoundingClientRect()
     const inInbox =
       inbox && x >= inbox.left && x <= inbox.right && y >= inbox.top && y <= inbox.bottom
+    const inCurrent =
+      current && x >= current.left && x <= current.right && y >= current.top && y <= current.bottom
     const inCancel =
       cancel && x >= cancel.left && x <= cancel.right && y >= cancel.top && y <= cancel.bottom
     if (inCancel) return 'cancel'
+    if (inCurrent) return 'current'
     if (inInbox) return 'inbox'
     return null
   }
@@ -81,6 +99,11 @@ export default function MobileFab({ isHomeView, onTapHome, onTapDetail, onDropIn
     }
     const target = resolveTarget(event.clientX, event.clientY)
     if (target === 'cancel') {
+      cleanupDrag()
+      return
+    }
+    if (target === 'current' && onDropCurrent) {
+      onDropCurrent()
       cleanupDrag()
       return
     }
@@ -131,8 +154,23 @@ export default function MobileFab({ isHomeView, onTapHome, onTapDetail, onDropIn
             >
               📥
             </div>
-            <span className="text-xs text-[var(--color-text-muted)]">Inbox</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t('view.inbox')}</span>
           </div>
+          {currentLabel && (
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+              <div
+                ref={currentTargetRef}
+                className={`h-12 w-12 rounded-full border flex items-center justify-center text-lg ${
+                  activeTarget === 'current'
+                    ? 'border-[var(--color-action-500)] bg-[var(--color-accent-100)] text-[var(--color-action-500)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+                }`}
+              >
+                {currentIcon || '📍'}
+              </div>
+              <span className="text-xs text-[var(--color-text-muted)]">{currentLabel}</span>
+            </div>
+          )}
           <div className="absolute bottom-24 right-6 flex flex-col items-center gap-2">
             <div
               ref={cancelTargetRef}
@@ -144,7 +182,7 @@ export default function MobileFab({ isHomeView, onTapHome, onTapDetail, onDropIn
             >
               ✕
             </div>
-            <span className="text-xs text-[var(--color-text-muted)]">Cancelar</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t('actions.cancel')}</span>
           </div>
         </div>
       )}

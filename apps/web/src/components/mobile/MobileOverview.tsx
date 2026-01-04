@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import type { ReactNode } from 'react'
-import type { Area, Project } from '../../lib/supabase.js'
+import type { ReactNode, RefObject } from 'react'
+import type { Area, Project, Task } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import searchIcon from '../../assets/icons/search.svg'
 import AreaIcon from '../icons/AreaIcon.js'
 import ProjectIcon from '../icons/ProjectIcon.js'
 import { useTranslations } from '../../App.js'
+import MobileQuickFindSuggestions from './MobileQuickFindSuggestions.js'
 
 interface DraftArea {
   name: string
@@ -26,8 +27,12 @@ interface MobileOverviewProps {
   showDraftCard: boolean
   renderDraftCard?: () => ReactNode
   searchQuery: string
+  searchInputRef?: RefObject<HTMLInputElement>
   onSearchChange: (value: string) => void
   onSearchFocus: () => void
+  showSuggestions: boolean
+  suggestions: Task[]
+  onSelectSuggestion: (task: Task) => void
   quickLists: readonly QuickListItem[]
   quickViewStats: Record<QuickViewId, number>
   onSelectQuickView: (view: QuickViewId) => void
@@ -55,8 +60,12 @@ export function MobileOverview({
   showDraftCard,
   renderDraftCard,
   searchQuery,
+  searchInputRef,
   onSearchChange,
   onSearchFocus,
+  showSuggestions,
+  suggestions,
+  onSelectSuggestion,
   quickLists,
   quickViewStats,
   onSelectQuickView,
@@ -81,9 +90,18 @@ export function MobileOverview({
 }: MobileOverviewProps) {
   const { t } = useTranslations()
   const [showAllAreas, setShowAllAreas] = useState(false)
-  const [showAllProjects, setShowAllProjects] = useState(false)
+  const [expandedProjectGroups, setExpandedProjectGroups] = useState<Record<string, boolean>>({})
   const visibleAreas = showAllAreas ? areas : areas.slice(0, 4)
-  const visibleProjects = showAllProjects ? projects : projects.slice(0, 4)
+  const projectsByArea = areas.map(area => ({
+    id: area.id,
+    name: area.name,
+    projects: projects.filter(project => project.area_id === area.id),
+  }))
+  const unassignedProjects = projects.filter(project => !project.area_id)
+
+  const toggleProjectGroup = (groupId: string) => {
+    setExpandedProjectGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }))
+  }
   return (
     <div className="space-y-6 pb-28">
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
@@ -92,6 +110,7 @@ export function MobileOverview({
           <img src={searchIcon} alt="" className="h-4 w-4" />
         </span>
         <input
+          ref={searchInputRef}
           type="text"
           value={searchQuery}
           onFocus={onSearchFocus}
@@ -99,6 +118,14 @@ export function MobileOverview({
           placeholder={t('mobile.search.placeholder')}
           className="w-full min-h-[44px] pl-10 pr-14 py-3 rounded-[var(--radius-container)] border border-[var(--color-border)] text-sm text-[var(--on-surface)] placeholder-[var(--color-text-muted)] focus:ring-1 focus:ring-[var(--color-primary-200)] focus:border-[var(--color-primary-600)] outline-none bg-[var(--color-surface)]"
         />
+        {showSuggestions && (
+          <MobileQuickFindSuggestions
+            query={searchQuery}
+            suggestions={suggestions}
+            projects={projects}
+            onSelect={onSelectSuggestion}
+          />
+        )}
       </div>
       <div className="flex items-center gap-2">
         <button
@@ -146,7 +173,7 @@ export function MobileOverview({
         <div className="flex items-center justify-between text-sm font-semibold text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2">
             <AreaIcon className="h-4 w-4" />
-            <span className="sr-only">Áreas</span>
+            <span className="sr-only">{t('sidebar.areas')}</span>
           </span>
           {areas.length > 4 && (
             <button
@@ -207,17 +234,8 @@ export function MobileOverview({
         <div className="flex items-center justify-between text-sm font-semibold text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2">
             <ProjectIcon className="h-4 w-4" />
-            <span className="sr-only">Proyectos</span>
+            <span className="sr-only">{t('sidebar.projects')}</span>
           </span>
-          {projects.length > 4 && (
-            <button
-              type="button"
-              onClick={() => setShowAllProjects(prev => !prev)}
-              className="min-h-[44px] px-3 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)]"
-            >
-              {showAllProjects ? t('actions.hide') : t('actions.showAll')}
-            </button>
-          )}
         </div>
         {projectDraft && (
           <div className="rounded-[var(--radius-container)] border border-[var(--color-border)] p-3 space-y-2">
@@ -247,20 +265,72 @@ export function MobileOverview({
             </div>
           </div>
         )}
-        <div className="space-y-2">
-          {visibleProjects.map(project => (
-            <button
-              key={`mobile-project-${project.id}`}
-              className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-[var(--radius-card)] border border-transparent hover:border-[var(--color-border)]"
-              onClick={() => onSelectProject(project.id)}
-            >
-              <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
-                <ProjectIcon className="h-4 w-4 text-[var(--color-text-muted)]" />
-                {project.name}
-              </span>
-              <span className="text-[var(--color-text-muted)]">›</span>
-            </button>
-          ))}
+        <div className="space-y-3">
+          {projectsByArea
+            .filter(group => group.projects.length > 0)
+            .map(group => {
+              const isExpanded = expandedProjectGroups[group.id] ?? false
+              return (
+                <div key={`projects-${group.id}`} className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleProjectGroup(group.id)}
+                    aria-expanded={isExpanded}
+                    className="w-full min-h-[44px] flex items-center justify-between px-2 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--on-surface)]"
+                  >
+                    <span>{group.name}</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">{group.projects.length}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="space-y-2 pl-2">
+                      {group.projects.map(project => (
+                        <button
+                          key={`mobile-project-${project.id}`}
+                          className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-[var(--radius-card)] border border-transparent hover:border-[var(--color-border)]"
+                          onClick={() => onSelectProject(project.id)}
+                        >
+                          <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
+                            <ProjectIcon className="h-4 w-4 text-[var(--color-text-muted)]" />
+                            {project.name}
+                          </span>
+                          <span className="text-[var(--color-text-muted)]">›</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          {unassignedProjects.length > 0 && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => toggleProjectGroup('none')}
+                aria-expanded={expandedProjectGroups.none ?? false}
+                className="w-full min-h-[44px] flex items-center justify-between px-2 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--on-surface)]"
+              >
+                <span>{t('project.new.area.none')}</span>
+                <span className="text-xs text-[var(--color-text-muted)]">{unassignedProjects.length}</span>
+              </button>
+              {(expandedProjectGroups.none ?? false) && (
+                <div className="space-y-2 pl-2">
+                  {unassignedProjects.map(project => (
+                    <button
+                      key={`mobile-project-${project.id}`}
+                      className="w-full min-h-[48px] flex items-center justify-between px-3 py-2 rounded-[var(--radius-card)] border border-transparent hover:border-[var(--color-border)]"
+                      onClick={() => onSelectProject(project.id)}
+                    >
+                      <span className="flex items-center gap-2 text-sm text-[var(--on-surface)]">
+                        <ProjectIcon className="h-4 w-4 text-[var(--color-text-muted)]" />
+                        {project.name}
+                      </span>
+                      <span className="text-[var(--color-text-muted)]">›</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
