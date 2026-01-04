@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { Area, Label, Project, ProjectHeading } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { TaskCreationDraft } from '../../hooks/useTaskCreation.js'
+import { useTranslations } from '../../App.js'
 
 interface CreationViewOption {
   id: QuickViewId
@@ -59,6 +60,7 @@ export default function TaskCreationModal({
   onInlineLabelNameChange,
   onCreateInlineLabel,
 }: TaskCreationModalProps) {
+  const { t } = useTranslations()
   const [showContext, setShowContext] = useState(false)
   const [showDetails, setShowDetails] = useState(isMobile)
 
