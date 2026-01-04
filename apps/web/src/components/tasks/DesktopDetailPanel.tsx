@@ -1,19 +1,16 @@
 import type { FormEvent } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
-import { getSoftLabelStyle } from '../../lib/colorUtils.js'
 import { useTranslations } from '../../App.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
 import { getLabelQuickView } from '../../pages/tasksSelectors.js'
-
-type Priority = 0 | 1 | 2 | 3
 
 interface EditingState {
   id: string | null
   title: string
   notes: string
-  priority: Priority
   dueAt: string
+  deadlineAt: string
   projectId: string | null
   areaId: string | null
   headingId: string | null
@@ -22,7 +19,6 @@ interface EditingState {
 interface EditingHandlers {
   setTitle: (value: string) => void
   setNotes: (value: string) => void
-  setPriority: (value: Priority) => void
   setAreaId: (value: string | null) => void
   setProjectId: (value: string | null) => void
   setHeadingId: (value: string | null) => void
@@ -39,6 +35,7 @@ interface DesktopDetailPanelProps {
   onSaveEdit: (event?: FormEvent<HTMLFormElement>) => boolean
   onCancelEdit: () => void
   onOpenEditDatePicker: (anchor?: HTMLElement | null) => void
+  onOpenDeadlinePicker: (anchor?: HTMLElement | null) => void
   onOpenLabelSheet: (task: Task, anchor?: HTMLElement | null) => void
   onOpenChecklist: (task: Task, anchor?: HTMLElement | null) => void
   onOpenMoveSheet: (task: Task, anchor?: HTMLElement | null) => void
@@ -65,6 +62,7 @@ export default function DesktopDetailPanel({
   onSaveEdit,
   onCancelEdit,
   onOpenEditDatePicker,
+  onOpenDeadlinePicker,
   onOpenLabelSheet,
   onOpenChecklist,
   onOpenMoveSheet,
@@ -100,6 +98,9 @@ export default function DesktopDetailPanel({
 
   if (editingState.dueAt) {
     metaChips.push({ id: 'due', label: `Cuando: ${formatDateLabel(editingState.dueAt)}` })
+  }
+  if (editingState.deadlineAt) {
+    metaChips.push({ id: 'deadline', label: `${t('gtd.due')}: ${formatDateLabel(editingState.deadlineAt)}` })
   }
   if (project) {
     metaChips.push({ id: 'project', label: `Proyecto: ${project.name}` })
@@ -146,7 +147,15 @@ export default function DesktopDetailPanel({
             className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
           >
             <CalendarIcon className="h-3.5 w-3.5" />
-            {formatDateLabel(editingState.dueAt)}
+            {t('task.edit.when')}: {formatDateLabel(editingState.dueAt)}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => onOpenDeadlinePicker(event.currentTarget)}
+            className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-muted)] hover:border-[var(--color-primary-600)]"
+          >
+            <span aria-hidden>⚑</span>
+            {t('gtd.due')}: {formatDateLabel(editingState.deadlineAt)}
           </button>
           <button
             type="button"
@@ -217,7 +226,7 @@ export default function DesktopDetailPanel({
           {task.labels && task.labels.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {task.labels.map(label => (
-                <span key={label.id} className="az-pill" style={getSoftLabelStyle(label.color)}>
+                <span key={label.id} className="az-pill">
                   {label.name}
                 </span>
               ))}

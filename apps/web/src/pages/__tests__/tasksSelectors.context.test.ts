@@ -17,6 +17,7 @@ const makeTask = (overrides: Partial<Task>): Task => ({
   area_id: null,
   heading_id: null,
   due_at: null,
+  deadline_at: null,
   start_at: null,
   repeat_rrule: null,
   reminder_at: null,

@@ -189,6 +189,7 @@ type TranslationKey =
   | 'actions.add'
   | 'actions.done'
   | 'schedule.title'
+  | 'schedule.hint'
   | 'multiSelect.select'
   | 'multiSelect.done'
   | 'multiSelect.selected'
@@ -216,13 +217,18 @@ type TranslationKey =
   | 'datePicker.title.new'
   | 'datePicker.title.edit'
   | 'datePicker.title.draft'
+  | 'datePicker.title.deadline.new'
+  | 'datePicker.title.deadline.edit'
+  | 'datePicker.title.deadline.draft'
   | 'datePicker.none'
   | 'datePicker.prevMonth'
   | 'datePicker.nextMonth'
   | 'datePicker.selected'
   | 'datePicker.noDateAssigned'
   | 'datePicker.hint'
+  | 'datePicker.hint.deadline'
   | 'datePicker.apply'
+  | 'datePicker.apply.deadline'
   | 'task.menu.title'
   | 'task.menu.pin'
   | 'task.menu.unpin'
@@ -257,6 +263,7 @@ type TranslationKey =
   | 'project.new.create'
   | 'project.new.saving'
   | 'labels.title'
+  | 'labels.hint'
   | 'labels.empty'
   | 'labels.delete'
   | 'labels.placeholder'
@@ -451,6 +458,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.add': 'Añadir',
     'actions.done': 'Listo',
     'schedule.title': '¿Cuándo?',
+    'schedule.hint': 'Selecciona la vista rápida para agendar.',
     'multiSelect.select': 'Seleccionar',
     'multiSelect.done': 'Listo',
     'multiSelect.selected': 'Seleccionadas',
@@ -478,13 +486,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'datePicker.title.new': 'Cuando para nueva tarea',
     'datePicker.title.edit': 'Actualizar cuando',
     'datePicker.title.draft': 'Cuando',
+    'datePicker.title.deadline.new': 'Fecha límite para nueva tarea',
+    'datePicker.title.deadline.edit': 'Actualizar fecha límite',
+    'datePicker.title.deadline.draft': 'Fecha límite',
     'datePicker.none': 'Sin fecha',
     'datePicker.prevMonth': 'Mes anterior',
     'datePicker.nextMonth': 'Mes siguiente',
     'datePicker.selected': 'Seleccionada',
     'datePicker.noDateAssigned': 'Sin fecha asignada',
     'datePicker.hint': 'Confirma el cuando con el botón aplicar para guardar el cambio.',
+    'datePicker.hint.deadline': 'Confirma la fecha límite con el botón aplicar para guardar el cambio.',
     'datePicker.apply': 'Aplicar cuando',
+    'datePicker.apply.deadline': 'Aplicar fecha límite',
     'task.menu.title': 'Acciones',
     'task.menu.pin': 'Fijar tarea',
     'task.menu.unpin': 'Quitar fijado',
@@ -519,6 +532,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'project.new.create': 'Crear proyecto',
     'project.new.saving': 'Guardando...',
     'labels.title': 'Etiquetas',
+    'labels.hint': 'Selecciona o crea etiquetas sin perder el foco.',
     'labels.empty': 'Aún no tienes etiquetas.',
     'labels.delete': 'Eliminar',
     'labels.placeholder': 'Nueva etiqueta',
@@ -712,6 +726,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'actions.add': 'Add',
     'actions.done': 'Done',
     'schedule.title': 'When?',
+    'schedule.hint': 'Pick the view to schedule.',
     'multiSelect.select': 'Select',
     'multiSelect.done': 'Done',
     'multiSelect.selected': 'Selected',
@@ -739,13 +754,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'datePicker.title.new': 'When for new task',
     'datePicker.title.edit': 'Update when',
     'datePicker.title.draft': 'When',
+    'datePicker.title.deadline.new': 'Deadline for new task',
+    'datePicker.title.deadline.edit': 'Update deadline',
+    'datePicker.title.deadline.draft': 'Deadline',
     'datePicker.none': 'No date',
     'datePicker.prevMonth': 'Previous month',
     'datePicker.nextMonth': 'Next month',
     'datePicker.selected': 'Selected',
     'datePicker.noDateAssigned': 'No date assigned',
     'datePicker.hint': 'Confirm the when with the apply button to save the change.',
+    'datePicker.hint.deadline': 'Confirm the deadline with the apply button to save the change.',
     'datePicker.apply': 'Apply when',
+    'datePicker.apply.deadline': 'Apply deadline',
     'task.menu.title': 'Actions',
     'task.menu.pin': 'Pin task',
     'task.menu.unpin': 'Unpin task',
@@ -780,6 +800,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'project.new.create': 'Create project',
     'project.new.saving': 'Saving...',
     'labels.title': 'Labels',
+    'labels.hint': 'Select or create labels without losing focus.',
     'labels.empty': 'No labels yet.',
     'labels.delete': 'Delete',
     'labels.placeholder': 'New label',

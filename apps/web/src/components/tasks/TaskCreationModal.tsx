@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
-import type { CSSProperties, FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import type { Area, Label, Project, ProjectHeading } from '../../lib/supabase.js'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
 import type { TaskCreationDraft } from '../../hooks/useTaskCreation.js'
-import { getSoftLabelStyle } from '../../lib/colorUtils.js'
 
 interface CreationViewOption {
   id: QuickViewId
@@ -21,6 +20,7 @@ interface TaskCreationModalProps {
   labels: Label[]
   creationViewOptions: readonly CreationViewOption[]
   dueDateLabel: string
+  deadlineDateLabel: string
   savingTask: boolean
   savingLabel: boolean
   onClose: () => void
@@ -28,6 +28,7 @@ interface TaskCreationModalProps {
   onUpdateDraft: <K extends keyof TaskCreationDraft>(key: K, value: TaskCreationDraft[K]) => void
   onApplyViewPreset: (view: QuickViewId) => void
   onRequestDueDate: (anchor?: HTMLElement | null) => void
+  onRequestDeadline: (anchor?: HTMLElement | null) => void
   onToggleLabel: (labelId: string) => void
   inlineLabelName: string
   onInlineLabelNameChange: (value: string) => void
@@ -44,6 +45,7 @@ export default function TaskCreationModal({
   labels,
   creationViewOptions,
   dueDateLabel,
+  deadlineDateLabel,
   savingTask,
   savingLabel,
   onClose,
@@ -51,6 +53,7 @@ export default function TaskCreationModal({
   onUpdateDraft,
   onApplyViewPreset,
   onRequestDueDate,
+  onRequestDeadline,
   onToggleLabel,
   inlineLabelName,
   onInlineLabelNameChange,
@@ -197,6 +200,14 @@ export default function TaskCreationModal({
                 <span className="text-lg">🗓️</span>
                 Cuando: {dueDateLabel}
               </button>
+              <button
+                type="button"
+                onClick={(event) => onRequestDeadline(event.currentTarget)}
+                className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-sm font-medium text-[var(--on-surface)] hover:border-[var(--color-primary-400)]"
+              >
+                <span className="text-lg">⚑</span>
+                Fecha límite: {deadlineDateLabel}
+              </button>
               <div className="flex items-center gap-3 text-xl text-[var(--color-text-muted)]">
                 <button
                   type="button"
@@ -231,6 +242,9 @@ export default function TaskCreationModal({
             )}
             {draft.due_at && (
               <p className="text-xs text-[var(--color-text-muted)]">Cuando: {dueDateLabel}</p>
+            )}
+            {draft.deadline_at && (
+              <p className="text-xs text-[var(--color-text-muted)]">Fecha límite: {deadlineDateLabel}</p>
             )}
           </div>
 
@@ -416,18 +430,13 @@ export default function TaskCreationModal({
                     <div className="flex flex-wrap gap-2">
                       {labels.map(label => {
                         const isSelected = draft.labelIds.includes(label.id)
-                        const baseStyle = getSoftLabelStyle(label.color)
-                        const selectedStyle = {
-                          ...(baseStyle ?? {}),
-                          '--az-pill-border': 'var(--color-accent-500)',
-                        } as CSSProperties
                         return (
                           <button
                             key={`new-task-label-${label.id}`}
                             type="button"
                             onClick={() => onToggleLabel(label.id)}
-                            className="az-pill transition"
-                            style={isSelected ? selectedStyle : baseStyle}
+                            aria-pressed={isSelected}
+                            className={`az-pill transition ${isSelected ? 'font-semibold' : ''}`}
                           >
                             {isSelected ? '✓ ' : ''}
                             #{label.name}

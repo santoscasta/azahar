@@ -25,6 +25,7 @@ const task: Task = {
   status: 'open',
   priority: 0,
   due_at: null,
+  deadline_at: null,
   start_at: null,
   repeat_rrule: null,
   reminder_at: null,

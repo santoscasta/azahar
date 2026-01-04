@@ -7,12 +7,14 @@ interface DesktopDraftCardProps {
   draft: TaskCreationDraft
   viewLabel: string
   dueLabel: string
+  deadlineLabel: string
   labelCount: number
   onSubmit: (event?: FormEvent<HTMLFormElement>) => void
   onCancel: () => void
   onTitleChange: (value: string) => void
   onNotesChange: (value: string) => void
   onRequestDueDate: (anchor?: HTMLElement | null) => void
+  onRequestDeadline: (anchor?: HTMLElement | null) => void
   onOpenLabels: () => void
   autoSaveEnabled?: boolean
 }
@@ -21,12 +23,14 @@ export function DesktopDraftCard({
   draft,
   viewLabel,
   dueLabel,
+  deadlineLabel,
   labelCount,
   onSubmit,
   onCancel,
   onTitleChange,
   onNotesChange,
   onRequestDueDate,
+  onRequestDeadline,
   onOpenLabels,
   autoSaveEnabled = true,
 }: DesktopDraftCardProps) {
@@ -167,6 +171,14 @@ export function DesktopDraftCard({
               >
                 <CalendarIcon className="h-4 w-4" />
                 Cuando: {dueLabel}
+              </button>
+              <button
+                type="button"
+                onClick={(event) => onRequestDeadline(event.currentTarget)}
+                className="min-h-[44px] px-3 rounded-[var(--radius-card)] border border-[var(--color-border)] inline-flex items-center gap-2 hover:border-[var(--color-primary-600)]"
+              >
+                <span aria-hidden>⚑</span>
+                Fecha límite: {deadlineLabel}
               </button>
             </div>
           </div>

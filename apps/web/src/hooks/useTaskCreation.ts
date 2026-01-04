@@ -5,8 +5,8 @@ import { loadDraft, saveDraft, clearDraft } from './draftStorage.js'
 export interface TaskCreationDraft {
   title: string
   notes: string
-  priority: 0 | 1 | 2 | 3
   due_at: string
+  deadline_at: string
   projectId: string | null
   areaId: string | null
   headingId: string | null
@@ -22,14 +22,15 @@ export interface MobileTaskDraft {
   areaId: string | null
   projectId: string | null
   due_at: string | null
+  deadline_at: string | null
   labelIds: string[]
 }
 
 const defaultDraft: TaskCreationDraft = {
   title: '',
   notes: '',
-  priority: 0,
   due_at: '',
+  deadline_at: '',
   projectId: null,
   areaId: null,
   headingId: null,
@@ -56,6 +57,7 @@ export function useTaskCreation(initialView: QuickViewId = 'inbox') {
       areaId: persisted.areaId ?? null,
       projectId: persisted.projectId ?? null,
       due_at: persisted.due_at ?? null,
+      deadline_at: persisted.deadline_at ?? null,
       labelIds: Array.isArray(persisted.labelIds) ? persisted.labelIds : [],
     }
   })

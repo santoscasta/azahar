@@ -47,13 +47,15 @@ create table if not exists tasks (
   status text default 'open', -- open|done|snoozed
   priority int default 0,
   due_at timestamptz,
+  deadline_at timestamptz,
   start_at timestamptz,
   repeat_rrule text,
   reminder_at timestamptz,
   updated_at timestamptz default now(),
   created_at timestamptz default now(),
   completed_at timestamptz,
-  pinned boolean default false
+  pinned boolean default false,
+  sort_orders jsonb default '{}'::jsonb
 );
 
 alter table tasks
@@ -66,6 +68,10 @@ alter table tasks
 
 alter table tasks
   add column if not exists quick_view text;
+alter table tasks
+  add column if not exists deadline_at timestamptz;
+alter table tasks
+  add column if not exists sort_orders jsonb default '{}'::jsonb;
 
 -- Tabla: task_checklist_items
 create table if not exists task_checklist_items (

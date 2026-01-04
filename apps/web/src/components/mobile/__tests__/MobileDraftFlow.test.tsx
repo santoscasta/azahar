@@ -13,6 +13,7 @@ function DraftHarness({ onSubmit }: { onSubmit: (payload: ReturnType<typeof buil
     areaId: null,
     projectId: null,
     due_at: '2025-03-01',
+    deadline_at: null,
     labelIds: [],
   })
 
@@ -30,6 +31,7 @@ function DraftHarness({ onSubmit }: { onSubmit: (payload: ReturnType<typeof buil
       onSchedulePress={vi.fn()}
       onLabelsPress={vi.fn()}
       onDatePress={vi.fn()}
+      onDeadlinePress={vi.fn()}
       onCancel={vi.fn()}
       onSave={handleSave}
     />
@@ -50,6 +52,7 @@ describe('Mobile draft flow', () => {
       notes: '',
       status: 'open',
       due_at: '2025-03-01',
+      deadline_at: null,
       project_id: null,
       area_id: null,
       quick_view: 'today',

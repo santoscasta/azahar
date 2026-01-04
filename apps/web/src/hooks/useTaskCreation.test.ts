@@ -11,8 +11,8 @@ describe('useTaskCreation Extended', () => {
             title: '',
             notes: '',
             status: 'open',
-            priority: 0,
             due_at: '',
+            deadline_at: '',
             view: 'inbox',
             projectId: null,
             areaId: null,
@@ -30,13 +30,11 @@ describe('useTaskCreation Extended', () => {
             result.current.updateMobileDraft(() => ({
                 title: 'Mobile Task',
                 notes: 'Some notes',
-                status: 'open',
-                priority: 1,
-                due_at: '2023-01-01',
                 view: 'inbox',
                 projectId: 'p1',
                 areaId: null,
-                headingId: null,
+                due_at: '2023-01-01',
+                deadline_at: null,
                 labelIds: ['l1'],
             }))
         })
@@ -44,13 +42,11 @@ describe('useTaskCreation Extended', () => {
         expect(result.current.mobileDraftTask).toEqual({
             title: 'Mobile Task',
             notes: 'Some notes',
-            status: 'open',
-            priority: 1,
-            due_at: '2023-01-01',
             view: 'inbox',
             projectId: 'p1',
             areaId: null,
-            headingId: null,
+            due_at: '2023-01-01',
+            deadline_at: null,
             labelIds: ['l1'],
         })
     })

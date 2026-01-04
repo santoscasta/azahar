@@ -6,8 +6,8 @@ import type { TaskCreationDraft } from '../../../hooks/useTaskCreation.js'
 const baseDraft: TaskCreationDraft = {
   title: '',
   notes: '',
-  priority: 0,
   due_at: '',
+  deadline_at: '',
   projectId: null,
   areaId: null,
   headingId: null,
@@ -28,12 +28,14 @@ describe('DesktopDraftCard', () => {
         draft={baseDraft}
         viewLabel="Entrada"
         dueLabel="Sin fecha"
+        deadlineLabel="Sin fecha"
         labelCount={0}
         onSubmit={vi.fn()}
         onCancel={handleCancel}
         onTitleChange={vi.fn()}
         onNotesChange={vi.fn()}
         onRequestDueDate={vi.fn()}
+        onRequestDeadline={vi.fn()}
         onOpenLabels={vi.fn()}
       />
     )
@@ -56,12 +58,14 @@ describe('DesktopDraftCard', () => {
         draft={baseDraft}
         viewLabel="Entrada"
         dueLabel="Sin fecha"
+        deadlineLabel="Sin fecha"
         labelCount={0}
         onSubmit={vi.fn()}
         onCancel={handleCancel}
         onTitleChange={vi.fn()}
         onNotesChange={vi.fn()}
         onRequestDueDate={vi.fn()}
+        onRequestDeadline={vi.fn()}
         onOpenLabels={vi.fn()}
       />
     )

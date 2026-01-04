@@ -10,6 +10,7 @@ describe('buildMobileTaskPayload', () => {
       areaId: 'area-1',
       projectId: 'project-1',
       due_at: '2025-02-01',
+      deadline_at: null,
       labelIds: ['a', 'b'],
     })
 
@@ -18,6 +19,7 @@ describe('buildMobileTaskPayload', () => {
       notes: 'Notas',
       status: 'snoozed',
       due_at: '2025-02-01',
+      deadline_at: null,
       project_id: 'project-1',
       area_id: 'area-1',
       quick_view: 'someday',

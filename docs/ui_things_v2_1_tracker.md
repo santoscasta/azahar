@@ -74,3 +74,4 @@ Progreso: 43/43 módulos completados · 0 pendientes · 0 en curso
 - Desktop detail view: use inline editor/popover within the list instead of a third column (per latest UI direction).
 - Confirm if labels/checklist/move sheets should also use anchored popovers on desktop (currently still bottom sheets).
 - Widgets native (Home/Lock Screen) quedan fuera del alcance web; hay preview en Ayuda.
+- Reasignar `sort_orders` al mover tareas entre listas/áreas/proyectos para que entren al final del destino.

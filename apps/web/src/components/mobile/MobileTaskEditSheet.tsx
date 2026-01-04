@@ -8,12 +8,14 @@ interface MobileTaskEditSheetProps {
   title: string
   notes: string
   dueLabel: string
+  deadlineLabel: string
   labelCount: number
   onChangeTitle: (value: string) => void
   onChangeNotes: (value: string) => void
   onClose: () => void
   onSave: () => void
   onOpenDatePicker: () => void
+  onOpenDeadlinePicker: () => void
   onOpenLabels: () => void
   onOpenChecklist: () => void
   onMove: () => void
@@ -28,12 +30,14 @@ export default function MobileTaskEditSheet({
   title,
   notes,
   dueLabel,
+  deadlineLabel,
   labelCount,
   onChangeTitle,
   onChangeNotes,
   onClose,
   onSave,
   onOpenDatePicker,
+  onOpenDeadlinePicker,
   onOpenLabels,
   onOpenChecklist,
   onMove,
@@ -53,10 +57,9 @@ export default function MobileTaskEditSheet({
         <button
           type="button"
           onClick={onClose}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--color-text-muted)]"
-          aria-label={t('actions.close')}
+          className="min-h-[44px] px-3 text-sm font-semibold text-[var(--color-text-muted)]"
         >
-          ✕
+          {t('actions.cancel')}
         </button>
         <span className="text-sm font-semibold">{t('task.edit.title')}</span>
         <button
@@ -91,6 +94,14 @@ export default function MobileTaskEditSheet({
           >
             <CalendarIcon className="h-4 w-4" />
             {t('task.edit.when')}: {dueLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenDeadlinePicker}
+            className="min-h-[44px] inline-flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--on-surface)]"
+          >
+            <span aria-hidden>⚑</span>
+            {t('gtd.due')}: {deadlineLabel}
           </button>
           <button
             type="button"

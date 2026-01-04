@@ -8,6 +8,7 @@ export interface MobileDraftInput {
   areaId: string | null
   projectId: string | null
   due_at: string | null
+  deadline_at: string | null
   labelIds: string[]
 }
 
@@ -17,6 +18,7 @@ export function buildMobileTaskPayload(draft: MobileDraftInput) {
     notes: draft.notes,
     status: deriveStatusFromView(draft.view),
     due_at: draft.due_at,
+    deadline_at: draft.deadline_at,
     project_id: draft.projectId,
     area_id: draft.areaId,
     quick_view: draft.view,

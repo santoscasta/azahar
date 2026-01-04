@@ -10,6 +10,7 @@ const baseDraft: MobileTaskDraft = {
   areaId: null,
   projectId: null,
   due_at: '2025-01-01',
+  deadline_at: null,
   labelIds: [],
 }
 
@@ -26,6 +27,7 @@ describe('MobileDraftCard', () => {
       onSchedulePress: vi.fn(),
       onLabelsPress: vi.fn(),
       onDatePress: vi.fn(),
+      onDeadlinePress: vi.fn(),
       onCancel: vi.fn(),
       onSave: vi.fn(),
     }
@@ -48,6 +50,9 @@ describe('MobileDraftCard', () => {
     fireEvent.click(getByLabelText('Cuando'))
     expect(callbacks.onDatePress).toHaveBeenCalled()
 
+    fireEvent.click(getByLabelText('Fecha límite'))
+    expect(callbacks.onDeadlinePress).toHaveBeenCalled()
+
     fireEvent.click(getByRole('button', { name: 'Crear tarea' }))
     expect(callbacks.onSave).toHaveBeenCalled()
   })
@@ -63,6 +68,7 @@ describe('MobileDraftCard', () => {
         onSchedulePress={vi.fn()}
         onLabelsPress={vi.fn()}
         onDatePress={vi.fn()}
+        onDeadlinePress={vi.fn()}
         onCancel={vi.fn()}
         onSave={vi.fn()}
       />

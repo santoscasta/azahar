@@ -2,20 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode, KeyboardEvent, DragEvent, CSSProperties } from 'react'
 import type { Area, Project, ProjectHeading, Task } from '../../lib/supabase.js'
 import { deserializeChecklistNotes } from '../../lib/checklistNotes.js'
-import { getSoftLabelStyle } from '../../lib/colorUtils.js'
 import { parseISODate, formatISODate } from '../../lib/dateUtils.js'
 import { useTranslations } from '../../App.js'
 import CalendarIcon from '../icons/CalendarIcon.js'
 import { getLabelQuickView, normalizeDate, getTaskView } from '../../pages/tasksSelectors.js'
 
-type Priority = 0 | 1 | 2 | 3
-
 interface EditingState {
   id: string | null
   title: string
   notes: string
-  priority: Priority
   dueAt: string
+  deadlineAt: string
   projectId: string | null
   areaId: string | null
   headingId: string | null
@@ -24,7 +21,6 @@ interface EditingState {
 interface EditingHandlers {
   setTitle: (value: string) => void
   setNotes: (value: string) => void
-  setPriority: (value: Priority) => void
   setAreaId: (value: string | null) => void
   setProjectId: (value: string | null) => void
   setHeadingId: (value: string | null) => void
@@ -52,6 +48,7 @@ interface TaskListProps {
   onDeleteTask: (taskId: string) => void
   deletePending?: boolean
   onOpenEditDatePicker: (anchor?: HTMLElement | null) => void
+  onOpenDeadlinePicker: (anchor?: HTMLElement | null) => void
   onOpenLabelSheet: (task: Task, anchor?: HTMLElement | null) => void
   onOpenChecklist: (task: Task, anchor?: HTMLElement | null) => void
   onOpenMoveSheet: (task: Task, anchor?: HTMLElement | null) => void
@@ -75,6 +72,9 @@ interface TaskListProps {
   selectedTaskIds?: string[]
   onToggleSelection?: (taskId: string) => void
   onCreateTask?: () => void
+  sortKey?: string
+  sortMode?: 'default' | 'due' | 'completed'
+  onReorderTasks?: (orderedIds: string[]) => void
 }
 
 export default function TaskList({
@@ -99,6 +99,7 @@ export default function TaskList({
   onDeleteTask,
   deletePending,
   onOpenEditDatePicker,
+  onOpenDeadlinePicker,
   onOpenLabelSheet,
   onOpenChecklist,
   onOpenMoveSheet,
@@ -122,6 +123,9 @@ export default function TaskList({
   selectedTaskIds = [],
   onToggleSelection,
   onCreateTask,
+  sortKey,
+  sortMode = 'default',
+  onReorderTasks,
 }: TaskListProps) {
   const { t, language } = useTranslations()
   const selectionEnabled = multiSelectMode && !!onToggleSelection
@@ -130,6 +134,49 @@ export default function TaskList({
   todayDate.setHours(0, 0, 0, 0)
   const todayISO = formatISODate(todayDate)
   const locale = language === 'en' ? 'en-US' : 'es-ES'
+  const resolveSortOrder = (task: Task) => {
+    if (!sortKey) return null
+    const orders = task.sort_orders
+    if (!orders || typeof orders !== 'object') {
+      return null
+    }
+    const raw = (orders as Record<string, number>)[sortKey]
+    return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
+  }
+  const sortedTasks = useMemo(() => {
+    if (!sortKey) {
+      return tasks
+    }
+    const copy = [...tasks]
+    return copy.sort((a, b) => {
+      if (sortMode === 'due') {
+        const aDate = normalizeDate(a.due_at)
+        const bDate = normalizeDate(b.due_at)
+        if (aDate !== bDate) {
+          if (!aDate) return 1
+          if (!bDate) return -1
+          return aDate.localeCompare(bDate)
+        }
+      }
+      if (sortMode === 'completed') {
+        const aCompleted = a.completed_at || ''
+        const bCompleted = b.completed_at || ''
+        if (aCompleted !== bCompleted) {
+          return bCompleted.localeCompare(aCompleted)
+        }
+      }
+      const aOrder = resolveSortOrder(a)
+      const bOrder = resolveSortOrder(b)
+      if (aOrder !== null || bOrder !== null) {
+        if (aOrder === null) return 1
+        if (bOrder === null) return -1
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder
+        }
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+  }, [tasks, sortKey, sortMode])
 
   const buildDeadlineFlag = (value?: string | null) => {
     const normalized = normalizeDate(value)
@@ -151,6 +198,7 @@ export default function TaskList({
   }
   const [celebratingTaskId, setCelebratingTaskId] = useState<string | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
   const celebrationTimeoutRef = useRef<number | null>(null)
   const editingContainerRef = useRef<HTMLDivElement | null>(null)
   const autoSaveTriggerRef = useRef(false)
@@ -160,8 +208,8 @@ export default function TaskList({
     id: editingId,
     title: editingTitle,
     notes: editingNotes,
-    priority: editingPriority,
     dueAt: editingDueAt,
+    deadlineAt: editingDeadlineAt,
     projectId: editingProjectId,
     areaId: editingAreaId,
     headingId: editingHeadingId,
@@ -169,7 +217,6 @@ export default function TaskList({
   const {
     setTitle: setEditingTitle,
     setNotes: setEditingNotes,
-    setPriority: _setEditingPriority,
     setAreaId: _setEditingAreaId,
     setProjectId: _setEditingProjectId,
     setHeadingId: _setEditingHeadingId,
@@ -208,7 +255,86 @@ export default function TaskList({
       return
     }
     setDraggingTaskId(null)
+    setDragOverTaskId(null)
     onDragEndTask?.()
+  }
+
+  const canReorder = dragEnabled && !selectionEnabled && !!onReorderTasks
+  const sortedTaskIds = useMemo(() => sortedTasks.map(task => task.id), [sortedTasks])
+  const isSameOrder = (nextOrder: string[], currentOrder: string[]) =>
+    nextOrder.length === currentOrder.length && nextOrder.every((id, index) => id === currentOrder[index])
+
+  const buildReorderedIds = (ids: string[], sourceId: string, targetId: string, insertAfter: boolean) => {
+    if (sourceId === targetId) {
+      return ids
+    }
+    const trimmed = ids.filter(id => id !== sourceId)
+    const targetIndex = trimmed.indexOf(targetId)
+    if (targetIndex === -1) {
+      return ids
+    }
+    const insertIndex = insertAfter ? targetIndex + 1 : targetIndex
+    return [...trimmed.slice(0, insertIndex), sourceId, ...trimmed.slice(insertIndex)]
+  }
+
+  const handleReorderDragOver = (event: DragEvent<HTMLLIElement>, taskId: string) => {
+    if (!canReorder) {
+      return
+    }
+    const sourceId = event.dataTransfer.getData('text/plain')
+    if (!sourceId || !sortedTaskIds.includes(sourceId)) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDragOverTaskId(taskId)
+  }
+
+  const handleReorderDrop = (event: DragEvent<HTMLLIElement>, taskId: string) => {
+    if (!canReorder) {
+      return
+    }
+    const sourceId = event.dataTransfer.getData('text/plain')
+    if (!sourceId || !sortedTaskIds.includes(sourceId)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    const rect = event.currentTarget.getBoundingClientRect()
+    const insertAfter = event.clientY > rect.top + rect.height / 2
+    const nextOrder = buildReorderedIds(sortedTaskIds, sourceId, taskId, insertAfter)
+    setDragOverTaskId(null)
+    if (!isSameOrder(nextOrder, sortedTaskIds)) {
+      onReorderTasks?.(nextOrder)
+    }
+  }
+
+  const handleReorderDropAtEnd = (event: DragEvent<HTMLUListElement>) => {
+    if (!canReorder) {
+      return
+    }
+    const sourceId = event.dataTransfer.getData('text/plain')
+    if (!sourceId || !sortedTaskIds.includes(sourceId)) {
+      return
+    }
+    event.preventDefault()
+    const nextOrder = [...sortedTaskIds.filter(id => id !== sourceId), sourceId]
+    setDragOverTaskId(null)
+    if (!isSameOrder(nextOrder, sortedTaskIds)) {
+      onReorderTasks?.(nextOrder)
+    }
+  }
+
+  const handleReorderListDragOver = (event: DragEvent<HTMLUListElement>) => {
+    if (!canReorder) {
+      return
+    }
+    const sourceId = event.dataTransfer.getData('text/plain')
+    if (!sourceId || !sortedTaskIds.includes(sourceId)) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
   }
 
   const triggerAutoSave = () => {
@@ -224,7 +350,7 @@ export default function TaskList({
 
   useEffect(() => {
     autoSaveTriggerRef.current = false
-  }, [editingId, editingTitle, editingNotes, editingPriority, editingDueAt, editingProjectId, editingAreaId, editingHeadingId])
+  }, [editingId, editingTitle, editingNotes, editingDueAt, editingDeadlineAt, editingProjectId, editingAreaId, editingHeadingId])
 
   const handleEditKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
@@ -261,7 +387,7 @@ export default function TaskList({
     return <div className={loadingClass}>Cargando tareas...</div>
   }
 
-  if (tasks.length === 0 && !hasDraft) {
+  if (sortedTasks.length === 0 && !hasDraft) {
     if (!showEmptyState) {
       return null
     }
@@ -301,8 +427,13 @@ export default function TaskList({
   return (
     <>
       {showDraftCard && renderDraftCard ? renderDraftCard() : null}
-      <ul className={variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col divide-y divide-[var(--color-divider)]'}>
-        {tasks.map(task => {
+      <ul
+        className={variant === 'mobile' ? 'flex flex-col gap-4' : 'flex flex-col divide-y divide-[var(--color-divider)]'}
+        onDragOver={handleReorderListDragOver}
+        onDrop={handleReorderDropAtEnd}
+        onDragLeave={() => setDragOverTaskId(null)}
+      >
+        {sortedTasks.map(task => {
           const legacyContent = deserializeChecklistNotes(task.notes)
           const plainNotes = legacyContent.text
           const checklistItems =
@@ -348,6 +479,7 @@ export default function TaskList({
           const draggingClass = draggingTaskId === task.id ? 'opacity-60' : ''
           const selectionClass = isSelectedForBulk ? 'ring-2 ring-[var(--color-action-500)] bg-[var(--color-accent-50)]' : ''
           const highlightClass = highlightedTaskId === task.id ? 'ring-2 ring-[var(--color-primary-200)]' : ''
+          const dropIndicatorClass = canReorder && dragOverTaskId === task.id ? 'ring-2 ring-[var(--color-primary-200)]' : ''
           const titleClass = variant === 'mobile' ? 'text-lg font-semibold' : 'font-semibold text-base'
           const metaClass =
             variant === 'mobile'
@@ -390,7 +522,7 @@ export default function TaskList({
           const referenceActive = (task.labels || []).some(label => getLabelQuickView(label.name) === 'reference')
           const somedayActive = task.status === 'snoozed'
           const labelCount = task.labels?.length ?? 0
-          const deadlineFlag = buildDeadlineFlag(task.due_at)
+          const deadlineFlag = buildDeadlineFlag(task.deadline_at)
           const deadlineStyle = deadlineFlag?.isAlert
             ? ({
                 '--az-pill-border': 'var(--color-danger-500)',
@@ -477,10 +609,12 @@ export default function TaskList({
             <li
               key={task.id}
               id={`task-${task.id}`}
-              className={`${baseLiClass} ${dragClass} ${draggingClass} ${selectionClass} ${highlightClass}`}
+              className={`${baseLiClass} ${dragClass} ${draggingClass} ${selectionClass} ${highlightClass} ${dropIndicatorClass}`}
               draggable={dragAllowed && !isEditing}
               onDragStart={(event) => handleDragStart(event, task)}
               onDragEnd={handleDragEnd}
+              onDragOver={(event) => handleReorderDragOver(event, task.id)}
+              onDrop={(event) => handleReorderDrop(event, task.id)}
               {...compactActivationProps}
             >
               {showInlineEditor ? (
@@ -531,7 +665,18 @@ export default function TaskList({
                         className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
                       >
                         <CalendarIcon className="h-4 w-4" />
-                        <span>{formatDateLabel(editingDueAt)}</span>
+                        <span>{t('task.edit.when')}: {formatDateLabel(editingDueAt)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onOpenDeadlinePicker(event.currentTarget)
+                        }}
+                        className="inline-flex items-center gap-2 rounded-[var(--radius-chip)] border border-[var(--color-border)] px-3 py-1 font-semibold hover:border-[var(--color-primary-600)]"
+                      >
+                        <span aria-hidden>⚑</span>
+                        <span>{t('gtd.due')}: {formatDateLabel(editingDeadlineAt)}</span>
                       </button>
                       <button
                         type="button"
@@ -820,14 +965,23 @@ export default function TaskList({
                       {task.due_at && (
                         <span className="text-xs px-2 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] inline-flex items-center gap-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
-                          {formatDateLabel(task.due_at)}
+                          {t('task.edit.when')}: {formatDateLabel(task.due_at)}
+                        </span>
+                      )}
+                      {task.deadline_at && (
+                        <span
+                          className="text-xs px-2 py-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] inline-flex items-center gap-1.5"
+                          aria-label={`${t('gtd.due')}: ${formatDateLabel(task.deadline_at)}`}
+                        >
+                          <span aria-hidden>⚑</span>
+                          {t('gtd.due')}: {formatDateLabel(task.deadline_at)}
                         </span>
                       )}
                     </div>
                     {task.labels && task.labels.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {task.labels.map(label => (
-                          <span key={label.id} className="az-pill" style={getSoftLabelStyle(label.color)}>
+                          <span key={label.id} className="az-pill">
                             {label.name}
                           </span>
                         ))}

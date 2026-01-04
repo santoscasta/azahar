@@ -1,5 +1,4 @@
 import type { ActiveFilterDescriptor } from '../../pages/tasksSelectors.js'
-import { getSoftLabelStyle } from '../../lib/colorUtils.js'
 
 interface ActiveFilterChipsProps {
   filters: ActiveFilterDescriptor[]
@@ -19,7 +18,6 @@ export default function ActiveFilterChips({ filters, compact = false, onRemove }
           type="button"
           onClick={() => onRemove(filter)}
           className={`az-pill ${compact ? 'min-h-[44px] px-3 py-2' : ''}`}
-          style={filter.type === 'label' ? getSoftLabelStyle(filter.color) : undefined}
         >
           <span>{filter.label}</span>
           <span aria-hidden style={{ color: 'var(--color-primary-600)' }}>✕</span>

@@ -5,10 +5,12 @@ import { useTranslations } from '../../App.js'
 import AnchoredPopover from './AnchoredPopover.js'
 
 type PickerMode = 'new' | 'edit' | 'draft'
+type PickerIntent = 'when' | 'deadline'
 
 interface DatePickerOverlayProps {
   open: boolean
   mode: PickerMode
+  intent?: PickerIntent
   month: Date
   todayISO: string
   tomorrowISO: string
@@ -25,6 +27,7 @@ interface DatePickerOverlayProps {
 export default function DatePickerOverlay({
   open,
   mode,
+  intent,
   month,
   todayISO,
   tomorrowISO,
@@ -43,6 +46,7 @@ export default function DatePickerOverlay({
 
   const { t } = useTranslations()
   const [pendingDate, setPendingDate] = useState(selectedDate)
+  const effectiveIntent: PickerIntent = intent ?? 'when'
 
   useEffect(() => {
     if (open) {
@@ -72,11 +76,17 @@ export default function DatePickerOverlay({
 
   const calendarDays = buildCalendarDays(month, todayISO, selectedDate)
   const headerLabel =
-    mode === 'new'
-      ? t('datePicker.title.new')
-      : mode === 'edit'
-        ? t('datePicker.title.edit')
-        : t('datePicker.title.draft')
+    effectiveIntent === 'deadline'
+      ? mode === 'new'
+        ? t('datePicker.title.deadline.new')
+        : mode === 'edit'
+          ? t('datePicker.title.deadline.edit')
+          : t('datePicker.title.deadline.draft')
+      : mode === 'new'
+        ? t('datePicker.title.new')
+        : mode === 'edit'
+          ? t('datePicker.title.edit')
+          : t('datePicker.title.draft')
 
   const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
     event.stopPropagation()
@@ -98,6 +108,12 @@ export default function DatePickerOverlay({
     onClose()
   }
 
+  const hintLabel = effectiveIntent === 'deadline' ? t('datePicker.hint.deadline') : t('datePicker.hint')
+  const applyLabel = effectiveIntent === 'deadline' ? t('datePicker.apply.deadline') : t('datePicker.apply')
+  const closeLabel = effectiveIntent === 'deadline'
+    ? `${t('actions.close')} ${t('gtd.due').toLowerCase()}`
+    : `${t('actions.close')} ${t('task.edit.when').toLowerCase()}`
+
   const panel = (
     <div
       className="w-full max-w-md bg-[var(--color-surface)] rounded-[var(--radius-container)] shadow-2xl border border-[var(--color-border)]"
@@ -108,14 +124,16 @@ export default function DatePickerOverlay({
           <p className="text-xs font-semibold text-[var(--color-text-muted)]">{headerLabel}</p>
           <p className="text-lg font-semibold text-[var(--on-surface)] capitalize">{monthLabel}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--on-surface)] text-xl"
-          aria-label="Cerrar selector de cuando"
-        >
-          ✕
-        </button>
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--on-surface)] text-xl"
+            aria-label={closeLabel}
+          >
+            ✕
+          </button>
+        )}
       </div>
       <div className="p-6 space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -195,7 +213,7 @@ export default function DatePickerOverlay({
           </button>
         </div>
         <p className="text-xs text-[var(--color-text-muted)]">
-          {t('datePicker.hint')}
+          {hintLabel}
         </p>
         <div className="flex justify-end gap-2 pt-1 text-sm">
           <button
@@ -210,7 +228,7 @@ export default function DatePickerOverlay({
             onClick={handleApply}
             className="min-h-[44px] px-6 py-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] font-semibold"
           >
-            {t('datePicker.apply')}
+            {applyLabel}
           </button>
         </div>
       </div>
@@ -223,6 +241,16 @@ export default function DatePickerOverlay({
       <AnchoredPopover open={open} anchorEl={anchorEl} onClose={onClose} align="start" className="min-w-[280px]">
         {panel}
       </AnchoredPopover>
+    )
+  }
+
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[var(--color-overlay-strong)]" onClick={onClose}>
+        <div className="absolute inset-x-4 bottom-6" onClick={(event) => event.stopPropagation()}>
+          {panel}
+        </div>
+      </div>
     )
   }
 

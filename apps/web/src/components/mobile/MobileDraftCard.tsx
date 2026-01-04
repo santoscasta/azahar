@@ -10,6 +10,7 @@ interface MobileDraftCardProps {
   onSchedulePress: () => void
   onLabelsPress: () => void
   onDatePress: () => void
+  onDeadlinePress: () => void
   onCancel: () => void
   onSave: () => void
   saving?: boolean
@@ -24,6 +25,7 @@ export function MobileDraftCard({
   onSchedulePress,
   onLabelsPress,
   onDatePress,
+  onDeadlinePress,
   onCancel,
   onSave,
   saving,
@@ -65,6 +67,9 @@ export function MobileDraftCard({
           <button type="button" onClick={onDatePress} aria-label="Cuando" className="flex items-center justify-center">
             <CalendarIcon className="h-5 w-5" />
           </button>
+          <button type="button" onClick={onDeadlinePress} aria-label="Fecha límite" className="flex items-center justify-center">
+            <span aria-hidden>⚑</span>
+          </button>
           <button type="button" disabled className="opacity-50" aria-label="Checklist (pronto)">
             ☑
           </button>
@@ -91,6 +96,9 @@ export function MobileDraftCard({
       )}
       {draft.due_at && (
         <p className="text-xs text-[var(--color-text-muted)]">Cuando: {draft.due_at}</p>
+      )}
+      {draft.deadline_at && (
+        <p className="text-xs text-[var(--color-text-muted)]">Fecha límite: {draft.deadline_at}</p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">

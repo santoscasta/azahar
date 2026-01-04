@@ -15,6 +15,7 @@ const baseTask = (overrides: Partial<Task> = {}): Task => ({
   status: 'open',
   priority: 1,
   due_at: '2025-01-01T00:00:00.000Z',
+  deadline_at: null,
   start_at: null,
   repeat_rrule: null,
   reminder_at: null,
@@ -43,18 +44,16 @@ const editingState = {
   id: null as string | null,
   title: '',
   notes: '',
-  priority: 0 as 0 | 1 | 2 | 3,
   dueAt: '',
+  deadlineAt: '',
   projectId: null as string | null,
   areaId: null as string | null,
   headingId: null as string | null,
-  checklist: [],
 }
 
 const editingHandlers = {
   setTitle: vi.fn(),
   setNotes: vi.fn(),
-  setPriority: vi.fn(),
   setAreaId: vi.fn(),
   setProjectId: vi.fn(),
   setHeadingId: vi.fn(),
@@ -86,6 +85,7 @@ describe('TaskList', () => {
         onToggleTask={onToggle}
         onDeleteTask={onDelete}
         onOpenEditDatePicker={vi.fn()}
+        onOpenDeadlinePicker={vi.fn()}
         onOpenLabelSheet={vi.fn()}
         onOpenChecklist={vi.fn()}
         onOpenMoveSheet={vi.fn()}
@@ -126,6 +126,7 @@ describe('TaskList', () => {
         onToggleTask={vi.fn()}
         onDeleteTask={vi.fn()}
         onOpenEditDatePicker={vi.fn()}
+        onOpenDeadlinePicker={vi.fn()}
         onOpenLabelSheet={vi.fn()}
         onOpenChecklist={vi.fn()}
         onOpenMoveSheet={vi.fn()}
@@ -163,6 +164,7 @@ describe('TaskList', () => {
         onToggleTask={vi.fn()}
         onDeleteTask={vi.fn()}
         onOpenEditDatePicker={vi.fn()}
+        onOpenDeadlinePicker={vi.fn()}
         onOpenLabelSheet={vi.fn()}
         onOpenChecklist={vi.fn()}
         onOpenMoveSheet={vi.fn()}

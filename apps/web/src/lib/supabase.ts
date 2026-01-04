@@ -137,6 +137,7 @@ export interface Task {
   status: 'open' | 'done' | 'snoozed'
   priority: number
   due_at: string | null
+  deadline_at: string | null
   start_at: string | null
   repeat_rrule: string | null
   reminder_at: string | null
@@ -144,6 +145,7 @@ export interface Task {
   created_at: string
   completed_at: string | null
   pinned: boolean | null
+  sort_orders?: Record<string, number> | null
   client_mutation_id?: string | null
   labels?: TaskLabelSummary[]
   checklist_items?: TaskChecklistItem[]
@@ -247,6 +249,7 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
           status: 'open',
           priority: 0,
           due_at: null,
+          deadline_at: null,
           start_at: null,
           repeat_rrule: null,
           reminder_at: null,
@@ -254,6 +257,7 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
           created_at: new Date().toISOString(),
           completed_at: null,
           pinned: false,
+          sort_orders: {},
           labels: [],
           checklist_items: [],
           quick_view: 'inbox',
@@ -299,7 +303,9 @@ export async function addTask(
   area_id?: string | null,
   heading_id?: string | null,
   client_mutation_id?: string,
-  quick_view?: TaskQuickView
+  quick_view?: TaskQuickView,
+  deadline_at?: string | null,
+  sort_orders?: Record<string, number> | null
 ): Promise<{ success: boolean; task?: Task; error?: string }> {
   try {
     if (bypassE2E) {
@@ -316,6 +322,7 @@ export async function addTask(
           status,
           priority: priority || 0,
           due_at: due_at || null,
+          deadline_at: deadline_at || null,
           client_mutation_id: enableMutationIds ? client_mutation_id || null : undefined,
           start_at: null,
           repeat_rrule: null,
@@ -324,6 +331,7 @@ export async function addTask(
           created_at: new Date().toISOString(),
           completed_at: status === 'done' ? new Date().toISOString() : null,
           pinned: false,
+          sort_orders: sort_orders ?? {},
           quick_view: quick_view ?? undefined,
         },
       }
@@ -343,6 +351,7 @@ export async function addTask(
       notes: notes || null,
       priority: priority || 0,
       due_at: due_at || null,
+      deadline_at: deadline_at || null,
       status: status || 'open',
       project_id: project_id || null,
       area_id: area_id || null,
@@ -351,6 +360,10 @@ export async function addTask(
 
     if (quick_view) {
       insertPayload.quick_view = quick_view
+    }
+
+    if (sort_orders) {
+      insertPayload.sort_orders = sort_orders
     }
 
     if (enableMutationIds && client_mutation_id) {
@@ -389,6 +402,7 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<{ 
           status: updates.status ?? 'open',
           priority: updates.priority ?? 0,
           due_at: updates.due_at ?? null,
+          deadline_at: updates.deadline_at ?? null,
           start_at: updates.start_at ?? null,
           repeat_rrule: updates.repeat_rrule ?? null,
           reminder_at: updates.reminder_at ?? null,
@@ -396,6 +410,7 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<{ 
           created_at: updates.created_at ?? new Date().toISOString(),
           completed_at: updates.completed_at ?? null,
           pinned: updates.pinned ?? false,
+          sort_orders: updates.sort_orders ?? {},
           labels: [],
           checklist_items: [],
         },
@@ -443,6 +458,7 @@ export async function toggleTaskStatus(id: string): Promise<{ success: boolean; 
           status: 'done',
           priority: 0,
           due_at: null,
+          deadline_at: null,
           start_at: null,
           repeat_rrule: null,
           reminder_at: null,
@@ -450,6 +466,7 @@ export async function toggleTaskStatus(id: string): Promise<{ success: boolean; 
           created_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
           pinned: false,
+          sort_orders: {},
         },
       }
     }

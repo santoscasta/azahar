@@ -31,28 +31,35 @@ export function MobileScheduleSheet({
         className="absolute inset-x-4 bottom-6 bg-[var(--color-surface)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-6 space-y-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-      <div className="flex items-center justify-between">
-        <span className="text-lg font-semibold">{t('schedule.title')}</span>
-        <button type="button" onClick={onClose} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl">
-          ✕
-        </button>
-      </div>
-      {options.map(option => (
-        <button
+        <div className="space-y-1">
+          <span className="text-lg font-semibold">{t('schedule.title')}</span>
+          <p className="text-xs text-[var(--color-text-muted)]">{t('schedule.hint')}</p>
+        </div>
+        {options.map(option => (
+          <button
             key={option.id}
             type="button"
             onClick={() => {
               onSelect(option.id)
               onClose()
             }}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius-card)] text-left ${
-            view === option.id ? 'bg-[var(--color-primary-100)]' : 'hover:bg-[var(--color-surface-elevated)]'
-          }`}
-        >
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius-card)] text-left ${
+              view === option.id ? 'bg-[var(--color-primary-100)]' : 'hover:bg-[var(--color-surface-elevated)]'
+            }`}
+          >
             <span>{option.icon}</span>
             <span>{option.label}</span>
           </button>
         ))}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] px-4 py-2 rounded-[var(--radius-card)] border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)]"
+          >
+            {t('actions.cancel')}
+          </button>
+        </div>
       </div>
     </div>
   )

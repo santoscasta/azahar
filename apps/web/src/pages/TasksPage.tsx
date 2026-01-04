@@ -120,7 +120,6 @@ const precreatedLabelNames = new Set([
   'reference',
   'referencia',
 ])
-type Priority = 0 | 1 | 2 | 3
 interface EditingChecklistItem {
   id: string
   text: string
@@ -147,8 +146,8 @@ export default function TasksPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [editingNotes, setEditingNotes] = useState('')
-  const [editingPriority, setEditingPriority] = useState<0 | 1 | 2 | 3>(0)
   const [editingDueAt, setEditingDueAt] = useState('')
+  const [editingDeadlineAt, setEditingDeadlineAt] = useState('')
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null)
   const [editingHeadingId, setEditingHeadingId] = useState<string | null>(null)
@@ -196,6 +195,7 @@ export default function TasksPage() {
   const [datePickerTarget, setDatePickerTarget] = useState<'new' | 'edit' | 'draft' | null>(null)
   const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLElement | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(() => new Date())
+  const [datePickerIntent, setDatePickerIntent] = useState<'when' | 'deadline'>('when')
   const [activeProjectFilterChip, setActiveProjectFilterChip] = useState<'all' | string>('all')
   const [showNewListMenu, setShowNewListMenu] = useState(false)
   const [showQuickHeadingForm, setShowQuickHeadingForm] = useState(false)
@@ -205,6 +205,7 @@ export default function TasksPage() {
   const [labelSheetTarget, setLabelSheetTarget] = useState<LabelSheetTarget>(null)
   const [labelSheetSelection, setLabelSheetSelection] = useState<string[]>([])
   const [labelSheetInput, setLabelSheetInput] = useState('')
+  const [labelSheetAnchor, setLabelSheetAnchor] = useState<HTMLElement | null>(null)
   const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false)
   const [moveSheetTaskId, setMoveSheetTaskId] = useState<string | null>(null)
   const [editingChecklist, setEditingChecklist] = useState<EditingChecklistItem[]>([])
@@ -242,6 +243,7 @@ export default function TasksPage() {
     setLabelSheetTarget(null)
     setLabelSheetSelection([])
     setLabelSheetInput('')
+    setLabelSheetAnchor(null)
   }
   const closeMobileCreationSheet = (preserveDrafts = false) => {
     setShowMobileCreationSheet(false)
@@ -623,10 +625,10 @@ export default function TasksPage() {
     return tasks.find(task => task.id === editingId) || null
   }, [editingId, tasks])
   const isTaskOverdue = (task: Task) => {
-    if (task.status !== 'open' || !task.due_at) {
+    if (task.status !== 'open' || !task.deadline_at) {
       return false
     }
-    const normalized = normalizeDate(task.due_at)
+    const normalized = normalizeDate(task.deadline_at)
     return !!normalized && normalized < todayISO
   }
   const quickViewOverdueStats = useMemo(() => {
@@ -822,9 +824,10 @@ export default function TasksPage() {
     })
   }
 
-  const handleOpenTaskLabelSheet = (task: Task, _anchor?: HTMLElement | null) => {
+  const handleOpenTaskLabelSheet = (task: Task, anchor?: HTMLElement | null) => {
     setLabelSheetSelection(task.labels?.map(label => label.id) ?? [])
     setLabelSheetTarget({ kind: 'task', taskId: task.id })
+    setLabelSheetAnchor(anchor ?? null)
   }
 
   const handleLabelSheetConfirm = () => {
@@ -1160,19 +1163,26 @@ export default function TasksPage() {
         targetProjectId ? projectMap.get(targetProjectId)?.area_id || null : selectedAreaId || null
       const defaultDue = defaultDueForView(normalizedView, todayISO, tomorrowISO) || null
       const labelIds = getDraftLabelIdsForView(normalizedView, [])
+      const sortKey = resolveListSortKey(normalizedView)
+      const sortMode = resolveListSortMode(normalizedView)
+      let nextOrder = sortKey && sortMode === 'default' ? getNextSortOrder(sortKey) : null
       for (const title of lines) {
         await addTaskMutation.mutateAsync({
           title,
           notes: '',
-          priority: 0,
           due_at: defaultDue,
+          deadline_at: null,
           status: normalizedView === 'someday' ? 'snoozed' : 'open',
           project_id: targetProjectId,
           area_id: targetAreaId,
           heading_id: null,
           quick_view: normalizedView,
           labelIds,
+          sort_orders: sortKey && nextOrder !== null ? { [sortKey]: nextOrder } : undefined,
         })
+        if (nextOrder !== null) {
+          nextOrder += 1
+        }
       }
       pushSuccessMessage(`Tareas creadas: ${lines.length}`)
     } catch (_err) {
@@ -1186,8 +1196,8 @@ export default function TasksPage() {
     id: editingId,
     title: editingTitle,
     notes: editingNotes,
-    priority: editingPriority,
     dueAt: editingDueAt,
+    deadlineAt: editingDeadlineAt,
     projectId: editingProjectId,
     areaId: editingAreaId,
     headingId: editingHeadingId,
@@ -1196,11 +1206,59 @@ export default function TasksPage() {
   const editingHandlers = {
     setTitle: setEditingTitle,
     setNotes: setEditingNotes,
-    setPriority: setEditingPriority,
     setAreaId: setEditingAreaId,
     setProjectId: setEditingProjectId,
     setHeadingId: setEditingHeadingId,
   }
+  const resolveListSortKey = useCallback(
+    (viewOverride?: QuickViewId) => {
+      if (isSearchMode) {
+        return null
+      }
+      if (selectedProjectId) {
+        return `project:${selectedProjectId}`
+      }
+      if (selectedAreaId) {
+        return `area:${selectedAreaId}`
+      }
+      const view = viewOverride ?? activeQuickView
+      return view ? `view:${view}` : null
+    },
+    [activeQuickView, isSearchMode, selectedAreaId, selectedProjectId]
+  )
+  const resolveListSortMode = useCallback(
+    (viewOverride?: QuickViewId) => {
+      if (selectedProjectId || selectedAreaId) {
+        return 'default'
+      }
+      const view = viewOverride ?? activeQuickView
+      if (view === 'upcoming') {
+        return 'due'
+      }
+      if (view === 'logbook') {
+        return 'completed'
+      }
+      return 'default'
+    },
+    [activeQuickView, selectedAreaId, selectedProjectId]
+  )
+  const getNextSortOrder = useCallback(
+    (sortKey: string) => {
+      let maxOrder = -1
+      tasks.forEach(task => {
+        const orders = task.sort_orders
+        if (!orders || typeof orders !== 'object') {
+          return
+        }
+        const value = (orders as Record<string, number>)[sortKey]
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          maxOrder = Math.max(maxOrder, value)
+        }
+      })
+      return maxOrder + 1
+    },
+    [tasks]
+  )
 
   const renderTaskList = (
     variant: 'desktop' | 'mobile',
@@ -1215,53 +1273,65 @@ export default function TasksPage() {
       onDragEndTask?: () => void
       onCreateTask?: () => void
     } = {}
-  ) => (
-    <TaskList
-      variant={variant}
-      tasks={tasks}
-      isLoading={isLoading}
-      showEmptyState={options.showEmptyState}
-      showLoadingState={options.showLoadingState}
-      filteredViewActive={filteredViewActive}
-      projects={projects}
-      areas={areas}
-      headings={projectHeadings}
-      contextProjectId={selectedProjectId}
-      contextAreaId={selectedAreaId}
-      editingState={editingState}
-      editingHandlers={editingHandlers}
-      onStartEdit={handleEditTask}
-      onSaveEdit={handleSaveEdit}
-      onCancelEdit={handleCancelEdit}
-      onToggleTask={(taskId) => toggleTaskMutation.mutate(taskId)}
-      togglePending={toggleTaskMutation.isPending}
-      onDeleteTask={handleRequestDeleteTask}
-      deletePending={deleteTaskMutation.isPending}
-      onOpenEditDatePicker={(anchor) => openDatePicker('edit', anchor)}
-      onOpenLabelSheet={handleOpenTaskLabelSheet}
-      onOpenChecklist={(task, anchor) => handleOpenChecklistSheet(task.id, anchor)}
-      onOpenMoveSheet={handleOpenMoveSheet}
-      onArchiveTask={handleArchiveTask}
-      archivePending={archiveTaskMutation.isPending}
-      onConvertToProject={handleConvertToProject}
-      convertPending={convertTaskMutation.isPending}
-      onOpenOverflowMenu={(task) => handleOpenOverflowMenu(task.id)}
-      onToggleCollapsedChecklist={handleToggleCollapsedChecklist}
-      onApplyQuickView={handleApplyQuickView}
-      quickViewPending={applyQuickViewMutation.isPending}
-      formatDateLabel={formatDateForLabel}
-      renderDraftCard={options.renderDraftCard}
-      showDraftCard={options.showDraftCard}
-      autoSaveOnBlur={variant === 'desktop' ? options.autoSaveOnBlur : false}
-      dragEnabled={options.dragEnabled && !isMultiSelectMode}
-      onDragEndTask={options.onDragEndTask}
-      highlightedTaskId={highlightedTaskId}
-      multiSelectMode={isMultiSelectMode}
-      selectedTaskIds={selectedTaskIds}
-      onToggleSelection={toggleTaskSelection}
-      onCreateTask={options.onCreateTask}
-    />
-  )
+  ) => {
+    const listSortKey = resolveListSortKey()
+    const listSortMode = resolveListSortMode()
+    const reorderEnabled = !!listSortKey && listSortMode === 'default'
+    const handleReorder = reorderEnabled
+      ? (orderedIds: string[]) => handleReorderTasks(orderedIds, listSortKey!)
+      : undefined
+    return (
+      <TaskList
+        variant={variant}
+        tasks={tasks}
+        isLoading={isLoading}
+        showEmptyState={options.showEmptyState}
+        showLoadingState={options.showLoadingState}
+        filteredViewActive={filteredViewActive}
+        projects={projects}
+        areas={areas}
+        headings={projectHeadings}
+        contextProjectId={selectedProjectId}
+        contextAreaId={selectedAreaId}
+        editingState={editingState}
+        editingHandlers={editingHandlers}
+        onStartEdit={handleEditTask}
+        onSaveEdit={handleSaveEdit}
+        onCancelEdit={handleCancelEdit}
+        onToggleTask={(taskId) => toggleTaskMutation.mutate(taskId)}
+        togglePending={toggleTaskMutation.isPending}
+        onDeleteTask={handleRequestDeleteTask}
+        deletePending={deleteTaskMutation.isPending}
+        onOpenEditDatePicker={(anchor) => openDatePicker('edit', 'when', anchor)}
+        onOpenDeadlinePicker={(anchor) => openDatePicker('edit', 'deadline', anchor)}
+        onOpenLabelSheet={handleOpenTaskLabelSheet}
+        onOpenChecklist={(task, anchor) => handleOpenChecklistSheet(task.id, anchor)}
+        onOpenMoveSheet={handleOpenMoveSheet}
+        onArchiveTask={handleArchiveTask}
+        archivePending={archiveTaskMutation.isPending}
+        onConvertToProject={handleConvertToProject}
+        convertPending={convertTaskMutation.isPending}
+        onOpenOverflowMenu={(task) => handleOpenOverflowMenu(task.id)}
+        onToggleCollapsedChecklist={handleToggleCollapsedChecklist}
+        onApplyQuickView={handleApplyQuickView}
+        quickViewPending={applyQuickViewMutation.isPending}
+        formatDateLabel={formatDateForLabel}
+        renderDraftCard={options.renderDraftCard}
+        showDraftCard={options.showDraftCard}
+        autoSaveOnBlur={variant === 'desktop' ? options.autoSaveOnBlur : false}
+        dragEnabled={options.dragEnabled && !isMultiSelectMode}
+        onDragEndTask={options.onDragEndTask}
+        highlightedTaskId={highlightedTaskId}
+        multiSelectMode={isMultiSelectMode}
+        selectedTaskIds={selectedTaskIds}
+        onToggleSelection={toggleTaskSelection}
+        onCreateTask={options.onCreateTask}
+        sortKey={listSortKey ?? undefined}
+        sortMode={listSortMode}
+        onReorderTasks={handleReorder}
+      />
+    )
+  }
 
   const quickViewLabels: Record<QuickViewId, string> = useMemo(() => ({
     inbox: customViewNames.inbox?.trim() || translate(language, 'view.inbox'),
@@ -1386,13 +1456,15 @@ export default function TasksPage() {
       labels={orderedLabels}
       creationViewOptions={creationViewOptions}
       dueDateLabel={formatDateForLabel(taskDraft.due_at)}
+      deadlineDateLabel={formatDateForLabel(taskDraft.deadline_at)}
       savingTask={addTaskMutation.isPending}
       savingLabel={addInlineLabelMutation.isPending}
       onClose={handleCloseTaskModal}
       onSubmit={handleAddTask}
       onUpdateDraft={updateTaskDraft}
       onApplyViewPreset={applyViewPreset}
-      onRequestDueDate={(anchor) => openDatePicker('new', anchor)}
+      onRequestDueDate={(anchor) => openDatePicker('new', 'when', anchor)}
+      onRequestDeadline={(anchor) => openDatePicker('new', 'deadline', anchor)}
       onToggleLabel={toggleNewTaskLabel}
       inlineLabelName={inlineLabelName}
       onInlineLabelNameChange={setInlineLabelName}
@@ -1854,9 +1926,18 @@ export default function TasksPage() {
     })
   }
 
-  const openDatePicker = (target: 'new' | 'edit' | 'draft', anchor?: HTMLElement | null) => {
-    const rawValue =
-      target === 'new' ? taskDraft.due_at : target === 'edit' ? editingDueAt : mobileDraftTask?.due_at || ''
+  const openDatePicker = (target: 'new' | 'edit' | 'draft', intent: 'when' | 'deadline' = 'when', anchor?: HTMLElement | null) => {
+    const rawValue = intent === 'when'
+      ? target === 'new'
+        ? taskDraft.due_at
+        : target === 'edit'
+          ? editingDueAt
+          : mobileDraftTask?.due_at || ''
+      : target === 'new'
+        ? taskDraft.deadline_at
+        : target === 'edit'
+          ? editingDeadlineAt
+          : mobileDraftTask?.deadline_at || ''
     if (rawValue) {
       const [year, month, day] = rawValue.split('-').map(Number)
       if (year && month) {
@@ -1869,37 +1950,50 @@ export default function TasksPage() {
     }
     setDatePickerAnchor(anchor || null)
     setDatePickerTarget(target)
+    setDatePickerIntent(intent)
   }
 
   const closeDatePicker = () => {
     setDatePickerTarget(null)
     setDatePickerAnchor(null)
+    setDatePickerIntent('when')
   }
 
   const applyPickedDate = (value: string | null) => {
     const normalized = value || ''
-    if (datePickerTarget === 'new') {
-      updateTaskDraft('due_at', normalized)
-      const nextView = determineViewFromDate(normalized, todayISO, taskDraft.view)
-      updateTaskDraft('view', nextView)
-      applyQuickViewLabels(nextView)
-      updateTaskDraft('status', nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
-    } else if (datePickerTarget === 'edit') {
-      setEditingDueAt(normalized)
-    } else if (datePickerTarget === 'draft') {
-      updateMobileDraft(prev => {
-        if (!prev) return prev
-        const nextView = determineViewFromDate(normalized, todayISO, prev.view)
-        return {
-          ...prev,
-          due_at: normalized || null,
-          view: nextView,
-          labelIds: getDraftLabelIdsForView(nextView, prev.labelIds),
-        }
-      })
+    if (datePickerIntent === 'deadline') {
+      if (datePickerTarget === 'new') {
+        updateTaskDraft('deadline_at', normalized)
+      } else if (datePickerTarget === 'edit') {
+        setEditingDeadlineAt(normalized)
+      } else if (datePickerTarget === 'draft') {
+        updateMobileDraft(prev => (prev ? { ...prev, deadline_at: normalized || null } : prev))
+      }
+    } else {
+      if (datePickerTarget === 'new') {
+        updateTaskDraft('due_at', normalized)
+        const nextView = determineViewFromDate(normalized, todayISO, taskDraft.view)
+        updateTaskDraft('view', nextView)
+        applyQuickViewLabels(nextView)
+        updateTaskDraft('status', nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
+      } else if (datePickerTarget === 'edit') {
+        setEditingDueAt(normalized)
+      } else if (datePickerTarget === 'draft') {
+        updateMobileDraft(prev => {
+          if (!prev) return prev
+          const nextView = determineViewFromDate(normalized, todayISO, prev.view)
+          return {
+            ...prev,
+            due_at: normalized || null,
+            view: nextView,
+            labelIds: getDraftLabelIdsForView(nextView, prev.labelIds),
+          }
+        })
+      }
     }
     setDatePickerTarget(null)
     setDatePickerAnchor(null)
+    setDatePickerIntent('when')
   }
 
   const handleDatePickerMonthChange = (offset: number) => {
@@ -1957,6 +2051,7 @@ export default function TasksPage() {
       activeQuickView === 'today' && !selectedProjectId && !selectedAreaId && !isSearchMode
     const agendaSource = variant === 'mobile' ? filteredTasks : tasks
     const agendaEntries = isAgendaContext ? buildAgendaEntries(agendaSource) : []
+    const dragEnabled = options.dragEnabled ?? (variant === 'desktop' && !isSearchMode)
     const agendaCard =
       agendaEntries.length > 0 ? (
         <AgendaSummary
@@ -1981,7 +2076,7 @@ export default function TasksPage() {
           renderDraftCard: options.renderDraftCard,
           showDraftCard: options.showDraftCard,
           autoSaveOnBlur: options.autoSaveOnBlur ?? shouldAutoSaveEdit,
-          dragEnabled: options.dragEnabled,
+          dragEnabled,
           onDragEndTask: options.onDragEndTask,
           onCreateTask: options.onCreateTask,
         })}
@@ -2032,6 +2127,8 @@ export default function TasksPage() {
   const renderLabelSheet = () => (
     <LabelSheet
       open={!!labelSheetTarget}
+      anchorEl={labelSheetAnchor}
+      isMobile={useMobileExperience}
       labels={orderedLabels}
       selection={labelSheetSelection}
       inputValue={labelSheetInput}
@@ -2123,12 +2220,14 @@ export default function TasksPage() {
         draft={taskDraft}
         viewLabel={quickViewLabels[taskDraft.view]}
         dueLabel={formatDateForLabel(taskDraft.due_at)}
+        deadlineLabel={formatDateForLabel(taskDraft.deadline_at)}
         labelCount={taskDraft.labelIds.length}
         onSubmit={handleAddTask}
         onCancel={handleCancelDesktopDraft}
         onTitleChange={(value) => updateTaskDraft('title', value)}
         onNotesChange={(value) => updateTaskDraft('notes', value)}
-        onRequestDueDate={(anchor) => openDatePicker('new', anchor)}
+        onRequestDueDate={(anchor) => openDatePicker('new', 'when', anchor)}
+        onRequestDeadline={(anchor) => openDatePicker('new', 'deadline', anchor)}
         onOpenLabels={() => {
           setLabelSheetSelection(taskDraft.labelIds)
           setLabelSheetTarget({ kind: 'draft-task' })
@@ -2151,7 +2250,8 @@ export default function TasksPage() {
           setLabelSheetSelection(mobileDraftTask.labelIds)
           setLabelSheetTarget({ kind: 'draft-task' })
         }}
-        onDatePress={() => openDatePicker('draft')}
+        onDatePress={() => openDatePicker('draft', 'when')}
+        onDeadlinePress={() => openDatePicker('draft', 'deadline')}
         onCancel={handleCancelMobileDraftTask}
         onSave={handleSaveMobileDraftTask}
         saving={addTaskMutation.isPending}
@@ -2166,12 +2266,14 @@ export default function TasksPage() {
       title={editingTitle}
       notes={editingNotes}
       dueLabel={formatDateForLabel(editingDueAt)}
+      deadlineLabel={formatDateForLabel(editingDeadlineAt)}
       labelCount={editingTask?.labels?.length ?? 0}
       onChangeTitle={setEditingTitle}
       onChangeNotes={setEditingNotes}
       onClose={handleCancelEdit}
       onSave={() => handleSaveEdit()}
-      onOpenDatePicker={() => openDatePicker('edit')}
+      onOpenDatePicker={() => openDatePicker('edit', 'when')}
+      onOpenDeadlinePicker={() => openDatePicker('edit', 'deadline')}
       onOpenLabels={() => {
         if (editingTask) {
           handleOpenTaskLabelSheet(editingTask, null)
@@ -2236,6 +2338,9 @@ export default function TasksPage() {
         if (editingId === payload.taskId) {
           if ('due_at' in payload.updates) {
             setEditingDueAt(payload.updates.due_at ? String(payload.updates.due_at) : '')
+          }
+          if ('deadline_at' in payload.updates) {
+            setEditingDeadlineAt(payload.updates.deadline_at ? String(payload.updates.deadline_at) : '')
           }
           if ('heading_id' in payload.updates) {
             setEditingHeadingId(payload.updates.heading_id ?? null)
@@ -2396,8 +2501,8 @@ export default function TasksPage() {
     mutationFn: async (args: {
       title: string
       notes?: string
-      priority?: number
       due_at?: string | null
+      deadline_at?: string | null
       status?: 'open' | 'done' | 'snoozed'
       project_id?: string | null
       area_id?: string | null
@@ -2405,19 +2510,22 @@ export default function TasksPage() {
       quick_view?: QuickViewId
       labelIds?: string[]
       clientMutationId?: string
+      sort_orders?: Record<string, number>
     }) => {
       const clientMutationId = args.clientMutationId || uuid()
       const result = await addTask(
         args.title,
         args.notes || undefined,
-        args.priority ?? 0,
+        0,
         args.due_at || undefined,
         args.status ?? 'open',
         args.project_id ?? null,
         args.area_id ?? null,
         args.heading_id ?? null,
         clientMutationId,
-        args.quick_view
+        args.quick_view,
+        args.deadline_at ?? null,
+        args.sort_orders
       )
       if (!result.success || !result.task) {
         throw new Error(result.error || 'Error al crear tarea')
@@ -2447,12 +2555,16 @@ export default function TasksPage() {
       const result = await addTask(
         `${task.title}`,
         task.notes || '',
-        task.priority ?? 0,
+        0,
         task.due_at ?? undefined,
         task.status,
         task.project_id,
         task.area_id,
-        task.heading_id
+        task.heading_id,
+        undefined,
+        task.quick_view,
+        task.deadline_at ?? null,
+        task.sort_orders ?? undefined
       )
       if (!result.success || !result.task) {
         throw new Error(result.error || 'Error al duplicar tarea')
@@ -2631,8 +2743,8 @@ export default function TasksPage() {
       taskId: string
       title: string
       notes: string
-      priority: Priority
       dueAt: string
+      deadlineAt: string
       projectId: string | null
       areaId: string | null
       headingId: string | null
@@ -2642,8 +2754,9 @@ export default function TasksPage() {
       const updated = await updateTask(payload.taskId, {
         title: resolvedTitle,
         notes: payload.notes,
-        priority: payload.priority,
+        priority: 0,
         due_at: payload.dueAt || null,
+        deadline_at: payload.deadlineAt || null,
         project_id: payload.projectId || null,
         area_id: payload.areaId || null,
         heading_id: payload.headingId || null,
@@ -2674,8 +2787,9 @@ export default function TasksPage() {
             ...task,
             title: resolvedTitle,
             notes: variables.notes,
-            priority: variables.priority,
+            priority: 0,
             due_at: variables.dueAt || null,
+            deadline_at: variables.deadlineAt || null,
             project_id: variables.projectId,
             area_id: variables.areaId,
             heading_id: variables.headingId,
@@ -2696,8 +2810,9 @@ export default function TasksPage() {
               ...result.task,
               title: resolvedTitle,
               notes: variables.notes,
-              priority: variables.priority,
+              priority: 0,
               due_at: variables.dueAt || null,
+              deadline_at: variables.deadlineAt || null,
               project_id: variables.projectId,
               area_id: variables.areaId,
               heading_id: variables.headingId,
@@ -2713,8 +2828,8 @@ export default function TasksPage() {
         setEditingId(null)
         setEditingTitle('')
         setEditingNotes('')
-        setEditingPriority(0)
         setEditingDueAt('')
+        setEditingDeadlineAt('')
         setEditingChecklist([])
         setChecklistSheetOpen(false)
         setOverflowTaskId(null)
@@ -2786,8 +2901,8 @@ export default function TasksPage() {
           setEditingId(null)
           setEditingTitle('')
           setEditingNotes('')
-          setEditingPriority(0)
           setEditingDueAt('')
+          setEditingDeadlineAt('')
           setEditingProjectId(null)
           setEditingAreaId(null)
           setEditingHeadingId(null)
@@ -2969,8 +3084,8 @@ export default function TasksPage() {
         setEditingId(null)
         setEditingTitle('')
         setEditingNotes('')
-        setEditingPriority(0)
         setEditingDueAt('')
+        setEditingDeadlineAt('')
         setEditingProjectId(null)
         setEditingAreaId(null)
         setEditingHeadingId(null)
@@ -3062,6 +3177,68 @@ export default function TasksPage() {
       setError(err.message || 'Error inesperado al reordenar secciones')
     },
   })
+
+  const reorderTasksMutation = useMutation({
+    mutationKey: ['mutations', 'tasks', 'reorder'],
+    networkMode: 'online',
+    mutationFn: async (updates: { id: string; sort_orders: Record<string, number> }[]) => {
+      const results = await Promise.all(
+        updates.map(update => updateTask(update.id, { sort_orders: update.sort_orders }))
+      )
+      const failed = results.find(result => !result.success)
+      if (failed) {
+        return { success: false, error: failed.error || 'Error al reordenar tareas' }
+      }
+      return { success: true }
+    },
+    onSuccess: (result) => {
+      if (!result.success) {
+        setError(result.error || 'Error al reordenar tareas')
+      }
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+    onError: () => {
+      setError('Error inesperado al reordenar tareas')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+
+  const handleReorderTasks = (orderedIds: string[], sortKey: string) => {
+    if (!sortKey || orderedIds.length === 0) {
+      return
+    }
+    const updates = orderedIds
+      .map((taskId, index) => {
+        const task = taskById.get(taskId)
+        if (!task) {
+          return null
+        }
+        const baseOrders =
+          task.sort_orders && typeof task.sort_orders === 'object' ? (task.sort_orders as Record<string, number>) : {}
+        return { id: taskId, sort_orders: { ...baseOrders, [sortKey]: index } }
+      })
+      .filter((item): item is { id: string; sort_orders: Record<string, number> } => !!item)
+
+    if (updates.length === 0) {
+      return
+    }
+
+    const updatesMap = new Map(updates.map(update => [update.id, update.sort_orders]))
+    queryClient.setQueriesData({ queryKey: ['tasks'] }, (old: Task[] | undefined) => {
+      if (!old) {
+        return old
+      }
+      return old.map(task => {
+        const nextOrders = updatesMap.get(task.id)
+        if (!nextOrders) {
+          return task
+        }
+        return { ...task, sort_orders: nextOrders }
+      })
+    })
+
+    reorderTasksMutation.mutate(updates)
+  }
 
   const addInlineLabelMutation = useMutation({
     mutationKey: ['mutations', 'labels', 'inline-add'],
@@ -3158,6 +3335,7 @@ export default function TasksPage() {
       areaId: appliedAreaId || null,
       projectId: targetProjectId || null,
       due_at: defaultDueForView(normalizedView, todayISO, tomorrowISO),
+      deadline_at: null,
       labelIds: getDraftLabelIdsForView(normalizedView, []),
     }))
   }
@@ -3190,6 +3368,10 @@ export default function TasksPage() {
       view: normalizedView,
       labelIds: getDraftLabelIdsForView(normalizedView, mobileDraftTask.labelIds),
     })
+    const sortKey = resolveListSortKey(normalizedView)
+    const sortMode = resolveListSortMode(normalizedView)
+    const sortOrders =
+      sortKey && sortMode === 'default' ? { [sortKey]: getNextSortOrder(sortKey) } : undefined
     const targetProjectId = basePayload.project_id ?? selectedProjectId ?? null
     const targetAreaId =
       basePayload.area_id ??
@@ -3200,6 +3382,7 @@ export default function TasksPage() {
         ...basePayload,
         project_id: targetProjectId,
         area_id: targetAreaId,
+        sort_orders: sortOrders,
       },
       {
         onSuccess: () => {
@@ -3227,17 +3410,22 @@ export default function TasksPage() {
       taskDraft.areaId ??
       selectedAreaId ??
       (targetProjectId ? projects.find(project => project.id === targetProjectId)?.area_id || null : null)
+    const sortKey = resolveListSortKey(taskDraft.view)
+    const sortMode = resolveListSortMode(taskDraft.view)
+    const sortOrders =
+      sortKey && sortMode === 'default' ? { [sortKey]: getNextSortOrder(sortKey) } : undefined
     addTaskMutation.mutate({
       title: taskDraft.title,
       notes: taskDraft.notes,
-      priority: taskDraft.priority,
       due_at: taskDraft.due_at,
+      deadline_at: taskDraft.deadline_at,
       status: taskDraft.status,
       project_id: targetProjectId,
       area_id: targetAreaId,
       heading_id: taskDraft.headingId,
       quick_view: taskDraft.view,
       labelIds: taskDraft.labelIds,
+      sort_orders: sortOrders,
     }, {
       onSuccess: () => {
         resetTaskDraft()
@@ -3269,8 +3457,8 @@ export default function TasksPage() {
           }))
     setEditingNotes(legacy.text || task.notes || '')
     setEditingChecklist(checklistSource)
-    setEditingPriority((task.priority || 0) as 0 | 1 | 2 | 3)
     setEditingDueAt(task.due_at ? task.due_at.split('T')[0] : '')
+    setEditingDeadlineAt(task.deadline_at ? task.deadline_at.split('T')[0] : '')
     setEditingProjectId(task.project_id || null)
     setEditingAreaId(task.area_id || null)
     setEditingHeadingId(task.heading_id || null)
@@ -3285,8 +3473,8 @@ export default function TasksPage() {
         taskId: editingId,
         title: editingTitle,
         notes: editingNotes,
-        priority: editingPriority,
         dueAt: editingDueAt,
+        deadlineAt: editingDeadlineAt,
         projectId: editingProjectId,
         areaId: editingAreaId,
         headingId: editingHeadingId,
@@ -3301,8 +3489,8 @@ export default function TasksPage() {
     setEditingId(null)
     setEditingTitle('')
     setEditingNotes('')
-    setEditingPriority(0)
     setEditingDueAt('')
+    setEditingDeadlineAt('')
     setEditingProjectId(null)
     setEditingAreaId(null)
     setEditingHeadingId(null)
@@ -3756,13 +3944,13 @@ export default function TasksPage() {
     const defaultDue = defaultDueForView(defaultView, todayISO, tomorrowISO) || ''
     updateTaskDraft('title', '')
     updateTaskDraft('notes', '')
-    updateTaskDraft('priority', 0)
     updateTaskDraft('projectId', targetProjectId)
     updateTaskDraft('areaId', targetAreaId)
     updateTaskDraft('headingId', null)
     updateTaskDraft('view', defaultView)
     updateTaskDraft('status', defaultView === 'someday' ? 'snoozed' : 'open')
     updateTaskDraft('due_at', defaultDue)
+    updateTaskDraft('deadline_at', '')
     setTaskLabels(getDraftLabelIdsForView(defaultView, []))
     setInlineLabelName('')
     setShowDesktopDraft(true)
@@ -3862,12 +4050,16 @@ export default function TasksPage() {
         {renderBulkDeleteConfirmation()}
         <TaskDatePickerOverlay
           target={datePickerTarget}
+          intent={datePickerIntent}
           month={datePickerMonth}
           todayISO={todayISO}
           tomorrowISO={tomorrowISO}
           draftDueDate={taskDraft.due_at}
+          draftDeadlineDate={taskDraft.deadline_at}
           editingDueDate={editingDueAt}
+          editingDeadlineDate={editingDeadlineAt}
           mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
+          mobileDraftDeadlineDate={mobileDraftTask?.deadline_at ?? null}
           formatDateLabel={formatDateForLabel}
           anchorEl={datePickerAnchor}
           isMobile={useMobileExperience}
@@ -4045,7 +4237,7 @@ export default function TasksPage() {
             <DesktopDock
               onCreateTask={handleOpenTaskModal}
               onAddHeading={() => setShowQuickHeadingForm(true)}
-              onOpenDatePicker={(anchor) => openDatePicker('edit', anchor)}
+              onOpenDatePicker={(anchor) => openDatePicker('edit', 'when', anchor)}
               onMoveSelected={() => {
                 if (selectedTask) {
                   handleOpenMoveSheet(selectedTask)
@@ -4104,12 +4296,16 @@ export default function TasksPage() {
       )}
       <TaskDatePickerOverlay
         target={datePickerTarget}
+        intent={datePickerIntent}
         month={datePickerMonth}
         todayISO={todayISO}
         tomorrowISO={tomorrowISO}
         draftDueDate={taskDraft.due_at}
+        draftDeadlineDate={taskDraft.deadline_at}
         editingDueDate={editingDueAt}
+        editingDeadlineDate={editingDeadlineAt}
         mobileDraftDueDate={mobileDraftTask?.due_at ?? null}
+        mobileDraftDeadlineDate={mobileDraftTask?.deadline_at ?? null}
         formatDateLabel={formatDateForLabel}
         anchorEl={datePickerAnchor}
         isMobile={useMobileExperience}

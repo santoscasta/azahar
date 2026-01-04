@@ -5,6 +5,7 @@ import DatePickerOverlay from '../DatePickerOverlay'
 const baseProps = {
   open: true,
   mode: 'new' as const,
+  intent: 'when' as const,
   month: new Date('2024-01-01T00:00:00.000Z'),
   todayISO: '2024-01-01',
   tomorrowISO: '2024-01-02',

@@ -7,8 +7,8 @@ import type { TaskCreationDraft } from '../../../hooks/useTaskCreation.js'
 const baseDraft: TaskCreationDraft = {
   title: '',
   notes: '',
-  priority: 0,
   due_at: '',
+  deadline_at: '',
   projectId: null,
   areaId: null,
   headingId: null,
@@ -38,6 +38,7 @@ function ModalHarness() {
         { id: 'today', label: 'Hoy', icon: '' },
       ]}
       dueDateLabel="Sin fecha"
+      deadlineDateLabel="Sin fecha"
       savingTask={false}
       savingLabel={false}
       onClose={vi.fn()}
@@ -45,6 +46,7 @@ function ModalHarness() {
       onUpdateDraft={(key, value) => setDraft(prev => ({ ...prev, [key]: value }))}
       onApplyViewPreset={vi.fn()}
       onRequestDueDate={vi.fn()}
+      onRequestDeadline={vi.fn()}
       onToggleLabel={vi.fn()}
       inlineLabelName=""
       onInlineLabelNameChange={vi.fn()}
