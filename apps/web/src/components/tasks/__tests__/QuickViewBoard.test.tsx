@@ -31,7 +31,6 @@ const mockTask: Task = {
   title: 'Tarea demo',
   notes: null,
   status: 'open',
-  priority: 0,
   due_at: null,
   deadline_at: null,
   start_at: null,

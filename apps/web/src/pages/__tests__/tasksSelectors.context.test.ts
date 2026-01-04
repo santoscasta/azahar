@@ -10,7 +10,6 @@ const makeTask = (overrides: Partial<Task>): Task => ({
   user_id: 'user',
   created_at: todayISO,
   status: 'open',
-  priority: 0,
   labels: [],
   notes: '',
   project_id: null,

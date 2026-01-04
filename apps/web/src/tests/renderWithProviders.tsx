@@ -2,6 +2,7 @@ import { ReactElement } from 'react'
 import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DragDropContext } from '@hello-pangea/dnd'
 
 export function renderWithProviders(
   ui: ReactElement,
@@ -16,7 +17,11 @@ export function renderWithProviders(
 
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <DragDropContext onDragEnd={() => { }}>
+          {ui}
+        </DragDropContext>
+      </QueryClientProvider>
     </MemoryRouter>
   )
 }

@@ -1,0 +1,511 @@
+
+
+--- Page 1 ---
+
+AZAHAR
+Manual de Identidad + UI
+Frontal inspirado en Things (Desktop 3-panel + PWA móvil)
+Versión 1.1 - 29/12/2025
+Decisiones confirmadas
+- 1) La app es PWA y se diseña primero para móvil (sin perder potencia en escritorio).
+- 2) En escritorio se implementa el layout tipo Things (3 paneles) de forma 1:1.
+- 3) Weekly Review será una experiencia guiada (wizard) con progreso y checklist.
+
+
+
+--- Page 2 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 2
+Índice
+Este documento define el sistema de identidad visual y las reglas de UX/UI para
+implementar AZAHAR con un frontal tipo Things, manteniendo los valores del manual de
+marca y asegurando consistencia entre escritorio y móvil (PWA).
+• 1. Propósito, valores y tono de marca
+• 2. Principios de UX (GTD) y arquitectura de navegación
+• 3. Sistema visual: color, tipografía, iconografía, espaciado
+• 4. Layout de escritorio (Things 3-panel) y comportamiento responsive
+• 5. Layout móvil PWA y patrones de interacción
+• 6. Componentes clave y estados (empty/loading/error/offline)
+• 7. Catálogo de pantallas para desarrollo (Desktop + Mobile)
+• 8. Weekly Review guiada (wizard): pasos, pantallas y reglas
+• 9. Reglas de accesibilidad y atajos de teclado
+• 10. Guía de implementación frontend (tokens, CSS vars, breakpoints)
+• 11. Gobernanza, QA visual y checklist de release
+
+
+
+--- Page 3 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 3
+1. Propósito, valores y tono
+Propósito: ayudar a la gente a mantener claridad mental y control diario mediante una
+organización GTD rápida, calmada y fiable.
+Valores no negociables:
+• Calma y claridad: menos ruido, más foco.
+• Confianza: el sistema no sorprende; siempre responde igual.
+• Ritmo sostenible: velocidad sin estrés; feedback discreto.
+• Consistencia: mismos patrones entre pantallas, plataformas y estados.
+Tono: directo, sereno, sin florituras. Microcopy corto y accionable (verbos).
+Principio de producto: captura en 1 gesto, organiza en 2, ejecuta sin fricción.
+
+
+
+--- Page 4 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 4
+2. UX: GTD y arquitectura de
+navegación
+La arquitectura se construye alrededor del flujo GTD: Capturar (Inbox), Clarificar, Organizar
+(proyectos/áreas/etiquetas/fechas), Hacer (Today/Anytime) y Revisar (Weekly Review).
+Decisión: escritorio con sidebar persistente y detalle siempre visible; móvil con drawer,
+stack y botón de captura (FAB).
+Arquitectura de navegación recomendada (AZAHAR x Things): listas GTD + entidades
+(Projects/Areas/Tags) + Review.
+
+
+
+--- Page 5 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 5
+3. Sistema visual
+AZAHAR combina calma (azules), energía controlada (amarillo) y colores funcionales por
+estado GTD. El color orienta; no decora.
+3.1 Color (tokens)
+ 
+Surface Base
+#F9FAFF
+Fondo principal (modo claro).
+ 
+Text Primary
+#2F2F3A
+Texto principal sobre claro.
+ 
+Brand Accent
+#F6C45C
+Acento cálido (marca/hero).
+ 
+Brand Blue
+#4F6FD8
+Acento frío (marca/enlaces).
+ 
+Action
+#FF9F43
+CTA principal y captura.
+ 
+Planning
+#F29BC2
+Someday / planificación.
+ 
+Time
+#6FAEF5
+Fechas, waiting, tiempo.
+ 
+Inbox/Reference
+#8E8EDC
+Señalizador neutral para
+Inbox/Reference.
+ 
+Dark Surface
+#171C2F
+Fondo principal (modo oscuro).
+ 
+Text On Dark
+#E8EBF8
+Texto principal en oscuro.
+ 
+Border
+#343B66
+Bordes suaves y divisores.
+3.2 Degradados oficiales
+• Principal (hero / icono): #F6C45C -> #6FAEF5 -> #4F6FD8
+• Tareas (accent rows): #FF9F43 -> #F29BC2 -> #6FAEF5 -> #8E8EDC
+• Regla: reservar degradados para icono/hero y micro-acento; no para texto.
+3.3 Tipografía
+Prioridad: tipografías de sistema por rendimiento y coherencia. En web, Inter como
+alternativa principal; fallback a system-ui.
+Rol
+Tamaño
+Peso
+Uso
+H1
+24-28
+Bold
+Titulares de pantalla
+H2
+18-20
+Semibold
+Secciones y modales
+Body
+14-16
+Regular
+Tareas y texto principal
+
+
+
+--- Page 6 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 6
+Meta
+12-13
+Regular
+Fechas, labels, ayuda
+3.4 Iconografía
+• Trazo uniforme (2 px a 24 px). Esquinas redondeadas. Evitar detalles finos.
+• No mezclar outline vs filled en la misma vista.
+• Set: Inbox, Next action, Calendar, Waiting, Projects, Reference.
+
+
+
+--- Page 7 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 7
+4. Escritorio: frontal tipo Things (3
+paneles 1:1)
+Objetivo: velocidad y contexto. El usuario navega y edita sin cambiar de pantalla.
+Estructura:
+• Panel A (Sidebar): listas GTD + secciones (Projects/Areas) + Tags como filtro rápido.
+• Panel B (List): tareas con agrupación por secciones y acciones rápidas.
+• Panel C (Detail): editor de tarea/proyecto con pickers y notas; siempre visible.
+Reglas:
+• Seleccionar en Panel B abre detalle en Panel C (sin navegación).
+• Detail puede mostrar 'vista vacía' con consejos si no hay selección.
+• Atajos y comandos como parte del diseño (ver sección 9).
+Mock de escritorio: AZAHAR con estructura 3 paneles (sidebar, lista, detalle).
+
+
+
+--- Page 8 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 8
+4.1 Escritorio: vista de proyecto
+Patrón: el proyecto se comporta como 'contenedor' con secciones internas y un detalle
+editable. Debe soportar notas, progreso y una siguiente acción clara.
+• El título del proyecto actúa como H1 del panel B y el panel C muestra detalle del
+proyecto.
+• Secciones dentro del proyecto: headers plegables.
+• Acciones de proyecto: archivar, duplicar, compartir/exportar.
+Mock escritorio: vista de Proyecto con secciones y detalle persistente.
+
+
+
+--- Page 9 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 9
+5. Móvil PWA: uso con una mano
+Decisión: móvil es plataforma principal. Debe permitir capturar, planificar y revisar en
+segundos.
+Navegación:
+• Drawer con listas GTD + Projects + Areas.
+• FAB fijo para capturar (visible en listas).
+• Edición en contexto: bottom sheet (tarea) y hojas para pickers.
+Gestos:
+• Swipe derecha: completar.
+• Swipe izquierda: programar o mover.
+• Long-press: multiselección.
+Mock móvil: Today con FAB y jerarquía calmada.
+
+
+
+--- Page 10 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 10
+5.1 Móvil: edición de tarea (sheet)
+Regla: editar sin perder el contexto de la lista. La tarea se abre como sheet con campos
+esenciales y acceso rápido a pickers.
+• Campos visibles sin scroll excesivo: título, notas (opcional), fecha, proyecto, tags,
+prioridad.
+• Acciones secundarias en menú: duplicar, mover a, eliminar.
+• Cerrar (swipe down) siempre conserva cambios; 'Cancelar' revierte.
+Mock móvil: sheet de edición con pickers y acciones secundarias.
+
+
+
+--- Page 11 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 11
+6. Componentes y estados
+La UI se construye con un set reducido de componentes reusables. Evitar estilos ad hoc.
+6.1 Fila de tarea (Task Row)
+• Altura: 44-48 px (desktop); 52-56 px (móvil).
+• Zonas: checkbox, título, meta (fecha/tags), acciones (hover).
+• Estados: normal, hover, selected, completed, overdue, disabled.
+• Regla: completar es la acción principal; el resto, en menús/pickers discretos.
+6.2 Estados de sistema
+Estado
+Objetivo
+Contenido mínimo
+Empty
+Explicar qué hacer
+Título + 1 frase + CTA
+Loading
+Evitar saltos
+Skeleton suave; sin spinners grandes
+Error
+Recuperación
+Mensaje corto + reintentar
+Offline
+Continuidad
+Banner discreto + cola de sync
+6.3 Accesibilidad
+• Contraste AA: 4.5:1 texto normal, 3:1 texto grande.
+• Focus visible y consistente.
+• Tamaño táctil mínimo 44x44 px.
+• En oscuro: texto #E8EBF8 sobre #171C2F o más oscuro.
+
+
+
+--- Page 12 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 12
+7. Catálogo de pantallas (checklist de
+alcance)
+Lista base para implementar el frontal completo y testear paridad desktop/móvil.
+7.1 Escritorio
+Área
+Pantalla
+Notas clave
+Auth
+Login
+Email + password. CTA 'Entrar'. Link 'Recuperar'.
+Auth
+Reset password
+Flujo por email; confirmar nuevo password.
+Core
+Inbox
+Lista + detalle. Quick Add. Bulk actions.
+Core
+Today
+Agrupación por secciones (hoy / atrasadas).
+Core
+Upcoming
+Timeline/semanal + lista (estilo Things).
+Core
+Anytime
+Backlog activo.
+Core
+Someday
+Ideas / incubación.
+Core
+Logbook
+Completadas; filtro por fecha.
+Organización
+Projects
+Listado + estado; ordenar; archivar.
+Organización
+Project detail
+Secciones internas, progreso, notas.
+Organización
+Areas
+Listado; ordenar; archivar.
+Organización
+Tags
+Gestión de etiquetas, colores, alias.
+Búsqueda
+Search / Quick Find
+Búsqueda predictiva; filtros por campo.
+Revisión
+Weekly Review (wizard)
+Pantalla de entrada + pasos guiados.
+Ajustes
+Settings
+Tema, accesibilidad, cuenta, exportación.
+
+
+
+--- Page 13 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 13
+7.2 Móvil (PWA)
+Área
+Pantalla
+Notas clave
+Auth
+Login
+Teclado, autofill, 'mostrar password'.
+Core
+Today
+FAB para capturar. Drawer para listas.
+Core
+Inbox
+Swipe actions; multiselección.
+Core
+Upcoming
+Vista por días/semana; saltar a hoy.
+Core
+Anytime
+Backlog con filtros rápidos.
+Core
+Someday
+Ideas; 'mover a Anytime'.
+Detail
+Task detail
+Bottom sheet / full screen; edición in-place.
+Detail
+Pickers
+Fecha, repetición, proyecto, tags, prioridad.
+Revisión
+Weekly Review
+Wizard con progreso + 'continuar'.
+Ajustes
+Settings
+Tema, cuenta, exportación, cache offline.
+
+
+
+--- Page 14 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 14
+8. Weekly Review guiada (wizard)
+La revisión semanal se diseña como una experiencia guiada con progreso, para crear
+hábito y terminar con un plan semanal claro.
+Principios:
+• Progreso visible (paso actual / total).
+• Cada paso se puede marcar como hecho y continuar.
+• Permitir pausar y reanudar (persistir estado).
+• Captura de nuevas ideas: enviar a Inbox y seguir.
+Flujo recomendado del wizard de Weekly Review, con duración orientativa por paso.
+8.1 Pantallas mínimas del wizard
+• Entrada: explicación breve + botón 'Empezar' + fecha de última review.
+• Inbox: procesar elementos (convertir, programar, etiquetar, borrar).
+• Upcoming: revisar 7-14 días.
+• Waiting: validar dependencias.
+• Proyectos: asegurar siguiente acción.
+• Someday/Áreas: limpiar y priorizar.
+• Cierre: resumen + plan semanal.
+
+
+
+--- Page 15 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 15
+9. Productividad: atajos y PWA
+En escritorio, los atajos forman parte del producto. En móvil, PWA debe sentirse nativa:
+rápida, estable y offline-first.
+9.1 Atajos (desktop)
+Acción
+Atajo
+Notas
+Acción
+Atajo
+Notas
+Crear tarea
+N
+En lista activa; foco en título
+Buscar
+Ctrl/Cmd + K
+Quick Find global
+Mover a Today
+T
+Desde tarea seleccionada
+Programar fecha
+D
+Abre date picker
+Completar
+Espacio
+Checkbox de tarea seleccionada
+9.2 PWA: rendimiento
+• Safe areas iOS: respetar env(safe-area-inset-*).
+• Carga inicial < 2s: code splitting por rutas.
+• Listas largas: virtualización.
+• Offline: cache de assets + cola de operaciones; indicador de sync discreto.
+
+
+
+--- Page 16 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 16
+10. Implementación frontend
+Implementar el sistema como tokens reutilizables. Evitar valores arbitrarios y duplicidad de
+estilos.
+10.1 Tokens (CSS variables)
+:root { --az-surface: #F9FAFF; --az-text: #2F2F3A; --az-muted: #6F7390; --az-border:
+#343B66; --az-accent: #FF9F43; --az-brand: #4F6FD8; } [data-theme="dark"] {
+--az-surface: #171C2F; --az-text: #E8EBF8; --az-muted: #B5BAD6; }
+10.2 Breakpoints
+• Desktop >= 1024: 3 paneles (Sidebar 280-320 px, List flexible, Detail 360-420 px).
+• Tablet 768-1023: 2 paneles (Sidebar colapsable; Detail overlay).
+• Mobile < 768: 1 panel + drawer; detail en sheet/pantalla.
+10.3 Reglas de layout
+• Espaciado 8-pt: 8/16/24/32 (no inventar).
+• Radio: 12 contenedores, 10 cards, 8 chips.
+• Sombras: solo en overlays (menús/sheets).
+• Una región de scroll por panel; evitar scroll anidado.
+
+
+
+--- Page 17 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 17
+11. Gobernanza y QA visual
+La identidad necesita reglas de actualización para mantener consistencia a lo largo del
+tiempo.
+11.1 Roles y versionado
+• Owner de sistema: aprueba cambios (PM/Design).
+• Fuente única: Figma como master + repo de tokens/assets.
+• Versionado: v1.1 mejoras compatibles; v2.0 cambios rompientes.
+11.2 Checklist antes de producción
+• Colores oficiales (claro/oscuro) sin desviaciones.
+• Layout 3 paneles en desktop y patrones móviles respetados.
+• Contraste AA y focus visible.
+• Estados empty/loading/error/offline presentes.
+• Weekly Review wizard completo y reanudable.
+Apéndice: referencias visuales (Things)
+Referencia UI (Things - escritorio): jerarquía y detalle persistente. Propiedad de Cultured Code.
+
+
+
+--- Page 18 ---
+
+AZAHAR - Manual de Identidad + UI (Frontal tipo Things)
+v1.1
+Uso interno - Referencias visuales de Things (Cultured Code) solo a efectos de mock y patrones UI.
+Página 18
+Referencias UI (Things - móvil): navegación, FAB y edición en sheets.

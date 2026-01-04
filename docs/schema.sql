@@ -45,7 +45,6 @@ create table if not exists tasks (
   title text not null,
   notes text,
   status text default 'open', -- open|done|snoozed
-  priority int default 0,
   due_at timestamptz,
   deadline_at timestamptz,
   start_at timestamptz,
@@ -241,6 +240,8 @@ begin
 end $task_checklists$;
 
 -- RPC: search_tasks (filtros en servidor + quick view calculada)
+drop function if exists public.search_tasks(text, uuid, uuid[], uuid, text);
+
 create or replace function public.search_tasks(
   p_query text default null,
   p_project_id uuid default null,
@@ -257,7 +258,6 @@ returns table (
   title text,
   notes text,
   status text,
-  priority int,
   due_at timestamptz,
   start_at timestamptz,
   repeat_rrule text,
@@ -284,7 +284,6 @@ as $$
       t.title,
       t.notes,
       t.status,
-      t.priority,
       t.due_at,
       t.start_at,
       t.repeat_rrule,
@@ -334,7 +333,6 @@ as $$
       b.title,
       b.notes,
       b.status,
-      b.priority,
       b.due_at,
       b.start_at,
       b.repeat_rrule,
@@ -392,7 +390,6 @@ as $$
     title,
     notes,
     status,
-    priority,
     due_at,
     start_at,
     repeat_rrule,

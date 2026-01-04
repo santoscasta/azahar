@@ -12,7 +12,8 @@ interface QuickViewBoardProps {
   groups: QuickViewGroup[]
   onSelectArea: (areaId: string) => void
   renderTaskList: (
-    tasks: Task[]
+    tasks: Task[],
+    options?: { showEmptyState?: boolean; dndDroppableId?: string }
   ) => React.ReactNode
 }
 

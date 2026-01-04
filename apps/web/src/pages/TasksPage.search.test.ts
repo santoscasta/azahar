@@ -12,7 +12,6 @@ describe('TasksPage search filtering', () => {
     title: 'Test task',
     notes: null,
     status: 'open',
-    priority: 0,
     due_at: null,
     deadline_at: null,
     start_at: null,
@@ -65,7 +64,7 @@ describe('TasksPage search filtering', () => {
     const queries = ['café', '日本語', 'ñoño', '你好']
     const task = createTask({ title: 'Café para ñoño 日本語 你好' })
     const title = String(task.title ?? '').toLowerCase()
-    
+
     queries.forEach(query => {
       const normalizedQuery = query.toLowerCase()
       expect(() => title.includes(normalizedQuery)).not.toThrow()

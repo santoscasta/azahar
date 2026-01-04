@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import type { DragEvent, RefObject } from 'react'
+import { useRef, useState } from 'react'
+import type { DragEvent } from 'react'
+import { Droppable } from '@hello-pangea/dnd'
 import type { QuickViewId } from '../../pages/tasksSelectors.js'
-import type { Project, Area, Task } from '../../lib/supabase.js'
+import type { Project, Area } from '../../lib/supabase.js'
 import { useTranslations } from '../../App.js'
+import { buildAreaTargetId, buildProjectTargetId, buildQuickViewTargetId } from '../../lib/dndIds.js'
 import settingsIcon from '../../assets/icons/settings.svg'
 import helpIcon from '../../assets/icons/help.svg'
 import AreaIcon from '../icons/AreaIcon.js'
 import ProjectIcon from '../icons/ProjectIcon.js'
+import SearchIcon from '../icons/SearchIcon.js'
 import AzaharLogo from './AzaharLogo.js'
-import DesktopSearch from '../tasks/DesktopSearch.js'
 
-interface StatsMap extends Map<string, { total: number; overdue: number }> {}
+interface StatsMap extends Map<string, { total: number; overdue: number }> { }
 
 interface QuickListItem {
   id: QuickViewId
@@ -24,26 +26,6 @@ interface ProjectReorderPayload {
   targetAreaId: string | null
   orderedProjectIds: string[]
   movedProjectId: string
-}
-
-interface TaskDropHandlers {
-  canDropTask: (taskId: string) => boolean
-  onDropQuickView: (taskId: string, view: QuickViewId) => void
-  onDropArea: (taskId: string, areaId: string) => void
-  onDropProject: (taskId: string, projectId: string) => void
-}
-
-interface SidebarSearchProps {
-  searchQuery: string
-  suggestions: Task[]
-  projects: Project[]
-  showSuggestions: boolean
-  inputRef?: RefObject<HTMLInputElement>
-  onQueryChange: (value: string) => void
-  onFocus: () => void
-  onBlur: () => void
-  onClear: () => void
-  onSelectSuggestion: (task: Task) => void
 }
 
 export interface DesktopSidebarProps {
@@ -66,11 +48,28 @@ export interface DesktopSidebarProps {
   onToggleNewListMenu: () => void
   onCreateProject: () => void
   onCreateArea: () => void
+  onOpenQuickFind?: () => void
   onOpenSettings: () => void
   onOpenHelp: () => void
   onReorderProjects: (payload: ProjectReorderPayload) => void
-  search?: SidebarSearchProps
-  taskDrop?: TaskDropHandlers
+  taskDrop?: {
+    canDropTask: (taskId: string) => boolean
+    onDropQuickView: (taskId: string, viewId: QuickViewId) => void
+    onDropArea: (taskId: string, areaId: string) => void
+    onDropProject: (taskId: string, projectId: string) => void
+  }
+  search?: {
+    searchQuery: string
+    suggestions: any[]
+    projects: Project[]
+    showSuggestions: boolean
+    inputRef: any
+    onQueryChange: (q: string) => void
+    onFocus: () => void
+    onBlur: () => void
+    onClear: () => void
+    onSelectSuggestion: (s: any) => void
+  }
 }
 
 function CountPill({ total, overdue }: { total?: number; overdue?: number }) {
@@ -113,48 +112,18 @@ export function DesktopSidebar({
   onToggleNewListMenu,
   onCreateProject,
   onCreateArea,
+  onOpenQuickFind,
   onOpenSettings,
   onOpenHelp,
   onReorderProjects,
-  search,
-  taskDrop,
 }: DesktopSidebarProps) {
   const { t } = useTranslations()
   const standaloneProjects = projects.filter(project => !project.area_id)
   const [draggingProjectId, setDraggingProjectId] = useState<string | null>(null)
   const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
   const [dragOverAreaId, setDragOverAreaId] = useState<string | null>(null)
-  const [taskDropTarget, setTaskDropTarget] = useState<{ kind: 'quick' | 'area' | 'project'; id: string } | null>(null)
   const dragStateRef = useRef<'idle' | 'dragging' | 'justDropped'>('idle')
   const draggingProjectRef = useRef<{ id: string; areaId: string | null } | null>(null)
-
-  const clearTaskDropTarget = () => {
-    setTaskDropTarget(null)
-  }
-
-  const resolveTaskDropId = (event: DragEvent<HTMLElement>) => {
-    if (!taskDrop?.canDropTask) {
-      return null
-    }
-    const raw = event.dataTransfer.getData('text/plain')
-    if (!raw) {
-      return null
-    }
-    return taskDrop.canDropTask(raw) ? raw : null
-  }
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    const handleDragEnd = () => {
-      setTaskDropTarget(null)
-    }
-    window.addEventListener('dragend', handleDragEnd)
-    return () => {
-      window.removeEventListener('dragend', handleDragEnd)
-    }
-  }, [])
 
   const handleProjectClick = (projectId: string) => {
     if (dragStateRef.current !== 'idle') {
@@ -175,7 +144,6 @@ export function DesktopSidebar({
     setDraggingProjectId(null)
     setDragOverProjectId(null)
     setDragOverAreaId(null)
-    setTaskDropTarget(null)
     dragStateRef.current = 'justDropped'
     setTimeout(() => {
       dragStateRef.current = 'idle'
@@ -204,13 +172,6 @@ export function DesktopSidebar({
     event: DragEvent<HTMLButtonElement>,
     projectId: string
   ) => {
-    const taskId = resolveTaskDropId(event)
-    if (taskId) {
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-      setTaskDropTarget({ kind: 'project', id: projectId })
-      return
-    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       return
@@ -226,13 +187,6 @@ export function DesktopSidebar({
   }
 
   const handleAreaDragOver = (event: DragEvent<HTMLButtonElement>, areaId: string) => {
-    const taskId = resolveTaskDropId(event)
-    if (taskId) {
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-      setTaskDropTarget({ kind: 'area', id: areaId })
-      return
-    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       return
@@ -249,12 +203,6 @@ export function DesktopSidebar({
 
   const handleAreaDrop = (event: DragEvent<HTMLButtonElement>, areaId: string) => {
     event.preventDefault()
-    const taskId = resolveTaskDropId(event)
-    if (taskId && taskDrop) {
-      taskDrop.onDropArea(taskId, areaId)
-      clearTaskDropTarget()
-      return
-    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       resetDragState()
@@ -296,12 +244,6 @@ export function DesktopSidebar({
     areaId: string | null
   ) => {
     event.preventDefault()
-    const taskId = resolveTaskDropId(event)
-    if (taskId && taskDrop) {
-      taskDrop.onDropProject(taskId, targetProjectId)
-      clearTaskDropTarget()
-      return
-    }
     const dragging = draggingProjectRef.current
     if (!dragging) {
       resetDragState()
@@ -327,26 +269,6 @@ export function DesktopSidebar({
     resetDragState()
   }
 
-  const handleQuickViewDragOver = (event: DragEvent<HTMLButtonElement>, viewId: QuickViewId) => {
-    const taskId = resolveTaskDropId(event)
-    if (!taskId) {
-      return
-    }
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
-    setTaskDropTarget({ kind: 'quick', id: viewId })
-  }
-
-  const handleQuickViewDrop = (event: DragEvent<HTMLButtonElement>, viewId: QuickViewId) => {
-    const taskId = resolveTaskDropId(event)
-    if (!taskId || !taskDrop) {
-      return
-    }
-    event.preventDefault()
-    taskDrop.onDropQuickView(taskId, viewId)
-    clearTaskDropTarget()
-  }
-
   return (
     <aside className="rounded-[var(--radius-container)] border border-[var(--color-border)] bg-[var(--color-surface)]  flex flex-col h-full text-[var(--on-surface)]">
       <div className="px-6 pt-6 pb-4 border-b border-[var(--color-border)] flex items-center justify-between">
@@ -357,23 +279,15 @@ export function DesktopSidebar({
             <p className="text-lg font-semibold">{t('sidebar.workspace')}</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={onOpenQuickFind}
+          className="h-10 w-10 flex items-center justify-center rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-100)]"
+          aria-label={t('search.placeholder')}
+        >
+          <SearchIcon className="h-4 w-4" />
+        </button>
       </div>
-      {search && (
-        <div className="px-6 pt-4">
-          <DesktopSearch
-            searchQuery={search.searchQuery}
-            suggestions={search.suggestions}
-            projects={search.projects}
-            showSuggestions={search.showSuggestions}
-            inputRef={search.inputRef}
-            onQueryChange={search.onQueryChange}
-            onFocus={search.onFocus}
-            onBlur={search.onBlur}
-            onClear={search.onClear}
-            onSelectSuggestion={search.onSelectSuggestion}
-          />
-        </div>
-      )}
       <nav className="flex-1 overflow-y-auto px-4 pb-6 space-y-8 mt-6">
         <div>
           <p className="text-sm font-semibold text-[var(--color-text-muted)] mb-2">{t('sidebar.focus')}</p>
@@ -382,29 +296,31 @@ export function DesktopSidebar({
               const total = quickViewStats[view.id]
               const overdue = quickViewOverdueStats[view.id]
               const isActive = !selectedProjectId && !selectedAreaId && activeQuickView === view.id
-              const isTaskDropActive = taskDropTarget?.kind === 'quick' && taskDropTarget.id === view.id
               return (
                 <li key={view.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectQuickView(view.id)}
-                    onDragOver={(event) => handleQuickViewDragOver(event, view.id)}
-                    onDrop={(event) => handleQuickViewDrop(event, view.id)}
-                    onDragLeave={clearTaskDropTarget}
-                    className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium transition ${
-                      isActive
-                        ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
-                        : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
-                    } ${isTaskDropActive ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="h-8 w-8 rounded-[var(--radius-card)] bg-[var(--color-primary-100)] flex items-center justify-center">
-                        <img src={view.icon} alt="" className="h-5 w-5" />
-                      </span>
-                      {view.label}
-                    </span>
-                    <CountPill total={total} overdue={overdue} />
-                  </button>
+                  <Droppable droppableId={buildQuickViewTargetId(view.id)} type="TASK">
+                    {(provided, snapshot) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectQuickView(view.id)}
+                          className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium transition ${isActive
+                            ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
+                            : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                            } ${snapshot.isDraggingOver ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <span className="h-8 w-8 rounded-[var(--radius-card)] bg-[var(--color-primary-100)] flex items-center justify-center">
+                              <img src={view.icon} alt="" className="h-5 w-5" />
+                            </span>
+                            {view.label}
+                          </span>
+                          <CountPill total={total} overdue={overdue} />
+                        </button>
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
                 </li>
               )
             })}
@@ -417,60 +333,64 @@ export function DesktopSidebar({
               const areaProjects = projects.filter(project => project.area_id === area.id)
               const stats = areaStats.get(area.id)
               const isActiveArea = selectedAreaId === area.id && !selectedProjectId
-              const isTaskDropActive = taskDropTarget?.kind === 'area' && taskDropTarget.id === area.id
               return (
                 <div key={area.id} className="px-1 py-1">
-                  <button
-                    type="button"
-                    onClick={() => handleAreaClick(area.id)}
-                    onDragOver={(event) => handleAreaDragOver(event, area.id)}
-                    onDrop={(event) => handleAreaDrop(event, area.id)}
-                    onDragLeave={clearTaskDropTarget}
-                    className={`w-full min-h-[48px] flex items-center justify-between text-sm font-semibold rounded-[var(--radius-card)] px-3 py-2 ${
-                      isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
-                    } ${dragOverAreaId === area.id || isTaskDropActive ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <AreaIcon className="h-3.5 w-3.5" />
-                      {area.name}
-                    </span>
-                    <CountPill total={stats?.total} overdue={stats?.overdue} />
-                  </button>
+                  <Droppable droppableId={buildAreaTargetId(area.id)} type="TASK">
+                    {(provided, snapshot) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps}>
+                        <button
+                          type="button"
+                          onClick={() => handleAreaClick(area.id)}
+                          onDragOver={(event) => handleAreaDragOver(event, area.id)}
+                          onDrop={(event) => handleAreaDrop(event, area.id)}
+                          className={`w-full min-h-[48px] flex items-center justify-between text-sm font-semibold rounded-[var(--radius-card)] px-3 py-2 ${isActiveArea ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                            } ${dragOverAreaId === area.id || snapshot.isDraggingOver ? 'ring-1 ring-[var(--color-primary-200)]' : ''}`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <AreaIcon className="h-3.5 w-3.5" />
+                            {area.name}
+                          </span>
+                          <CountPill total={stats?.total} overdue={stats?.overdue} />
+                        </button>
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
                   <div className="mt-1 ml-7 space-y-1">
                     {areaProjects.map(project => {
                       const projectStat = projectStats.get(project.id)
                       const isActiveProject = selectedProjectId === project.id
-                      const isTaskDropActiveProject =
-                        taskDropTarget?.kind === 'project' && taskDropTarget.id === project.id
                       return (
-                        <button
-                          key={project.id}
-                          type="button"
-                          draggable
-                          onClick={() => handleProjectClick(project.id)}
-                          onDragStart={(event) => handleProjectDragStart(event, project.id, area.id)}
-                          onDragEnd={handleProjectDragEnd}
-                          onDragOver={(event) => handleProjectDragOver(event, project.id)}
-                          onDrop={(event) => handleProjectDrop(event, project.id, area.id)}
-                          onDragLeave={clearTaskDropTarget}
-                          className={`w-full min-h-[48px] flex items-center justify-between text-sm rounded-[var(--radius-card)] px-3 py-2 ${
-                            isActiveProject
-                              ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] '
-                              : 'text-[var(--color-text-muted)] hover:text-[var(--on-surface)]'
-                          } ${
-                            draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
-                          } ${
-                            dragOverProjectId === project.id || isTaskDropActiveProject
-                              ? 'ring-1 ring-[var(--color-primary-200)]'
-                              : ''
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <ProjectIcon className="h-3 w-3" />
-                            {project.name}
-                          </span>
-                          <CountPill total={projectStat?.total} overdue={projectStat?.overdue} />
-                        </button>
+                        <Droppable key={project.id} droppableId={buildProjectTargetId(project.id)} type="TASK">
+                          {(provided, snapshot) => (
+                            <div ref={provided.innerRef} {...provided.droppableProps}>
+                              <button
+                                type="button"
+                                draggable
+                                onClick={() => handleProjectClick(project.id)}
+                                onDragStart={(event) => handleProjectDragStart(event, project.id, area.id)}
+                                onDragEnd={handleProjectDragEnd}
+                                onDragOver={(event) => handleProjectDragOver(event, project.id)}
+                                onDrop={(event) => handleProjectDrop(event, project.id, area.id)}
+                                className={`w-full min-h-[48px] flex items-center justify-between text-sm rounded-[var(--radius-card)] px-3 py-2 ${isActiveProject
+                                  ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)] '
+                                  : 'text-[var(--color-text-muted)] hover:text-[var(--on-surface)]'
+                                  } ${draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
+                                  } ${dragOverProjectId === project.id || snapshot.isDraggingOver
+                                    ? 'ring-1 ring-[var(--color-primary-200)]'
+                                    : ''
+                                  }`}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <ProjectIcon className="h-3 w-3" />
+                                  {project.name}
+                                </span>
+                                <CountPill total={projectStat?.total} overdue={projectStat?.overdue} />
+                              </button>
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
                       )
                     })}
                   </div>
@@ -482,40 +402,40 @@ export function DesktopSidebar({
         {standaloneProjects.length > 0 && (
           <div>
             <div className="space-y-1">
-            {standaloneProjects.map(project => {
+              {standaloneProjects.map(project => {
                 const stats = projectStats.get(project.id)
                 const isActive = selectedProjectId === project.id
-                const isTaskDropActiveProject =
-                  taskDropTarget?.kind === 'project' && taskDropTarget.id === project.id
                 return (
-                  <button
-                    key={project.id}
-                    type="button"
-                    draggable
-                    onClick={() => handleProjectClick(project.id)}
-                    onDragStart={(event) => handleProjectDragStart(event, project.id, null)}
-                    onDragEnd={handleProjectDragEnd}
-                    onDragOver={(event) => handleProjectDragOver(event, project.id)}
-                    onDrop={(event) => handleProjectDrop(event, project.id, null)}
-                    onDragLeave={clearTaskDropTarget}
-                    className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium ${
-                      isActive
-                        ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
-                        : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
-                    } ${
-                      draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
-                    } ${
-                      dragOverProjectId === project.id || isTaskDropActiveProject
-                        ? 'ring-1 ring-[var(--color-primary-200)]'
-                        : ''
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <ProjectIcon className="h-3.5 w-3.5" />
-                      {project.name}
-                    </span>
-                    <CountPill total={stats?.total} overdue={stats?.overdue} />
-                  </button>
+                  <Droppable key={project.id} droppableId={buildProjectTargetId(project.id)} type="TASK">
+                    {(provided, snapshot) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps}>
+                        <button
+                          type="button"
+                          draggable
+                          onClick={() => handleProjectClick(project.id)}
+                          onDragStart={(event) => handleProjectDragStart(event, project.id, null)}
+                          onDragEnd={handleProjectDragEnd}
+                          onDragOver={(event) => handleProjectDragOver(event, project.id)}
+                          onDrop={(event) => handleProjectDrop(event, project.id, null)}
+                          className={`w-full min-h-[48px] flex items-center justify-between rounded-[var(--radius-container)] px-3 py-2 text-sm font-medium ${isActive
+                            ? 'bg-[var(--color-action-500)] text-[var(--on-primary)] '
+                            : 'text-[var(--on-surface)] hover:bg-[var(--color-primary-100)]'
+                            } ${draggingProjectId === project.id ? 'opacity-60 cursor-grabbing' : 'cursor-grab'
+                            } ${dragOverProjectId === project.id || snapshot.isDraggingOver
+                              ? 'ring-1 ring-[var(--color-primary-200)]'
+                              : ''
+                            }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <ProjectIcon className="h-3.5 w-3.5" />
+                            {project.name}
+                          </span>
+                          <CountPill total={stats?.total} overdue={stats?.overdue} />
+                        </button>
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
                 )
               })}
             </div>

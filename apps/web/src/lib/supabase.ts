@@ -135,7 +135,6 @@ export interface Task {
   title: string
   notes: string | null
   status: 'open' | 'done' | 'snoozed'
-  priority: number
   due_at: string | null
   deadline_at: string | null
   start_at: string | null
@@ -247,7 +246,6 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
           title: 'Tarea demo e2e',
           notes: null,
           status: 'open',
-          priority: 0,
           due_at: null,
           deadline_at: null,
           start_at: null,
@@ -296,7 +294,6 @@ export async function searchTasks(args: SearchTasksArgs = {}): Promise<{ success
 export async function addTask(
   title: string,
   notes?: string,
-  priority?: number,
   due_at?: string,
   status: 'open' | 'done' | 'snoozed' = 'open',
   project_id?: string | null,
@@ -320,7 +317,6 @@ export async function addTask(
           title: title.trim(),
           notes: notes || null,
           status,
-          priority: priority || 0,
           due_at: due_at || null,
           deadline_at: deadline_at || null,
           client_mutation_id: enableMutationIds ? client_mutation_id || null : undefined,
@@ -349,7 +345,6 @@ export async function addTask(
       user_id: user.id,
       title: title.trim(),
       notes: notes || null,
-      priority: priority || 0,
       due_at: due_at || null,
       deadline_at: deadline_at || null,
       status: status || 'open',
@@ -400,7 +395,6 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<{ 
           title: updates.title ?? 'Actualizada',
           notes: updates.notes ?? null,
           status: updates.status ?? 'open',
-          priority: updates.priority ?? 0,
           due_at: updates.due_at ?? null,
           deadline_at: updates.deadline_at ?? null,
           start_at: updates.start_at ?? null,
@@ -456,7 +450,6 @@ export async function toggleTaskStatus(id: string): Promise<{ success: boolean; 
           title: 'Tarea demo e2e',
           notes: null,
           status: 'done',
-          priority: 0,
           due_at: null,
           deadline_at: null,
           start_at: null,

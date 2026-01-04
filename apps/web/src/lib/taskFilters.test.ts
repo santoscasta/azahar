@@ -13,7 +13,6 @@ const taskFactory = (overrides: Partial<Task>): Task => {
     title: 'Base task',
     notes: null,
     status: 'open',
-    priority: 0,
     due_at: null,
     deadline_at: null,
     start_at: null,

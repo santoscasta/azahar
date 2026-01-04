@@ -13,7 +13,6 @@ const baseTask = (overrides: Partial<Task> = {}): Task => ({
   title: 'Demo Task',
   notes: 'Notas de prueba',
   status: 'open',
-  priority: 1,
   due_at: '2025-01-01T00:00:00.000Z',
   deadline_at: null,
   start_at: null,

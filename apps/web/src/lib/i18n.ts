@@ -107,11 +107,6 @@ type TranslationKey =
   | 'gtd.quickCapture.destinationHint'
   | 'gtd.quickCapture.projectPlaceholder'
   | 'gtd.quickCapture.areaPlaceholder'
-  | 'gtd.quickCapture.priority.default'
-  | 'gtd.quickCapture.priority.soft'
-  | 'gtd.quickCapture.priority.strong'
-  | 'gtd.quickCapture.priority.urgent'
-  | 'gtd.quickCapture.priorityHint'
   | 'gtd.quickCapture.cta'
   | 'gtd.quickCapture.saving'
   | 'gtd.quickCapture.preset.inbox'
@@ -396,11 +391,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.quickCapture.destinationHint': 'Asigna hogar opcional',
     'gtd.quickCapture.projectPlaceholder': 'Sin proyecto (inbox)',
     'gtd.quickCapture.areaPlaceholder': 'Sin área',
-    'gtd.quickCapture.priority.default': 'Normal',
-    'gtd.quickCapture.priority.soft': 'Tranquila',
-    'gtd.quickCapture.priority.strong': 'Importante',
-    'gtd.quickCapture.priority.urgent': 'Urgente',
-    'gtd.quickCapture.priorityHint': 'Prioridad al estilo Things',
     'gtd.quickCapture.cta': 'Añadir',
     'gtd.quickCapture.saving': 'Guardando...',
     'gtd.quickCapture.preset.inbox': 'Deja que lo revises luego.',
@@ -684,11 +674,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'gtd.quickCapture.destinationHint': 'Optional home',
     'gtd.quickCapture.projectPlaceholder': 'No project (inbox)',
     'gtd.quickCapture.areaPlaceholder': 'No area',
-    'gtd.quickCapture.priority.default': 'Normal',
-    'gtd.quickCapture.priority.soft': 'Light',
-    'gtd.quickCapture.priority.strong': 'Important',
-    'gtd.quickCapture.priority.urgent': 'Urgent',
-    'gtd.quickCapture.priorityHint': 'Things-like priority',
     'gtd.quickCapture.cta': 'Add',
     'gtd.quickCapture.saving': 'Saving...',
     'gtd.quickCapture.preset.inbox': 'Leave it to clarify later.',

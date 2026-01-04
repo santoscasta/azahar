@@ -46,7 +46,7 @@ export default function AssistantChat({ open, onClose }: AssistantChatProps) {
       setStatus(`Creando ${response.tasks.length} tarea(s)...`)
       let created = 0
       for (const task of response.tasks) {
-        const result = await addTask(task.title, task.notes, 0, toISODate(task.due_at))
+        const result = await addTask(task.title, task.notes, toISODate(task.due_at))
         if (result.success) {
           created += 1
         }

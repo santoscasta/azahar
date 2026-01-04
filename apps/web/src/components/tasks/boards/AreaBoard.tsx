@@ -1,6 +1,6 @@
 import type { Task, Project } from '../../../lib/supabase.js'
-import { useState } from 'react'
 import { useTranslations } from '../../../App.js'
+import { buildAreaProjectListId } from '../../../lib/dndIds.js'
 
 interface AreaBoardProps {
   areaId: string
@@ -12,9 +12,8 @@ interface AreaBoardProps {
   tasksByProject: Map<string, Task[]>
   looseTasks: Task[]
   onSelectProject: (projectId: string) => void
-  renderTaskList: (tasks: Task[]) => React.ReactNode
+  renderTaskList: (tasks: Task[], options?: { showEmptyState?: boolean; dndDroppableId?: string }) => React.ReactNode
   showCompletedTasks: boolean
-  onMoveTaskToProject?: (payload: { taskId: string; projectId: string | null; areaId: string | null }) => void
 }
 
 export default function AreaBoard({
@@ -29,7 +28,6 @@ export default function AreaBoard({
   onSelectProject,
   renderTaskList,
   showCompletedTasks,
-  onMoveTaskToProject,
 }: AreaBoardProps) {
   const { t } = useTranslations()
   const areaLabel = t('context.label.area')
@@ -37,7 +35,6 @@ export default function AreaBoard({
   const projectsLabel = t('sidebar.projects').toLowerCase()
   const completedLabel = t('mobile.completed')
   const projectCountLabel = projectCount === 1 ? projectLabel.toLowerCase() : projectsLabel
-  const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
   const openTasksByProject = new Map<string, Task[]>()
   const completedTasks: Task[] = []
 
@@ -52,37 +49,6 @@ export default function AreaBoard({
 
   const openLoose = openTasksByProject.get('loose') || looseTasks.filter(task => task.status !== 'done')
   const hasAnyList = projects.length > 0 || openLoose.length > 0 || (showCompletedTasks && completedTasks.length > 0)
-
-  const handleTaskDragOver = (event: React.DragEvent<HTMLElement>, projectId: string | null) => {
-    if (!onMoveTaskToProject) {
-      return
-    }
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
-    setDragOverProjectId(projectId ?? 'loose')
-  }
-
-  const handleTaskDragLeave = (projectId: string | null) => {
-    if (!onMoveTaskToProject) {
-      return
-    }
-    if (dragOverProjectId === (projectId ?? 'loose')) {
-      setDragOverProjectId(null)
-    }
-  }
-
-  const handleTaskDrop = (event: React.DragEvent<HTMLElement>, projectId: string | null) => {
-    if (!onMoveTaskToProject) {
-      return
-    }
-    event.preventDefault()
-    const taskId = event.dataTransfer.getData('text/plain')
-    setDragOverProjectId(null)
-    if (!taskId) {
-      return
-    }
-    onMoveTaskToProject({ taskId, projectId, areaId: projectId ? projects.find(project => project.id === projectId)?.area_id ?? null : areaId })
-  }
 
   return (
     <div className="az-card overflow-hidden">
@@ -102,12 +68,7 @@ export default function AreaBoard({
         {projects.map(project => (
           <section
             key={project.id}
-            onDragOver={(event) => handleTaskDragOver(event, project.id)}
-            onDragLeave={() => handleTaskDragLeave(project.id)}
-            onDrop={(event) => handleTaskDrop(event, project.id)}
-            className={`px-6 py-6 space-y-3 rounded-[var(--radius-container)] ${
-              dragOverProjectId === project.id ? 'ring-1 ring-[var(--color-primary-200)]' : ''
-            }`}
+            className="px-6 py-6 space-y-3 rounded-[var(--radius-container)]"
           >
             <div>
               <p className="text-sm font-semibold text-[var(--color-text-muted)]">{projectLabel}</p>
@@ -119,19 +80,18 @@ export default function AreaBoard({
                 {project.name}
               </button>
             </div>
-            {renderTaskList(openTasksByProject.get(project.id) || [])}
+            {renderTaskList(openTasksByProject.get(project.id) || [], {
+              dndDroppableId: buildAreaProjectListId(areaId, project.id),
+            })}
           </section>
         ))}
         {openLoose.length > 0 && (
           <section
-            onDragOver={(event) => handleTaskDragOver(event, null)}
-            onDragLeave={() => handleTaskDragLeave(null)}
-            onDrop={(event) => handleTaskDrop(event, null)}
-            className={`px-6 py-6 rounded-[var(--radius-container)] ${
-              dragOverProjectId === 'loose' ? 'ring-1 ring-[var(--color-primary-200)]' : ''
-            }`}
+            className="px-6 py-6 rounded-[var(--radius-container)]"
           >
-            {renderTaskList(openLoose)}
+            {renderTaskList(openLoose, {
+              dndDroppableId: buildAreaProjectListId(areaId, null),
+            })}
           </section>
         )}
         {showCompletedTasks && completedTasks.length > 0 && (
