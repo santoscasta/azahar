@@ -95,6 +95,16 @@ export default function DatePickerOverlay({
     onClose()
   }
 
+  const handleQuickSelect = (value: string | null) => {
+    onSelectDate(value)
+    onClose()
+  }
+
+  const handleDaySelect = (iso: string) => {
+    onSelectDate(iso)
+    onClose()
+  }
+
   const handleCancel = () => {
     setPendingDate(selectedDate)
     onClose()
@@ -133,7 +143,7 @@ export default function DatePickerOverlay({
             <button
               key={option.id}
               type="button"
-              onClick={() => setPendingDate(option.value)}
+              onClick={() => handleQuickSelect(option.value)}
               className={`px-3 py-1.5 rounded-[var(--radius-chip)] text-sm font-medium border transition ${pendingDate === option.value
                 ? 'border-[var(--color-action-500)] text-[var(--color-action-500)] bg-[var(--color-accent-200)]'
                 : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-400)]'
@@ -175,7 +185,7 @@ export default function DatePickerOverlay({
               <button
                 key={day.iso}
                 type="button"
-                onClick={() => setPendingDate(day.iso)}
+                onClick={() => handleDaySelect(day.iso)}
                 className={`h-11 w-11 mx-auto rounded-[var(--radius-card)] text-sm font-semibold transition flex items-center justify-center ${pendingDate === day.iso
                   ? 'bg-[var(--color-action-500)] text-[var(--on-primary)]'
                   : day.isToday
@@ -196,8 +206,8 @@ export default function DatePickerOverlay({
           </span>
           <button
             type="button"
-            onClick={() => setPendingDate('')}
-            className="text-[var(--color-action-500)] font-semibold"
+            onClick={() => handleQuickSelect('')}
+            className="text-[var(--color-action-500)] font-semibold px-4 py-2"
           >
             {t('actions.clear')}
           </button>

@@ -158,6 +158,17 @@ export default function TasksPage() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null)
   const [editingHeadingId, setEditingHeadingId] = useState<string | null>(null)
+  const dndIds = useMemo(() => ({
+    quickView: {
+      list: (view: QuickViewId) => `tasklist:view:${view}`,
+    },
+    project: {
+      list: (projectId: string, headingId: string | null) => `tasklist:project:${projectId}:heading:${headingId ?? 'none'}`,
+    },
+    area: {
+      list: (areaId: string, projectId: string | null) => `tasklist:area:${areaId}:project:${projectId ?? 'none'}`,
+    }
+  }), [])
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null)
   const {
@@ -2066,6 +2077,20 @@ export default function TasksPage() {
         updateTaskDraft('deadline_at', normalized)
       } else if (datePickerTarget === 'edit') {
         setEditingDeadlineAt(normalized)
+        if (editingId) {
+          // Auto-save deadline when picked
+          updateTaskMutation.mutate({
+            taskId: editingId,
+            title: editingTitle,
+            notes: editingNotes,
+            dueAt: editingDueAt,
+            deadlineAt: normalized,
+            projectId: editingProjectId,
+            areaId: editingAreaId,
+            headingId: editingHeadingId,
+            checklist: editingChecklist,
+          })
+        }
       } else if (datePickerTarget === 'draft') {
         updateMobileDraft(prev => (prev ? { ...prev, deadline_at: normalized || null } : prev))
       }
@@ -2078,6 +2103,20 @@ export default function TasksPage() {
         updateTaskDraft('status', nextView === 'anytime' ? 'open' : nextView === 'someday' ? 'snoozed' : 'open')
       } else if (datePickerTarget === 'edit') {
         setEditingDueAt(normalized)
+        if (editingId) {
+          // Auto-save date when picked
+          updateTaskMutation.mutate({
+            taskId: editingId,
+            title: editingTitle,
+            notes: editingNotes,
+            dueAt: normalized,
+            deadlineAt: editingDeadlineAt,
+            projectId: editingProjectId,
+            areaId: editingAreaId,
+            headingId: editingHeadingId,
+            checklist: editingChecklist,
+          })
+        }
       } else if (datePickerTarget === 'draft') {
         updateMobileDraft(prev => {
           if (!prev) return prev
@@ -2180,7 +2219,7 @@ export default function TasksPage() {
           dragEnabled,
           onDragEndTask: options.onDragEndTask,
           onCreateTask: options.onCreateTask,
-          dndDroppableId: options.dndDroppableId,
+          dndDroppableId: options.dndDroppableId || dndIds.quickView.list(activeQuickView),
         })}
       </>
     )
@@ -4095,8 +4134,12 @@ export default function TasksPage() {
       if (!task) return
 
       if (source.droppableId === destination.droppableId) {
-        // Reordering within the same list is usually handled by TaskList's internal logic
-        // but for DND cross-list we need this.
+        // Reordering within the same list
+        const items = Array.from(tasks.map(t => t.id))
+        const [removed] = items.splice(source.index, 1)
+        items.splice(destination.index, 0, removed)
+
+        handleReorderTasks(items, source.droppableId)
         return
       }
 
@@ -4418,6 +4461,8 @@ export default function TasksPage() {
                   renderDraftCard={renderMobileDraftTaskCard}
                   showDraft={showMobileHome && !!mobileDraftTask}
                   pendingSync={hasPendingSync}
+                  isFocusMode={isFocusMode}
+                  onToggleFocus={toggleFocusMode}
                 />
               </div>
             </div>
@@ -4558,14 +4603,15 @@ export default function TasksPage() {
                 onAddHeading={() => setShowQuickHeadingForm(true)}
                 onOpenDatePicker={(anchor) => openDatePicker('edit', 'when', anchor)}
                 onMoveSelected={() => {
-                  if (selectedTask) {
-                    handleOpenMoveSheet(selectedTask)
+                  if (editingId) {
+                    const task = tasks.find(t => t.id === editingId)
+                    if (task) handleOpenMoveSheet(task)
                   }
                 }}
                 onOpenQuickFind={openDesktopQuickFind}
                 disableHeading={!selectedProjectId}
-                disableDate={!selectedTask}
-                disableMove={!selectedTask}
+                disableDate={!editingId}
+                disableMove={!editingId}
               />
             )}
           </>

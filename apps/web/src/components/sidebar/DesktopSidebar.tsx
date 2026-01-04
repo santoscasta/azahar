@@ -11,6 +11,7 @@ import AreaIcon from '../icons/AreaIcon.js'
 import ProjectIcon from '../icons/ProjectIcon.js'
 import SearchIcon from '../icons/SearchIcon.js'
 import AzaharLogo from './AzaharLogo.js'
+import AnchoredPopover from '../tasks/AnchoredPopover.js'
 
 interface StatsMap extends Map<string, { total: number; overdue: number }> { }
 
@@ -124,6 +125,7 @@ export function DesktopSidebar({
   const [dragOverAreaId, setDragOverAreaId] = useState<string | null>(null)
   const dragStateRef = useRef<'idle' | 'dragging' | 'justDropped'>('idle')
   const draggingProjectRef = useRef<{ id: string; areaId: string | null } | null>(null)
+  const newListButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const handleProjectClick = (projectId: string) => {
     if (dragStateRef.current !== 'idle') {
@@ -444,11 +446,14 @@ export function DesktopSidebar({
       </nav>
       <div className="relative px-6 py-4 border-t border-[var(--color-border)] flex items-center gap-3">
         <button
+          ref={newListButtonRef}
           type="button"
           onClick={onToggleNewListMenu}
-          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] py-2 text-sm font-semibold  hover:opacity-90"
+          className="flex-1 min-h-[48px] flex items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-action-500)] text-[var(--on-primary)] py-2 text-sm font-semibold  hover:opacity-90 transition-transform active:scale-95"
+          aria-haspopup="true"
+          aria-expanded={showNewListMenu}
         >
-          +
+          <span className="text-xl leading-none">+</span>
           <span>{t('sidebar.newList')}</span>
         </button>
         <button
@@ -467,31 +472,45 @@ export function DesktopSidebar({
         >
           <img src={helpIcon} alt="" className="h-5 w-5" />
         </button>
-        {showNewListMenu && (
-          <div className="absolute left-6 right-6 bottom-20 bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-4 space-y-4  border border-[var(--color-border)]">
+        <AnchoredPopover
+          open={showNewListMenu}
+          anchorEl={newListButtonRef.current}
+          onClose={onToggleNewListMenu}
+          offset={8}
+          className="w-64 z-[60]"
+        >
+          <div className="bg-[var(--color-surface-elevated)] text-[var(--on-surface)] rounded-[var(--radius-container)] p-3 space-y-2 border border-[var(--color-border)] shadow-xl animate-in fade-in zoom-in duration-200 origin-bottom">
             <button
               type="button"
-              onClick={onCreateProject}
-              className="w-full min-h-[44px] text-left flex flex-col gap-1 py-2"
+              onClick={() => {
+                onCreateProject()
+                onToggleNewListMenu()
+              }}
+              className="w-full min-h-[44px] text-left flex items-center gap-3 p-3 rounded-[var(--radius-card)] hover:bg-[var(--color-primary-100)] transition-colors group"
             >
-              <span className="text-sm font-semibold flex items-center gap-2">
-                <span className="text-[var(--color-primary-600)]">🌀</span> {t('sidebar.newProject')}
-              </span>
-              <span className="text-xs text-[var(--color-text-subtle)]">{t('sidebar.newProject.desc')}</span>
+              <span className="text-xl grayscale group-hover:grayscale-0 transition">🌀</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{t('sidebar.newProject')}</span>
+                <span className="text-xs text-[var(--color-text-muted)] line-clamp-1">{t('sidebar.newProject.desc')}</span>
+              </div>
             </button>
-            <div className="h-px bg-[var(--color-border)]" />
+            <div className="h-px bg-[var(--color-border)] mx-1" />
             <button
               type="button"
-              onClick={onCreateArea}
-              className="w-full min-h-[44px] text-left flex flex-col gap-1 py-2"
+              onClick={() => {
+                onCreateArea()
+                onToggleNewListMenu()
+              }}
+              className="w-full min-h-[44px] text-left flex items-center gap-3 p-3 rounded-[var(--radius-card)] hover:bg-[var(--color-primary-100)] transition-colors group"
             >
-              <span className="text-sm font-semibold flex items-center gap-2">
-                <span className="text-[var(--color-accent-600)]">🧩</span> {t('sidebar.newArea')}
-              </span>
-              <span className="text-xs text-[var(--color-text-subtle)]">{t('sidebar.newArea.desc')}</span>
+              <span className="text-xl grayscale group-hover:grayscale-0 transition">🧩</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{t('sidebar.newArea')}</span>
+                <span className="text-xs text-[var(--color-text-muted)] line-clamp-1">{t('sidebar.newArea.desc')}</span>
+              </div>
             </button>
           </div>
-        )}
+        </AnchoredPopover>
       </div>
     </aside>
   )

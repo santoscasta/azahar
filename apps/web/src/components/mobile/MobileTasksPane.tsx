@@ -44,6 +44,8 @@ interface MobileTasksPaneProps {
   renderDraftCard?: () => ReactNode
   showDraft: boolean
   pendingSync: boolean
+  isFocusMode: boolean
+  onToggleFocus: () => void
 }
 
 export default function MobileTasksPane({
@@ -80,6 +82,8 @@ export default function MobileTasksPane({
   renderDraftCard,
   showDraft,
   pendingSync,
+  isFocusMode,
+  onToggleFocus,
 }: MobileTasksPaneProps) {
   const { t } = useTranslations()
   return (
@@ -118,6 +122,8 @@ export default function MobileTasksPane({
           filteredTaskCount={filteredTaskCount}
           completedCount={completedCount}
           projectsInArea={projectsInArea}
+          isFocusMode={isFocusMode}
+          onToggleFocus={onToggleFocus}
         />
       )}
       renderFilters={() => (
